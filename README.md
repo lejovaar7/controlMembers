@@ -37,6 +37,8 @@ served by Vite. In production, `wrangler.json` points the Worker at
 reachable. It returns `503` with `{ "status": "error", "database": "unavailable" }`
 if the database cannot be queried.
 
+Authentication is handled by Better Auth, mounted at `/api/auth/*`.
+
 Routing is split by `run_worker_first: ["/api/*"]`: only `/api/*` reaches the
 Worker. Everything else is served by Static Assets, with
 `not_found_handling: "single-page-application"` so SPA deep links work. Unknown
@@ -71,6 +73,33 @@ a placeholder for future per-tenant routing and implements no tenancy today.
 `REPLACE_WITH_REAL_D1_DATABASE_ID`. Local development works as-is; anything that
 touches the remote database fails until you replace it, which is intentional —
 see the setup section below.
+
+## Authentication
+
+Better Auth, with email and password enabled. It is mounted at `/api/auth/*` and
+runs on top of the existing Drizzle layer, so Drizzle remains the only schema and
+migration authority.
+
+- Configuration: `src/worker/auth/index.ts` (`getAuth(env)`)
+- Generated schema: `src/worker/db/auth-schema.ts` — regenerate with
+  `npx auth@latest generate`, then `npm run db:generate` for the migration
+
+`BETTER_AUTH_SECRET` is required and is declared in `wrangler.json` under
+`secrets.required`, so `npm run cf-typegen` includes it in `Env`.
+
+For local development it lives in `.dev.vars`, which is untracked:
+
+```bash
+echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" > .dev.vars
+```
+
+**Never commit this file or the secret.** Every project created from this
+template must generate its own secret, and must set the production secret on
+Cloudflare before deploying:
+
+```bash
+npx wrangler secret put BETTER_AUTH_SECRET
+```
 
 ## Starting a new project from this template
 

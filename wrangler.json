@@ -3,6 +3,9 @@
 	"name": "saas-template",
 	"main": "./src/worker/index.ts",
 	"compatibility_date": "2026-08-27",
+	"secrets": {
+		"required": ["BETTER_AUTH_SECRET"]
+	},
 	"observability": {
 		"enabled": true
 	},

@@ -1,9 +1,10 @@
 import { drizzle } from "drizzle-orm/d1";
+import * as authSchema from "./auth-schema";
 import * as schema from "./schema";
 
 /** The single place where a D1 binding becomes a Drizzle instance. */
 export function getDb(env: Env) {
-	return drizzle(env.DB, { schema });
+	return drizzle(env.DB, { schema: { ...schema, ...authSchema } });
 }
 
 /**

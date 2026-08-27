@@ -1,8 +1,11 @@
 import { Hono } from "hono";
+import { getAuth } from "./auth";
 import { getDb } from "./db";
 import { systemCheck } from "./db/schema";
 
 const app = new Hono<{ Bindings: Env }>();
+
+app.all("/api/auth/*", (c) => getAuth(c.env).handler(c.req.raw));
 
 app.get("/api/health", async (c) => {
 	try {
