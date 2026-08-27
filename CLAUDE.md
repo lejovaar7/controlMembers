@@ -104,6 +104,38 @@ Consequences to respect:
 
 The `ASSETS` binding is declared and typed but currently unused.
 
+## Database
+
+Cloudflare D1 accessed through Drizzle ORM. Binding `DB`, database name
+`saas-template-db`.
+
+```
+src/worker/db/schema.ts   Drizzle schema
+src/worker/db/index.ts    getDb() / getTenantDb()
+drizzle/                  Generated migrations — the single source of truth
+drizzle.config.ts         Drizzle Kit configuration
+```
+
+Rules:
+
+- **Always go through `getDb(env)`.** Never call `drizzle(...)` anywhere else,
+  and never reach for `env.DB` directly outside `src/worker/db/`.
+- **`getTenantDb(env)` delegates to `getDb(env)` and must stay trivial.** It is a
+  future abstraction point only. Do not implement tenants, organizations,
+  memberships, roles or database routing behind it until a phase asks for it.
+- **Migrations are generated, never hand-written.** Run `npm run db:generate`
+  after changing the schema, inspect the SQL, then apply it with
+  `npm run db:migrate:local`. Do not copy migrations between directories, do not
+  write a custom migration runner, and do not use `drizzle-kit push` to migrate.
+- `wrangler.json` sets `migrations_dir` to `./drizzle` so Wrangler consumes the
+  Drizzle output directly.
+- Changing `database_id` repoints local D1 at a different database — re-run
+  `npm run db:migrate:local` afterwards.
+
+Dependency policy: pin every direct dependency to an exact version, stable
+releases only. Stay on React 19, Vite 7, TypeScript 5.9.x, ESLint 9,
+typescript-eslint 8 and Hono 4 unless a phase explicitly says otherwise.
+
 ## Commands
 
 | Command              | Purpose                                          |
@@ -113,7 +145,10 @@ The `ASSETS` binding is declared and typed but currently unused.
 | `npm run lint`       | ESLint                                           |
 | `npm run build`      | Typecheck + production build into `dist/`        |
 | `npm run preview`    | Build + local preview of the production bundle   |
-| `npm run check`      | Typecheck + build + `wrangler deploy --dry-run`  |
+| `npm run check`      | Typecheck + lint + build + `deploy --dry-run`    |
+| `npm run db:generate`       | Generate a migration from the schema     |
+| `npm run db:migrate:local`  | Apply migrations to local D1             |
+| `npm run db:migrate:remote` | Apply migrations to remote D1            |
 | `npm run deploy`     | Build + deploy to Cloudflare Workers             |
 | `npm run cf-typegen` | Regenerate `worker-configuration.d.ts`           |
 
