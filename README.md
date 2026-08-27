@@ -84,22 +84,56 @@ migration authority.
 - Generated schema: `src/worker/db/auth-schema.ts` — regenerate with
   `npx auth@latest generate`, then `npm run db:generate` for the migration
 
-`BETTER_AUTH_SECRET` is required and is declared in `wrangler.json` under
-`secrets.required`, so `npm run cf-typegen` includes it in `Env`.
+Email verification is required before an email/password user can sign in, and
+password reset is enabled. Both use Better Auth's built-in flows and its existing
+`verification` table — there are no custom tokens.
 
-For local development it lives in `.dev.vars`, which is untracked:
+## Configuration
+
+Three values are required. They are declared in `wrangler.json` under
+`secrets.required`, so `npm run cf-typegen` includes them in `Env` and a missing
+value fails loudly instead of silently falling back.
+
+| Name                 | Purpose                                          |
+| -------------------- | ------------------------------------------------ |
+| `BETTER_AUTH_SECRET` | Better Auth signing secret                       |
+| `APP_URL`            | Canonical app URL; used for links in emails      |
+| `EMAIL_FROM`         | Sender address for outgoing email                |
+
+Local values live in `.dev.vars`, which is untracked:
 
 ```bash
-echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" > .dev.vars
+cat > .dev.vars <<EOF
+BETTER_AUTH_SECRET=$(openssl rand -base64 32)
+APP_URL=http://localhost:5173
+EMAIL_FROM=no-reply@mail.example.com
+EOF
 ```
 
-**Never commit this file or the secret.** Every project created from this
-template must generate its own secret, and must set the production secret on
+**Never commit `.dev.vars` or any of these values.** Every project created from
+this template generates its own secret and sets its own production values on
 Cloudflare before deploying:
 
 ```bash
 npx wrangler secret put BETTER_AUTH_SECRET
+npx wrangler secret put APP_URL          # e.g. https://app.example.com
+npx wrangler secret put EMAIL_FROM       # e.g. no-reply@mail.example.com
 ```
+
+## Email
+
+Outgoing email uses the Cloudflare `EMAIL` binding (Email Sending) through
+`src/worker/email/`. Application and auth code never touches the binding
+directly.
+
+**Local development simulates email by default** — nothing is actually sent, and
+the generated bodies are written under `.wrangler/tmp/email/`. To send for real
+from local dev, intentionally set `"remote": true` on the `send_email` binding in
+`wrangler.json`; do not commit that change.
+
+Production `EMAIL_FROM` must belong to a domain onboarded in **Cloudflare Email
+Sending**. Each SaaS built from this template onboards its own sending domain or
+subdomain — for example `mail.example.com` — and configures its own values.
 
 ## Starting a new project from this template
 
