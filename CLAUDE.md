@@ -136,6 +136,50 @@ Dependency policy: pin every direct dependency to an exact version, stable
 releases only. Stay on React 19, Vite 7, TypeScript 5.9.x, ESLint 9,
 typescript-eslint 8 and Hono 4 unless a phase explicitly says otherwise.
 
+## Multi-tenancy
+
+**An organization is the tenant. A Better Auth team is a branch (a location).**
+
+- Do not create a second tenant model, and do not create custom `branch` or
+  branch-membership tables. Better Auth's `organization`, `member`, `team`,
+  `team_member` and `invitation` tables are the model.
+- Keep Better Auth's native table names. Do not set `modelName` just to make the
+  SQL read "branch". Application code uses Branch terminology; the database uses
+  Better Auth's.
+- Organization-wide settings live on the `organization` row: `locale`,
+  `timezone`, `currency`. All optional.
+
+Access rules:
+
+- `owner` and `admin` reach **every** branch in their organization, with no
+  `team_member` row required.
+- `member` reaches **only** branches they have a `team_member` row for.
+  Organization membership alone grants no branch access.
+- A branch is never reachable from another organization.
+
+Authorization rules:
+
+- **Never trust an `organizationId` or `branchId` sent by the client.** Resolve
+  the organization through `requireTenant()` and branches through
+  `requireBranch()` / `canAccessBranch()`.
+- The active organization and active branch live on the Better Auth session
+  (`activeOrganizationId`, `activeTeamId`). That is the only source of truth —
+  do not add a cookie, header, column or client store for either.
+- `canAccessBranch()` is the single place branch authorization is decided. Do not
+  reimplement it in a route.
+- Call `getTenantDb(env, organizationId)` only with an organizationId from a
+  validated `TenantContext`.
+
+Rules for SaaS features built on this template:
+
+- A tenant-owned table must carry `organizationId`.
+- A branch-scoped table must carry both `organizationId` and `branchId`.
+- Every tenant-owned feature needs its own automated cross-tenant isolation
+  tests. `test/tenant-isolation.test.ts` is the pattern to follow.
+
+Roles are the Better Auth defaults (`owner`, `admin`, `member`). Do not add
+business roles or dynamic access control here — those belong to each SaaS.
+
 ## Commands
 
 | Command              | Purpose                                          |
@@ -145,7 +189,8 @@ typescript-eslint 8 and Hono 4 unless a phase explicitly says otherwise.
 | `npm run lint`       | ESLint                                           |
 | `npm run build`      | Typecheck + production build into `dist/`        |
 | `npm run preview`    | Build + local preview of the production bundle   |
-| `npm run check`      | Typecheck + lint + build + `deploy --dry-run`    |
+| `npm run check`      | Typecheck + lint + tests + build + `--dry-run`   |
+| `npm test`           | Workers-runtime tests (Vitest)                   |
 | `npm run db:generate`       | Generate a migration from the schema     |
 | `npm run db:migrate:local`  | Apply migrations to local D1             |
 | `npm run db:migrate:remote` | Apply migrations to remote D1            |

@@ -88,6 +88,36 @@ Email verification is required before an email/password user can sign in, and
 password reset is enabled. Both use Better Auth's built-in flows and its existing
 `verification` table — there are no custom tokens.
 
+## Multi-tenancy
+
+The template models tenancy with Better Auth's Organization plugin:
+
+| Application term | Better Auth model            |
+| ---------------- | ---------------------------- |
+| Tenant / company | `organization`               |
+| Branch / location| `team`                       |
+| Branch membership| `teamMember`                 |
+
+Default access:
+
+- `owner` and `admin` reach every branch in their organization
+- `member` reaches only the branches they are assigned to
+
+Roles are Better Auth's defaults (`owner`, `admin`, `member`). Each SaaS built on
+this template can add its own roles and domain permissions on top.
+
+Each organization carries optional settings: `locale`, `timezone` and
+`currency`.
+
+Server-side helpers live in `src/worker/tenant/`:
+
+- `requireTenant(env, request)` → validated `TenantContext`
+- `requireBranch(env, request)` → validated `BranchContext`
+- `canAccessBranch(env, tenant, branchId)` → the one branch authorization rule
+
+The active organization and active branch come from the Better Auth session;
+identifiers sent by the client are never trusted for authorization.
+
 ## Configuration
 
 Three values are required. They are declared in `wrangler.json` under
@@ -187,7 +217,8 @@ so run `npm run db:migrate:local` again afterwards.
 | `npm run lint`       | ESLint                                            |
 | `npm run build`      | Typecheck + production build into `dist/`         |
 | `npm run preview`    | Build + local preview of the production bundle    |
-| `npm run check`      | Typecheck + lint + build + `deploy --dry-run`     |
+| `npm run check`      | Typecheck + lint + tests + build + `--dry-run`    |
+| `npm test`           | Run the Workers-runtime test suite (Vitest)       |
 | `npm run deploy`     | Build + deploy to Cloudflare Workers              |
 | `npm run cf-typegen` | Regenerate `worker-configuration.d.ts`            |
 | `npm run db:generate`     | Generate a migration from the Drizzle schema |

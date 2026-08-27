@@ -1,0 +1,12 @@
+{
+	"extends": "../tsconfig.worker.json",
+	"compilerOptions": {
+		"tsBuildInfoFile": "../node_modules/.tmp/tsconfig.test.tsbuildinfo",
+		"types": [
+			"vite/client",
+			"../worker-configuration.d.ts",
+			"@cloudflare/vitest-plugin/types"
+		]
+	},
+	"include": ["../test", "../vitest.config.ts"]
+}

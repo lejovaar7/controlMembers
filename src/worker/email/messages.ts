@@ -44,3 +44,17 @@ export function passwordResetEmail(url: string): EmailContent {
 		html: layout(heading, paragraph, "Reset password", url),
 	};
 }
+
+export function organizationInvitationEmail(
+	organizationName: string,
+	inviterName: string,
+	url: string,
+): EmailContent {
+	const heading = "You have been invited to join a team";
+	const paragraph = `${inviterName} invited you to join ${organizationName}.`;
+	return {
+		subject: `Invitation to join ${organizationName}`,
+		text: `${paragraph}\n\n${url}\n\nIf you were not expecting this invitation, you can ignore this email.`,
+		html: layout(heading, paragraph, "Accept invitation", url),
+	};
+}

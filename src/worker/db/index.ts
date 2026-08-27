@@ -8,9 +8,16 @@ export function getDb(env: Env) {
 }
 
 /**
- * Future abstraction point for per-tenant database routing.
- * Today every tenant shares the same D1 database.
+ * Database handle for one tenant.
+ *
+ * Every tenant shares one D1 database today, so this returns getDb(). The
+ * organizationId is required so per-tenant routing can be introduced later
+ * without touching call sites.
+ *
+ * Only ever call this with an organizationId from a validated TenantContext —
+ * never with a value supplied by the client.
  */
-export function getTenantDb(env: Env) {
+export function getTenantDb(env: Env, organizationId: string) {
+	void organizationId;
 	return getDb(env);
 }
