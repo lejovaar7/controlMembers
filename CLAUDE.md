@@ -14,20 +14,34 @@ Guidance for Claude Code when working in this repository.
    "Generated with Claude Code" footers to commits or pull requests.
 
 3. **Commit messages are a single line, written in English.** No body, no
-   bullet list, no footer — one line and nothing else. Use the imperative mood
-   and keep it under ~72 characters.
+   bullet list, no footer — one line and nothing else, under ~72 characters.
+
+   **Say what you did, directly, in the past tense.** Start with a plain verb:
+   `Added`, `Updated`, `Fixed`, `Removed`, `Renamed`, `Moved`.
+
+   **Never use Conventional Commits prefixes.** No `chore:`, `feat:`, `fix:`,
+   `docs:`, `refactor:`, `style:`, `test:`, and no scopes like `fix(routing):`.
+   They add nothing — write the sentence instead.
 
    ```
-   Add JSON 404 handler for unknown API routes
-   Split routing so only /api/* runs through the Worker
+   Added JSON 404 handler for unknown API routes
+   Updated routing so only /api/* runs through the Worker
+   Fixed SPA deep links returning a Hono 404
+   Removed unused demo assets from the template
    ```
 
    Not this:
 
    ```
-   Added routing changes
+   chore: establish SaaS starter foundation
+   feat(api): add health endpoint
+   Add health endpoint
+   ```
 
-   - updated wrangler.json
+   ```
+   Updated routing
+
+   - changed wrangler.json
    - added notFound handler
 
    Co-Authored-By: Claude <noreply@anthropic.com>
