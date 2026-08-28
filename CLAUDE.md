@@ -136,6 +136,43 @@ Dependency policy: pin every direct dependency to an exact version, stable
 releases only. Stay on React 19, Vite 7, TypeScript 5.9.x, ESLint 9,
 typescript-eslint 8 and Hono 4 unless a phase explicitly says otherwise.
 
+## Frontend
+
+The React app lives in `src/react-app`; the Hono backend lives in `src/worker`.
+Never import Worker modules from frontend code — the two TypeScript projects are
+separate on purpose.
+
+- Client routing is React Router. Routes live in `src/react-app/router/`, shared
+  chrome in `layouts/`, screens in `pages/`.
+- **Frontend route guards are UX only. `requireAuth` / `requireTenant` /
+  `requireBranch` in the Worker remain authoritative.** Never treat a client-side
+  check as security.
+- Reuse the shadcn/ui components in `src/react-app/components/ui` before writing
+  an equivalent. Those files are generated — re-running `shadcn add` overwrites
+  local edits, so wrap rather than modify them.
+- Reuse `PageContainer` / `PageHeader` instead of re-implementing page chrome.
+- The starter is intentionally unbranded. Do not add project colors, logos or
+  marketing design.
+- Do not add a global state library (Redux, Zustand, TanStack Query, …) without a
+  demonstrated need, and do not add business features to the starter.
+
+### Authentication UI
+
+- Better Auth is the only authentication system. Never write custom password,
+  session, or token logic, and never add custom auth endpoints.
+- Never expose `BETTER_AUTH_SECRET`, Worker secrets or bindings to React. The
+  browser talks to same-origin `/api/auth` and nothing else.
+- **Never log passwords, session tokens, verification tokens or reset tokens**,
+  and never render a token in the UI.
+- Always pass a `returnTo` through `safeReturnPath()` before navigating. Only
+  same-app paths are allowed; everything else falls back to the dashboard.
+- Keep email verification required, and keep password-reset responses generic so
+  user enumeration stays impossible.
+- Never render a raw Better Auth error. Map known codes in `lib/auth-errors.ts`
+  and fall back to the generic message.
+- Reuse `AuthCard` and `FormMessage` rather than adding new auth wrappers.
+- UI copy stays English until localization is implemented.
+
 ## Multi-tenancy
 
 **An organization is the tenant. A Better Auth team is a branch (a location).**

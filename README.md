@@ -88,6 +88,30 @@ Email verification is required before an email/password user can sign in, and
 password reset is enabled. Both use Better Auth's built-in flows and its existing
 `verification` table — there are no custom tokens.
 
+## Frontend
+
+`npm run dev` serves the React app and the Worker together on
+<http://localhost:5173>.
+
+Client-side routing uses React Router, with two route groups:
+
+| Group      | Routes                                                                                  |
+| ---------- | --------------------------------------------------------------------------------------- |
+| Public     | `/`, `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/accept-invitation` |
+| Application| `/app/dashboard`, `/app/members`, `/app/settings`                                         |
+
+`/app/*` renders behind a session check. That check is UX only — the Worker
+enforces authorization.
+
+Working auth flows: registration (which requires email verification before the
+first sign-in), sign in, sign out, resend verification, forgot password and
+reset password. Local email is simulated by default, so verification and reset
+links appear under `.wrangler/tmp/email/` instead of being delivered.
+
+Styling is Tailwind CSS v4 with shadcn/ui components in
+`src/react-app/components/ui`. The starter ships deliberately unbranded so each
+SaaS can apply its own identity.
+
 ## Multi-tenancy
 
 The template models tenancy with Better Auth's Organization plugin:
