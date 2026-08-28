@@ -173,6 +173,44 @@ separate on purpose.
 - Reuse `AuthCard` and `FormMessage` rather than adding new auth wrappers.
 - UI copy stays English until localization is implemented.
 
+## Provisioning model
+
+**This is a closed B2B SaaS. There is no public signup.** Every account
+originates from an authorized provisioning flow.
+
+Two role scopes exist and must never be conflated:
+
+| Scope | Field | Meaning |
+| ----- | ----- | ------- |
+| Platform | `user.role === "admin"` | Platform administrator (Better Auth Admin plugin) |
+| Tenant | `member.role === "admin"` | Administrator of one organization only |
+
+An organization owner or admin is **never** a platform admin, and a platform
+admin gets no tenant data without explicit membership. Guard platform routes
+with `requirePlatformAdmin()`, tenant routes with `requireTenant()`.
+
+Rules:
+
+- `emailAndPassword.disableSignUp` and Magic Link `disableSignUp` must both stay
+  `true`. Magic Link exists only to activate already-provisioned accounts.
+- `allowUserToCreateOrganization: false`. Tenants are created server-side by
+  passing `userId` with **no session and no headers**, which Better Auth treats
+  as a system action.
+- Provisioning creates Organization + Owner + a branch named `Main`.
+- A provisioned user gets a cryptographically random provisional password purely
+  because `createUser` requires one. **Never return, email, log or expose it.**
+  Better Auth deletes it on magic-link activation (`revokeUnprovenAccountAccess`
+  strips every account row of an unverified user), so it cannot survive setup.
+- Account setup only sets a password. It must never create a tenant or branch.
+- `/api/account/setup-password` operates on the authenticated user only, never a
+  browser-supplied userId, and refuses once a credential exists.
+- Provisioning must be retry-safe: reuse an existing user, an existing
+  same-named company owned by that user, and an existing Main branch. Email
+  failure never rolls back valid database work.
+- Never build custom auth/session/invitation tokens when Better Auth has the
+  primitive.
+- A single-location business still has one internal branch named `Main`.
+
 ## Multi-tenancy
 
 **An organization is the tenant. A Better Auth team is a branch (a location).**
@@ -206,6 +244,25 @@ Authorization rules:
   reimplement it in a route.
 - Call `getTenantDb(env, organizationId)` only with an organizationId from a
   validated `TenantContext`.
+
+Onboarding and switching:
+
+- A verified user with no organization must complete `/onboarding`: step 1
+  creates the organization (tenant), step 2 creates the first team (branch).
+- Onboarding is **resumable from server state** — read Better Auth's
+  organization/team data, never component state, so a half-finished run picks up
+  at the right step instead of creating a second organization.
+- `activeOrganizationId` is the only source of truth for the current tenant, and
+  `activeTeamId` for the current branch. Never mirror either in localStorage, a
+  cookie, or a custom column.
+- Switching organization must re-evaluate branch state; a branch from the
+  previous organization must never stay active.
+- Better Auth's `setActiveTeam` requires a `team_member` row even for an owner,
+  while our rules give owner/admin every branch without one. Use
+  `activateBranch()`, which adds the missing membership and retries.
+- `GET /api/branches` is the authoritative accessible-branch list. Better Auth's
+  own team endpoints do not match our rules: listing an organization's teams
+  ignores assignment, and listing a user's teams ignores owner/admin reach.
 
 Rules for SaaS features built on this template:
 

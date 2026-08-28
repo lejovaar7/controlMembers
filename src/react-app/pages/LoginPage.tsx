@@ -54,11 +54,6 @@ export function LoginPage() {
 		<AuthCard
 			title="Sign in"
 			description="Use your email and password."
-			footer={
-				<>
-					No account? <Link to="/register" className="underline">Create one</Link>
-				</>
-			}
 		>
 			<form onSubmit={handleSubmit} className="flex flex-col gap-4">
 				{justReset ? (

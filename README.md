@@ -112,6 +112,45 @@ Styling is Tailwind CSS v4 with shadcn/ui components in
 `src/react-app/components/ui`. The starter ships deliberately unbranded so each
 SaaS can apply its own identity.
 
+## Provisioning
+
+This is a closed B2B SaaS: **public signup is disabled**. Accounts are created by
+authorized administrators.
+
+```
+Platform admin  →  creates company
+                →  provisions the owner
+                →  creates the company's Main branch
+Owner           →  receives one account-setup link
+                →  confirms their email, chooses a password
+                →  enters the company
+```
+
+Employee invitations by owners/admins come in a later phase.
+
+### Bootstrapping the first platform admin
+
+Better Auth's `auth create-admin` CLI runs in Node against the auth config's
+database, so it cannot reach a Cloudflare D1 binding. Bootstrap instead with the
+tooling you already use, which never involves a default password:
+
+```bash
+# 1. Insert the platform admin user (no password, unverified).
+npx wrangler d1 execute <db> --remote --command \
+  "INSERT INTO user (id, name, email, email_verified, role, created_at, updated_at)
+   VALUES (lower(hex(randomblob(16))), 'Platform Admin', 'you@example.com', 0, 'admin',
+           unixepoch()*1000, unixepoch()*1000);"
+
+# 2. Ask Better Auth to email that address a setup link.
+curl -X POST https://<your-app>/api/auth/sign-in/magic-link \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","callbackURL":"/setup-account"}'
+```
+
+Opening the link proves mailbox ownership, verifies the account and takes you to
+`/setup-account` to choose a password. Each cloned SaaS must bootstrap its own
+platform admin this way.
+
 ## Multi-tenancy
 
 The template models tenancy with Better Auth's Organization plugin:
@@ -132,6 +171,11 @@ this template can add its own roles and domain permissions on top.
 
 Each organization carries optional settings: `locale`, `timezone` and
 `currency`.
+
+An owner signs in to a company that already exists, with its `Main` branch
+already created. The topbar carries a company switcher and a branch switcher;
+switching company re-evaluates which branches are available. A single-location
+business simply has one branch named `Main`.
 
 Server-side helpers live in `src/worker/tenant/`:
 

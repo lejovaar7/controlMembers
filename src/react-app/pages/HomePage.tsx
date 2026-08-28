@@ -15,12 +15,7 @@ export function HomePage() {
 			{isPending ? null : session ? (
 				<Button render={<Link to="/app/dashboard" />}>Open app</Button>
 			) : (
-				<div className="flex gap-3">
-					<Button render={<Link to="/login" />}>Sign in</Button>
-					<Button variant="outline" render={<Link to="/register" />}>
-						Create account
-					</Button>
-				</div>
+				<Button render={<Link to="/login" />}>Sign in</Button>
 			)}
 		</PageContainer>
 	);

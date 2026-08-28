@@ -20,14 +20,24 @@ type Actor = { userId: string; email: string; request: Request };
 /** Signs up, marks the address verified, signs in, and keeps the cookie. */
 async function createActor(email: string): Promise<Actor> {
 	const auth = getAuth(env);
-	const signUp = await auth.api.signUpEmail({
+	// Public signup is disabled, so test users are provisioned through the
+	// Admin API exactly as the platform does.
+	await auth.api.createUser({
 		body: { name: email, email, password: PASSWORD },
 	});
 
-	await getDb(env)
+	const db = getDb(env);
+	await db
 		.update(userTable)
 		.set({ emailVerified: true })
-		.where(eq(userTable.id, signUp.user.id));
+		.where(eq(userTable.email, email));
+
+	const [created] = await db
+		.select({ id: userTable.id })
+		.from(userTable)
+		.where(eq(userTable.email, email))
+		.limit(1);
+	if (!created) throw new Error(`user ${email} was not created`);
 
 	const response = await auth.api.signInEmail({
 		body: { email, password: PASSWORD },
@@ -37,7 +47,7 @@ async function createActor(email: string): Promise<Actor> {
 	if (!cookie) throw new Error(`no session cookie for ${email}`);
 
 	return {
-		userId: signUp.user.id,
+		userId: created.id,
 		email,
 		request: new Request("http://localhost/", { headers: { cookie } }),
 	};
@@ -98,13 +108,13 @@ beforeAll(async () => {
 	strandedA = await createActor("stranded-a@test.invalid");
 	ownerB = await createActor("owner-b@test.invalid");
 
+	// Organizations are provisioned server-side (no session + userId), which is
+	// the only path allowed now that users cannot create their own.
 	const orgA = await auth.api.createOrganization({
-		headers: headersOf(ownerA),
-		body: { name: "Organization A", slug: "org-a" },
+		body: { name: "Organization A", slug: "org-a", userId: ownerA.userId },
 	});
 	const orgB = await auth.api.createOrganization({
-		headers: headersOf(ownerB),
-		body: { name: "Organization B", slug: "org-b" },
+		body: { name: "Organization B", slug: "org-b", userId: ownerB.userId },
 	});
 	if (!orgA || !orgB) throw new Error("organizations were not created");
 	orgAId = orgA.id;

@@ -31,3 +31,21 @@ export async function requireAuth(
 	if (!session) throw new AuthError(401, "UNAUTHENTICATED");
 	return session;
 }
+
+/**
+ * Platform scope, not tenant scope.
+ *
+ * `user.role === "admin"` is a platform administrator (Better Auth Admin
+ * plugin). It is unrelated to `member.role === "admin"`, which administers a
+ * single organization. Being an organization owner or admin never grants this.
+ */
+export async function requirePlatformAdmin(
+	env: Env,
+	request: Request,
+): Promise<AuthenticatedSession> {
+	const session = await requireAuth(env, request);
+	const role = (session.user as { role?: string | null }).role;
+	const roles = typeof role === "string" ? role.split(",") : [];
+	if (!roles.includes("admin")) throw new AuthError(403, "NOT_PLATFORM_ADMIN");
+	return session;
+}

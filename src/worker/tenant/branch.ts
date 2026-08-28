@@ -63,6 +63,50 @@ async function isAccessible(
 	return Boolean(assignment);
 }
 
+/**
+ * Branches the tenant may actually use.
+ *
+ * Better Auth's own endpoints do not match these semantics: listing an
+ * organization's teams ignores assignment, and listing a user's teams ignores
+ * the organization-wide reach of owner/admin. So this is derived here.
+ */
+export async function listAccessibleBranches(
+	env: Env,
+	tenant: TenantContext,
+): Promise<BranchContext[]> {
+	const db = getDb(env);
+
+	const rows = isOrganizationAdmin(tenant)
+		? await db
+				.select({
+					id: team.id,
+					organizationId: team.organizationId,
+					name: team.name,
+				})
+				.from(team)
+				.where(eq(team.organizationId, tenant.organizationId))
+		: await db
+				.select({
+					id: team.id,
+					organizationId: team.organizationId,
+					name: team.name,
+				})
+				.from(team)
+				.innerJoin(teamMember, eq(teamMember.teamId, team.id))
+				.where(
+					and(
+						eq(team.organizationId, tenant.organizationId),
+						eq(teamMember.userId, tenant.userId),
+					),
+				);
+
+	return rows.map((row) => ({
+		branchId: row.id,
+		organizationId: row.organizationId,
+		name: row.name,
+	}));
+}
+
 /** The single source of truth for branch authorization. */
 export async function canAccessBranch(
 	env: Env,

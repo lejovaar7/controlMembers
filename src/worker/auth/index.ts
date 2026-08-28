@@ -1,10 +1,13 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth";
+import { admin } from "better-auth/plugins/admin";
+import { magicLink } from "better-auth/plugins/magic-link";
 import { organization } from "better-auth/plugins/organization";
 import { getDb } from "../db";
 import * as authSchema from "../db/auth-schema";
 import { getEmailService } from "../email";
 import {
+	accountSetupEmail,
 	organizationInvitationEmail,
 	passwordResetEmail,
 	verificationEmail,
@@ -34,7 +37,7 @@ const organizationSettingsFields = {
  * dropping it.
  */
 export function getAuth(env: Env, ctx?: BackgroundScheduler) {
-	const email = getEmailService(env);
+	const emailService = getEmailService(env);
 
 	return betterAuth({
 		baseURL: env.APP_URL,
@@ -46,18 +49,34 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler) {
 		emailAndPassword: {
 			enabled: true,
 			requireEmailVerification: true,
+			// Closed SaaS: accounts are provisioned, never self-registered.
+			disableSignUp: true,
 			sendResetPassword: async ({ user, url }) => {
-				await email.send({ to: user.email, ...passwordResetEmail(url) });
+				await emailService.send({ to: user.email, ...passwordResetEmail(url) });
 			},
 		},
 		emailVerification: {
 			sendOnSignUp: true,
 			sendVerificationEmail: async ({ user, url }) => {
-				await email.send({ to: user.email, ...verificationEmail(url) });
+				await emailService.send({ to: user.email, ...verificationEmail(url) });
 			},
 		},
 		plugins: [
+			// Platform scope. user.role === "admin" is a platform administrator,
+			// which is unrelated to an organization's member.role.
+			admin(),
+			// Used only for controlled account activation. Signup is disabled, so
+			// a link can never bring a brand new account into existence.
+			magicLink({
+				disableSignUp: true,
+				sendMagicLink: async ({ email, url }) => {
+					await emailService.send({ to: email, ...accountSetupEmail(url) });
+				},
+			}),
 			organization({
+				// Tenants are provisioned by a platform admin. The server-side
+				// creation path (no session + userId) stays available.
+				allowUserToCreateOrganization: false,
 				teams: { enabled: true, defaultTeam: { enabled: false } },
 				requireEmailVerificationOnInvitation: true,
 				schema: {
@@ -65,7 +84,7 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler) {
 				},
 				sendInvitationEmail: async (data) => {
 					const url = `${env.APP_URL}/accept-invitation?invitationId=${data.id}`;
-					await email.send({
+					await emailService.send({
 						to: data.email,
 						...organizationInvitationEmail(
 							data.organization.name,

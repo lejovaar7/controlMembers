@@ -58,3 +58,14 @@ export function organizationInvitationEmail(
 		html: layout(heading, paragraph, "Accept invitation", url),
 	};
 }
+
+export function accountSetupEmail(url: string): EmailContent {
+	const heading = "Finish setting up your account";
+	const paragraph =
+		"You have been given access to the application. Use this secure link to confirm your address and choose a password.";
+	return {
+		subject: heading,
+		text: `${paragraph}\n\n${url}\n\nIf you were not expecting this, you can ignore this email.`,
+		html: layout(heading, paragraph, "Set up my account", url),
+	};
+}
