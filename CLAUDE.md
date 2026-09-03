@@ -57,20 +57,39 @@ The template is built in phases. Each phase adds one capability, is verified end
 to end, and leaves the repository in a working state. Do not implement anything
 belonging to a later phase unless it is explicitly requested.
 
+Documentation roles:
+
+- `PROJECT_SPEC.md` is the master product and architecture specification.
+- `README.md` is the developer/operator guide and current status summary.
+- `specs/implemented/` describes behavior already present in source.
+- `specs/` contains completed Starter v1 specifications and `VERIFICATION.md`.
+
+When behavior changes, update every affected layer so these sources do not
+contradict one another.
+
 ## Stack
 
 - **React** + **Vite** + **TypeScript** — frontend
 - **Hono** — backend, running on **Cloudflare Workers**
 - **Cloudflare Workers Static Assets** — serves the built SPA
+- **Cloudflare D1** + **Drizzle ORM** — persistence and migrations
+- **Better Auth 1.7.2** — authentication, platform roles, Organizations, and Teams
+- **Cloudflare Email Sending** — outgoing email behind `EmailService`
+- **Tailwind CSS 4** + **shadcn/ui using Base UI** — frontend styling
 - Scaffolded from Cloudflare's official `cloudflare/templates/vite-react-template`
-
-Runtime dependencies are deliberately minimal: `hono`, `react`, `react-dom`.
 
 ## Structure
 
 ```
 src/react-app/     Frontend (React + Vite)
 src/worker/        Backend (Hono on Cloudflare Workers)
+  auth/            Better Auth configuration and session guards
+  db/              Drizzle entry point and schemas
+  email/           EmailService and message builders
+  platform/        Platform-admin customer provisioning
+  tenant/          Tenant/Branch authorization and guarded Member management
+drizzle/           Generated migrations
+specs/             Implemented-system catalog and completed delivery plan
 index.html         Frontend entry point
 vite.config.ts     Vite + @cloudflare/vite-plugin
 wrangler.json      Worker config + static assets
@@ -136,6 +155,12 @@ Dependency policy: pin every direct dependency to an exact version, stable
 releases only. Stay on React 19, Vite 7, TypeScript 5.9.x, ESLint 9,
 typescript-eslint 8 and Hono 4 unless a phase explicitly says otherwise.
 
+The scoped `@esbuild-kit/core-utils@3.3.2` override to `esbuild` 0.25.12 fixes
+Drizzle Kit's legacy transitive dependency. Preserve it until the upstream chain
+resolves to a patched release without it. Dependency maintenance must verify
+Drizzle generation/checking, the full quality gate and both npm audits; see
+`specs/implemented/07-testing-and-operations.md`.
+
 ## Frontend
 
 The React app lives in `src/react-app`; the Hono backend lives in `src/worker`.
@@ -159,9 +184,10 @@ separate on purpose.
 ### Authentication UI
 
 - Better Auth is the only authentication system. Never write custom password,
-  session, or token logic, and never add custom auth endpoints.
+  session, or token logic. The existing setup/provisioning orchestration endpoints
+  call Better Auth; do not introduce a second authentication implementation.
 - Never expose `BETTER_AUTH_SECRET`, Worker secrets or bindings to React. The
-  browser talks to same-origin `/api/auth` and nothing else.
+  browser talks to same-origin `/api/*`; no Worker module is imported into React.
 - **Never log passwords, session tokens, verification tokens or reset tokens**,
   and never render a token in the UI.
 - Always pass a `returnTo` through `safeReturnPath()` before navigating. Only
@@ -245,13 +271,14 @@ Authorization rules:
 - Call `getTenantDb(env, organizationId)` only with an organizationId from a
   validated `TenantContext`.
 
-Onboarding and switching:
+Provisioning and switching:
 
-- A verified user with no organization must complete `/onboarding`: step 1
-  creates the organization (tenant), step 2 creates the first team (branch).
-- Onboarding is **resumable from server state** — read Better Auth's
-  organization/team data, never component state, so a half-finished run picks up
-  at the right step instead of creating a second organization.
+- End users never create their own Organization. Platform administration
+  provisions the Organization, first Owner, and Main Branch before access.
+- An authenticated user with no Organization is in an abnormal provisioning
+  state and sees `/no-company`; never send them to company creation.
+- `/onboarding` is not a supported product flow and redirects into the
+  application, where the normal guards resolve the safe state.
 - `activeOrganizationId` is the only source of truth for the current tenant, and
   `activeTeamId` for the current branch. Never mirror either in localStorage, a
   cookie, or a custom column.
@@ -264,6 +291,29 @@ Onboarding and switching:
   own team endpoints do not match our rules: listing an organization's teams
   ignores assignment, and listing a user's teams ignores owner/admin reach.
 
+Branches:
+
+- Every tenant has at least one internal branch. `Main` is created during
+  platform provisioning; never remove that model.
+- A single-location business must not be forced to think about branch selection.
+  With one accessible branch the switcher is a plain label, not a control.
+- Owner/admin branch access derives from the **organization role**. Member branch
+  access derives from **team_member**.
+- `activateBranch()` may create a team_member row for an owner/admin purely
+  because Better Auth's `setActiveTeam` demands one. **That row is never the
+  source of authorization for owner/admin**, and the Members UI must not
+  read it as a scoped branch permission.
+- A member with zero branch assignments goes to `/app/no-branch-access` — never
+  to company or branch creation, and never shown branch names they cannot reach.
+- Branch create/rename go through Better Auth's Team APIs, which already enforce
+  the organization role. Do not add a custom endpoint or write team rows from
+  React.
+- **Never treat an API error as an empty branch list.** Loading, failure, zero
+  branches and zero *accessible* branches are four distinct states.
+- Re-evaluate branch state whenever the organization changes.
+- Branch deletion is deliberately unimplemented: it needs a data-migration
+  policy for activeTeamId, assignments and future branch-owned data.
+
 Rules for SaaS features built on this template:
 
 - A tenant-owned table must carry `organizationId`.
@@ -273,6 +323,35 @@ Rules for SaaS features built on this template:
 
 Roles are the Better Auth defaults (`owner`, `admin`, `member`). Do not add
 business roles or dynamic access control here — those belong to each SaaS.
+
+## Completed Starter v1
+
+Specifications 00–04 are complete:
+
+- `/app/branches` and `/app/no-branch-access`
+- owner/admin Branch creation and rename through Better Auth Team APIs
+- single-Branch and multi-Branch UX
+- shared app-shell Branch state
+- role and cross-tenant Branch tests
+- owner/admin-only Member directory and direct employee provisioning
+- role/access editing: owner manages admin/member; admin manages member only
+- read-only Owners; no ownership transfer or member/Branch deletion
+- secure setup resends, safe existing-account reuse, idempotent assignments
+- native HTTP bypass protection, body/origin validation and generic errors
+- read-only Settings extension shell and removal of invitation placeholder UI
+
+Use `specs/implemented/README.md` to understand the code and
+`specs/VERIFICATION.md` for dated evidence and dependency-audit results. Future domain
+features require a new specification; do not treat deferred infrastructure as
+unfinished Starter v1 work.
+
+Invitation email infrastructure is tested server-side but disabled over HTTP;
+`/accept-invitation` has no route. Direct provisioning is the canonical flow.
+Keep native directory/access/destructive paths disabled in `getAuth()` and
+preserve `auth/http-policy.ts`; do not re-enable them to make a UI shortcut work.
+Member writes must use the guarded orchestration and Better Auth server APIs.
+Add desired assignments before removing old ones; only then downgrade an admin.
+Preserve the unique Organization/user membership index when updating auth schema.
 
 ## Commands
 
@@ -313,7 +392,9 @@ exercises the real runtime rather than Vite's emulation.
 ## Conventions
 
 - Keep changes minimal and scoped to what was asked.
-- No stub files, no commented-out scaffolding, no unused dependencies.
+- Do not add new stub files, commented-out scaffolding, or unused dependencies.
+  Settings editing and invitation acceptance are deliberate post-v1 exclusions,
+  not examples of placeholder routes to copy.
 - Tabs for indentation, double quotes — match the existing files.
 - `worker-configuration.d.ts` is generated and is excluded from ESLint.
 - The Worker name lives in `wrangler.json` (`name`) and should be changed per

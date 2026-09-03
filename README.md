@@ -5,6 +5,13 @@ Reusable base template for future SaaS projects.
 **Stack:** React + Vite + TypeScript + Hono on Cloudflare Workers.
 Generated from Cloudflare's official `cloudflare/templates/vite-react-template`.
 
+## Project documentation
+
+- `PROJECT_SPEC.md` — master product and architecture specification
+- `CLAUDE.md` — repository rules for coding agents
+- `specs/implemented/` — specifications of the code that exists today
+- `specs/` — completed Starter v1 delivery specifications and verification record
+
 ## Structure
 
 ```
@@ -16,6 +23,7 @@ src/
       schema.ts   # Drizzle schema
 drizzle/          # Generated migrations (source of truth)
 drizzle.config.ts # Drizzle Kit configuration
+specs/             # implemented-system catalog and completed delivery plan
 index.html        # Frontend entry point
 vite.config.ts    # Vite + @cloudflare/vite-plugin
 wrangler.json     # Worker, static assets and D1 configuration
@@ -29,15 +37,27 @@ served by Vite. In production, `wrangler.json` points the Worker at
 
 ## Endpoints
 
-| Method | Path          | Response                                  |
-| ------ | ------------- | ----------------------------------------- |
-| GET    | `/api/health` | `{ "status": "ok", "database": "ok" }`    |
+| Method | Path                                  | Purpose |
+| ------ | ------------------------------------- | ------- |
+| GET    | `/api/health`                         | D1-backed application health check |
+| GET    | `/api/branches`                       | Accessible Branches in the validated active Organization |
+| GET    | `/api/members`                        | Owner/admin-only directory in the active Organization |
+| POST   | `/api/members`                        | Provision/reuse an employee with supported role and Branches |
+| PATCH  | `/api/members/:membershipId`          | Update a manageable employee's role and exact Branch scope |
+| POST   | `/api/members/:membershipId/setup/resend` | Resend setup for an unfinished, manageable account |
+| POST   | `/api/platform/organizations`         | Platform-only company, Owner, and Main Branch provisioning |
+| POST   | `/api/platform/account-setup/resend`  | Platform-only setup-link resend |
+| POST   | `/api/account/setup-password`         | First-time password setup for the authenticated user |
 
 `/api/health` performs a lightweight read through Drizzle to confirm D1 is
 reachable. It returns `503` with `{ "status": "error", "database": "unavailable" }`
 if the database cannot be queried.
 
-Authentication is handled by Better Auth, mounted at `/api/auth/*`.
+Authentication is handled by Better Auth, mounted at `/api/auth/*`. Native routes
+that expose unrestricted directories or bypass v1 management rules are disabled.
+Team creation/rename and owner/admin self-activation are additionally scoped to
+the active tenant. Custom writes require same-origin JSON; API bodies are limited
+to 16 KiB and responses are not cached.
 
 Routing is split by `run_worker_first: ["/api/*"]`: only `/api/*` reaches the
 Worker. Everything else is served by Static Assets, with
@@ -47,7 +67,8 @@ Worker. Everything else is served by Static Assets, with
 ## Development
 
 ```bash
-npm install
+npm ci
+# Create .dev.vars as described under Configuration before starting the server.
 npm run db:migrate:local   # create the local D1 schema
 npm run dev                # http://localhost:5173
 curl http://localhost:5173/api/health
@@ -66,8 +87,9 @@ migrations are the single source of truth. Never hand-write migrations and never
 copy them between directories.
 
 Always obtain a database handle through `getDb(env)` — never call `drizzle()`
-directly elsewhere. `getTenantDb(env)` currently delegates to `getDb(env)`; it is
-a placeholder for future per-tenant routing and implements no tenancy today.
+directly elsewhere. `getTenantDb(env)` currently delegates to `getDb(env)`;
+tenants share one D1 today, while the helper preserves a future database-routing
+boundary.
 
 `database_id` in `wrangler.json` ships as the placeholder
 `REPLACE_WITH_REAL_D1_DATABASE_ID`. Local development works as-is; anything that
@@ -81,8 +103,10 @@ runs on top of the existing Drizzle layer, so Drizzle remains the only schema an
 migration authority.
 
 - Configuration: `src/worker/auth/index.ts` (`getAuth(env)`)
-- Generated schema: `src/worker/db/auth-schema.ts` — regenerate with
-  `npx auth@latest generate`, then `npm run db:generate` for the migration
+- Schema: `src/worker/db/auth-schema.ts` — derived from Better Auth 1.7.2 with
+  an application-level unique `(organizationId, userId)` membership index.
+  Preserve that index when regenerating auth models, inspect the diff, then use
+  `npm run db:generate` for migrations. Do not use a newer auth CLI blindly.
 
 Email verification is required before an email/password user can sign in, and
 password reset is enabled. Both use Better Auth's built-in flows and its existing
@@ -93,20 +117,25 @@ password reset is enabled. Both use Better Auth's built-in flows and its existin
 `npm run dev` serves the React app and the Worker together on
 <http://localhost:5173>.
 
-Client-side routing uses React Router, with two route groups:
+Client-side routing uses React Router, with three route groups:
 
-| Group      | Routes                                                                                  |
-| ---------- | --------------------------------------------------------------------------------------- |
-| Public     | `/`, `/login`, `/register`, `/verify-email`, `/forgot-password`, `/reset-password`, `/accept-invitation` |
-| Application| `/app/dashboard`, `/app/members`, `/app/settings`                                         |
+| Group | Routes | Status |
+| ----- | ------ | ------ |
+| Public/auth | `/`, `/login`, `/verify-email`, `/forgot-password`, `/reset-password`, `/setup-account`, `/no-company` | Implemented |
+| Platform | `/platform`, `/platform/organizations/new` | Implemented; platform-admin UX guard plus server authorization |
+| Application | `/app/dashboard`, `/app/branches`, `/app/no-branch-access`, `/app/members`, `/app/settings` | Branch and Member management complete; Settings is the intentional read-only extension shell |
+| Redirected | `/register`, `/onboarding` | No public signup or self-service company onboarding |
+
+Invitation acceptance is not exposed: its placeholder page and route were removed.
 
 `/app/*` renders behind a session check. That check is UX only — the Worker
 enforces authorization.
 
-Working auth flows: registration (which requires email verification before the
-first sign-in), sign in, sign out, resend verification, forgot password and
-reset password. Local email is simulated by default, so verification and reset
-links appear under `.wrangler/tmp/email/` instead of being delivered.
+Working auth flows are sign in, sign out, resend verification, forgot/reset
+password, and controlled first-account setup for already-provisioned users.
+Public registration is disabled in Better Auth and `/register` redirects to
+login. Local email is simulated by default, so generated messages appear under
+`.wrangler/tmp/email/` instead of being delivered.
 
 Styling is Tailwind CSS v4 with shadcn/ui components in
 `src/react-app/components/ui`. The starter ships deliberately unbranded so each
@@ -126,7 +155,16 @@ Owner           →  receives one account-setup link
                 →  enters the company
 ```
 
-Employee invitations by owners/admins come in a later phase.
+Owners/admins add employees at `/app/members` using name, email, role and Branches.
+Members need at least one Branch; admins have all-Branch access. New users receive
+the same secure setup flow as Owners. Existing identities, passwords and platform
+roles are preserved. Email failure keeps valid access and exposes a safe resend.
+
+Owners can edit admins/members; admins can edit members only. Owner entries are
+read-only. Promotion grants all-Branch access; a member's saved Branch set is
+exact. Removed access is denied immediately by the server, including stale active
+Teams. The shell revalidates on focus and every 30 seconds while visible.
+Direct provisioning is canonical; invitation acceptance remains deferred.
 
 ### Bootstrapping the first platform admin
 
@@ -150,6 +188,11 @@ curl -X POST https://<your-app>/api/auth/sign-in/magic-link \
 Opening the link proves mailbox ownership, verifies the account and takes you to
 `/setup-account` to choose a password. Each cloned SaaS must bootstrap its own
 platform admin this way.
+
+For a local clone, use `saas-template-db --local` instead of `<db> --remote`
+and `http://localhost:5173` instead of the production URL. Keep the dev server
+running and open the simulated email under `.wrangler/tmp/email/`. Never reuse
+test credentials or test identities in production.
 
 ## Multi-tenancy
 
@@ -177,14 +220,45 @@ already created. The topbar carries a company switcher and a branch switcher;
 switching company re-evaluates which branches are available. A single-location
 business simply has one branch named `Main`.
 
+Every company has at least one internal branch. A single-location business keeps
+just `Main` and the branch selector stays out of the way — it appears as a plain
+label. Add a second branch and the switcher becomes a real control.
+
+| Role | Branches | Management |
+| ---- | -------- | ---------- |
+| owner | all branches in the company | Branches; provision employees; edit admin/member access |
+| admin | all branches in the company | Branches; provision employees; edit member access only |
+| member | only assigned branches | none |
+
+A member with no branch assignment sees a dedicated notice rather than any
+company or branch creation flow.
+
+Branch management is complete: owners/admins may
+add and rename Branches through Better Auth Team APIs. Branch deletion remains
+deliberately unsupported.
+
 Server-side helpers live in `src/worker/tenant/`:
 
 - `requireTenant(env, request)` → validated `TenantContext`
+- `requireOrganizationAdmin(env, request)` → active-tenant owner/admin guard
 - `requireBranch(env, request)` → validated `BranchContext`
 - `canAccessBranch(env, tenant, branchId)` → the one branch authorization rule
 
 The active organization and active branch come from the Better Auth session;
 identifiers sent by the client are never trusted for authorization.
+
+## Current status
+
+Starter v1 specifications 00–04 are implemented. The quality gate includes
+typecheck, lint, Workers/D1 tests, production build and deployment dry run.
+See [the dated verification record](specs/VERIFICATION.md) for results, manual
+checks and dependency-audit results. The 2026-09-02 dependency remediation leaves
+both the full and production-only audits at zero reported vulnerabilities.
+No production deployment is part of this
+completion.
+
+See `specs/implemented/README.md` for a code-oriented system catalog and
+`specs/README.md` for the completed specifications and next-project workflow.
 
 ## Configuration
 
@@ -235,7 +309,7 @@ subdomain — for example `mail.example.com` — and configures its own values.
 
 ## Starting a new project from this template
 
-Local development works immediately after `npm install` and
+Local development uses `npm ci`, a local `.dev.vars`, and
 `npm run db:migrate:local`. The steps below are only needed before you deploy or
 run remote migrations.
 
