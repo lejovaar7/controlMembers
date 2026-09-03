@@ -53,19 +53,21 @@ A reusable base template for building SaaS products. It is not a product itself 
 it is the starting point that future SaaS projects get cloned from. Every
 decision should favour clarity and reusability over cleverness.
 
-The template is built in phases. Each phase adds one capability, is verified end
-to end, and leaves the repository in a working state. Do not implement anything
-belonging to a later phase unless it is explicitly requested.
+Starter v1 is implemented. Add only explicitly requested capabilities, verify
+them end to end, and leave the repository working. Deferred infrastructure and
+business-domain features are not implicit tasks.
 
 Documentation roles:
 
-- `PROJECT_SPEC.md` is the master product and architecture specification.
+- `specs/README.md` is the single index of canonical module specifications.
+- Each numbered file in `specs/` owns its module's behavior, rules, source
+  references, limitations and acceptance checks. Numbers are not delivery phases.
+- `PROJECT_SPEC.md` is a short project overview pointing to that same structure.
 - `README.md` is the developer/operator guide and current status summary.
-- `specs/implemented/` describes behavior already present in source.
-- `specs/` contains completed Starter v1 specifications and `VERIFICATION.md`.
+- `specs/VERIFICATION.md` records dated checks and release limitations.
 
-When behavior changes, update every affected layer so these sources do not
-contradict one another.
+When behavior changes, update the responsible module and affected guides so they
+agree. Do not create parallel delivery/current-state specs for the same feature.
 
 ## Stack
 
@@ -89,10 +91,11 @@ src/worker/        Backend (Hono on Cloudflare Workers)
   platform/        Platform-admin customer provisioning
   tenant/          Tenant/Branch authorization and guarded Member management
 drizzle/           Generated migrations
-specs/             Implemented-system catalog and completed delivery plan
+specs/             Unified module specifications and verification evidence
 index.html         Frontend entry point
 vite.config.ts     Vite + @cloudflare/vite-plugin
 wrangler.json      Worker config + static assets
+scripts/           Explicit environment commands and their Node safety tests
 tsconfig.json      References the three projects below
   tsconfig.app.json      only src/react-app, DOM types
   tsconfig.worker.json   only src/worker, Workers types
@@ -125,8 +128,9 @@ The `ASSETS` binding is declared and typed but currently unused.
 
 ## Database
 
-Cloudflare D1 accessed through Drizzle ORM. Binding `DB`, database name
-`saas-template-db`.
+Cloudflare D1 accessed through Drizzle ORM. Binding `DB` in all three
+environments. The top-level configuration preserves local `saas-template-db`;
+`env.dev` and `env.production` have distinct cloud databases, Workers and domains.
 
 ```
 src/worker/db/schema.ts   Drizzle schema
@@ -148,8 +152,41 @@ Rules:
   write a custom migration runner, and do not use `drizzle-kit push` to migrate.
 - `wrangler.json` sets `migrations_dir` to `./drizzle` so Wrangler consumes the
   Drizzle output directly.
-- Changing `database_id` repoints local D1 at a different database — re-run
-  `npm run db:migrate:local` afterwards.
+- Do not replace the top-level local database ID when configuring remote
+  resources. Set the UUID in its named dev/production environment. Deliberately
+  changing local identity requires initializing that new local state.
+- All migration commands select the `DB` binding, original source config,
+  explicit environment and `--local`/`--remote`; never infer the target from the
+  most recent build, and never copy test/dev records into production.
+
+## Environments
+
+- Local is the top-level Wrangler config. `npm run dev` and `preview` use
+  loopback port 5173, simulated D1/Email and an ignored `.dev.vars`. Preserve
+  existing local data and secret files.
+- Dev and production are `env.dev` and `env.production`, with explicitly
+  redeclared bindings/secrets, different Worker/D1 names and IDs, separate
+  custom domains and separately installed remote secrets.
+- `scripts/environments.mjs` selects `CLOUDFLARE_ENV` before Vite builds and
+  overrides inherited production selection for local commands. Do not replace
+  this with a deploy-time-only `--env` flag.
+- Real deployment and migration require explicit targets. Bare `deploy` and
+  `db:migrate:remote` intentionally fail; placeholder resources, shared resources
+  and extra target overrides must be rejected before remote operations.
+- Local Vite/preview and tests disable remote bindings. Adding local-to-cloud D1
+  access needs an explicitly requested guarded opt-in; never silently enable it.
+- Dev Email requires a controlled test-recipient allowlist. Production uses its
+  own real sender. Alternate workers.dev and preview URLs remain disabled;
+  dev website access policy and domain ownership are external setup tasks.
+- Build-only example values are not deployed secrets. Never share the ignored
+  Worker build folder or put secrets in `VITE_*` values; only `dist/client` is
+  public. Do not copy production secrets or user data to local/dev.
+- Targets share `dist`: build/deploy them sequentially in a checkout. Deploy
+  rebuilds its target, but does not apply migrations. Backward-compatible SQL is
+  required for migration-before-deploy; destructive changes need a release plan.
+- No automatic CI deployment or production approval workflow is configured.
+  Remote resources, secrets, DNS, migrations and publication require explicit
+  release authority, not merely a passing local quality gate.
 
 Dependency policy: pin every direct dependency to an exact version, stable
 releases only. Stay on React 19, Vite 7, TypeScript 5.9.x, ESLint 9,
@@ -159,7 +196,7 @@ The scoped `@esbuild-kit/core-utils@3.3.2` override to `esbuild` 0.25.12 fixes
 Drizzle Kit's legacy transitive dependency. Preserve it until the upstream chain
 resolves to a patched release without it. Dependency maintenance must verify
 Drizzle generation/checking, the full quality gate and both npm audits; see
-`specs/implemented/07-testing-and-operations.md`.
+`specs/09-testing-and-operations.md`.
 
 ## Frontend
 
@@ -326,7 +363,7 @@ business roles or dynamic access control here — those belong to each SaaS.
 
 ## Completed Starter v1
 
-Specifications 00–04 are complete:
+The current module contracts cover:
 
 - `/app/branches` and `/app/no-branch-access`
 - owner/admin Branch creation and rename through Better Auth Team APIs
@@ -340,7 +377,7 @@ Specifications 00–04 are complete:
 - native HTTP bypass protection, body/origin validation and generic errors
 - read-only Settings extension shell and removal of invitation placeholder UI
 
-Use `specs/implemented/README.md` to understand the code and
+Use `specs/README.md` to understand the code and
 `specs/VERIFICATION.md` for dated evidence and dependency-audit results. Future domain
 features require a new specification; do not treat deferred infrastructure as
 unfinished Starter v1 work.
@@ -360,22 +397,27 @@ Preserve the unique Organization/user membership index when updating auth schema
 | `npm run dev`        | Dev server, frontend + worker (port 5173)        |
 | `npm run typecheck`  | `tsc -b` across all three TS projects            |
 | `npm run lint`       | ESLint                                           |
-| `npm run build`      | Typecheck + production build into `dist/`        |
+| `npm run build`      | Typecheck + optimized local-target build        |
+| `npm run build:dev` / `build:production` | Build explicit remote target only |
 | `npm run preview`    | Build + local preview of the production bundle   |
-| `npm run check`      | Typecheck + lint + tests + build + `--dry-run`   |
-| `npm test`           | Workers-runtime tests (Vitest)                   |
+| `npm run check`      | Typecheck, lint, Node/Workers tests, all target dry runs |
+| `npm run check:environments` | Build/dry-run dev, production, then local |
+| `npm test`           | Environment-safety Node tests + Workers tests |
+| `npm run test:environments` | Node command/configuration checks only |
 | `npm run db:generate`       | Generate a migration from the schema     |
 | `npm run db:migrate:local`  | Apply migrations to local D1             |
-| `npm run db:migrate:remote` | Apply migrations to remote D1            |
-| `npm run deploy`     | Build + deploy to Cloudflare Workers             |
+| `npm run db:migrate:dev` / `db:migrate:production` | Apply SQL to explicit remote D1 |
+| `npm run deploy:dev` / `deploy:production` | Validate, rebuild and deploy target |
+| `npm run deploy:dev:dry-run` / `deploy:production:dry-run` | Build and simulate target deployment |
+| `npm run deploy` / `db:migrate:remote` | Intentionally fail; require explicit target |
 | `npm run cf-typegen` | Regenerate `worker-configuration.d.ts`           |
 
 Run `npm run cf-typegen` after any change to `wrangler.json`, then commit the
 regenerated types.
 
-## Before finishing any phase
+## Before finishing a change
 
-Run the full gate and confirm it is green:
+For code or configuration changes, run the full gate and confirm it is green:
 
 ```
 npm run cf-typegen   # if wrangler.json changed
@@ -385,9 +427,15 @@ npm run build
 npm run check
 ```
 
-Then verify the actual behaviour at runtime — do not rely on a successful build
-alone. Use `npx wrangler dev` for anything routing- or Workers-related, since it
-exercises the real runtime rather than Vite's emulation.
+Then verify actual behavior at runtime, not just a successful build. The Vite
+plugin runs workerd locally; use the guarded `dev`/`preview` scripts for smoke
+checks. For an isolated Wrangler QA runtime, explicitly select the source config,
+empty local environment, `--local` and a separate temporary persistence directory.
+
+For documentation-only changes, verify links, referenced source paths, semantic
+consistency and `git diff --check`. Do not claim new runtime test results when
+only documents were checked. Keep dated execution evidence separate from module
+contracts. Never create commits, push or deploy without an explicit request.
 
 ## Conventions
 
