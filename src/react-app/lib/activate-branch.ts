@@ -4,9 +4,9 @@ import { authClient } from "@/lib/auth-client";
  * Makes a branch the active one.
  *
  * Better Auth's setActiveTeam requires a team_member row even for an owner,
- * while our access rules give owner/admin every branch in their organization
+ * while our access rules give owners/unrestricted admins every company branch
  * without one. So when activation is refused we add the membership Better Auth
- * expects and retry. The row grants nothing the role did not already allow, and
+ * expects and retry. The row grants nothing the existing scope did not allow, and
  * the backend still decides whether the call is permitted.
  */
 export async function activateBranch(

@@ -124,7 +124,7 @@ export async function provisionMember(env: Env, request: Request, tenant: Tenant
 	const identity = await ensureProvisionedUser(env, email, name);
 	const auth = getAuth(env);
 	let membership = await findMembership(env, tenant, identity.id);
-	const alreadyMember = Boolean(membership);
+	let alreadyMember = Boolean(membership);
 	if (!membership) {
 		try {
 			// Scope is inserted with the role; a new scoped admin is never briefly unrestricted.
@@ -135,6 +135,7 @@ export async function provisionMember(env: Env, request: Request, tenant: Tenant
 			} });
 		} catch (error) {
 			if (!await findMembership(env, tenant, identity.id)) throw error;
+			alreadyMember = true;
 		}
 		membership = await findMembership(env, tenant, identity.id);
 	}
@@ -145,6 +146,9 @@ export async function provisionMember(env: Env, request: Request, tenant: Tenant
 		(access.canAppointAdmins !== undefined && membership.canAppointAdmins !== access.canAppointAdmins)) throw new RequestError(409, "MEMBER_ALREADY_EXISTS");
 	const existingIds = await assignmentIds(env, tenant, identity.id);
 	if (!fullyWithinScope(tenant, membership, existingIds)) throw new AuthError(403, "BRANCH_ACCESS_DENIED");
+	if (alreadyMember && !canManageMember(tenant, membership.role)) {
+		throw new RequestError(409, "MEMBER_ALREADY_EXISTS");
+	}
 	for (const teamId of access.branchIds) {
 		await auth.api.addTeamMember({ headers: request.headers, body: { organizationId: tenant.organizationId, teamId, userId: identity.id } });
 	}
@@ -178,7 +182,7 @@ export async function updateMemberAccess(env: Env, request: Request, tenant: Ten
 	}
 	await db.update(member).set({
 		allBranches: access.allBranches,
-		canAppointAdmins: access.role === "admin" ? access.canAppointAdmins ?? target.canAppointAdmins : false,
+		canAppointAdmins: access.role === "admin" ? access.canAppointAdmins ?? (target.role === "admin" && target.canAppointAdmins) : false,
 	}).where(and(eq(member.id, target.id), eq(member.organizationId, tenant.organizationId)));
 	if (target.role !== access.role) await auth.api.updateMemberRole({ headers: request.headers, body: { organizationId: tenant.organizationId, memberId: target.id, role: access.role } });
 	return { membershipId: target.id };

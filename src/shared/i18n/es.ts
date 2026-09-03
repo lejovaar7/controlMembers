@@ -111,7 +111,7 @@ export const es = {
 	"Yes": "Sí",
 	"No": "No",
 	"All branches": "Todas las sucursales",
-	"This person also has access outside your branch scope. A company-wide administrator must manage their access.": "Esta persona también tiene acceso fuera de tus sucursales. Un administrador de toda la empresa debe gestionar su acceso.",
+	"This person also has access outside your branch scope. The owner or an administrator covering all of their branches must manage their access.": "Esta persona también tiene acceso fuera de tus sucursales. El propietario o un administrador con acceso a todas sus sucursales debe gestionar su acceso.",
 	"Account setup pending": "Activación de cuenta pendiente",
 	"Edit access for {name}": "Editar acceso de {name}",
 	"Edit access: {name}": "Editar acceso: {name}",

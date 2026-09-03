@@ -158,8 +158,8 @@ export function AppLayout() {
 		);
 	}
 
-	// Companies are provisioned, so a user genuinely without one is in an
-	// abnormal state rather than one they can repair themselves.
+	// Companies are provisioned. Unassigned or deactivated access must be
+	// restored by an administrator, never through self-service company creation.
 	if (!companies) return <Centered>{t("Loading…")}</Centered>;
 	if (companiesFailed || recoveryFailed) {
 		return <Centered>{t("We could not load your workspace.")}<Button variant="outline" onClick={() => window.location.reload()}>{t("Try again")}</Button></Centered>;
@@ -189,7 +189,7 @@ export function AppLayout() {
 	const createBranches = manageBranches && permissions?.allBranches === true;
 
 	if (branches.length === 0) {
-		// An owner/admin can still create the first branch; a member simply has
+		// An owner/unrestricted admin can create the first branch; others have
 		// no access and must never be offered branch creation. Both targets live
 		// inside this layout, so only redirect when not already there.
 		const target = createBranches ? "/app/branches" : "/app/no-branch-access";

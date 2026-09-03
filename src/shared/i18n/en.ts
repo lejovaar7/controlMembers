@@ -30,7 +30,7 @@ export const messages = [
 	"Their saved role, permissions and branch assignments will be restored.", "Confirm deactivation", "Confirm reactivation",
 	"Member access updated.", "Add member", "We could not load members.", "Loading members…", "No members found.",
 	"Role: {role}", "Company access: {status}", "Can appoint administrators: {permission}", "Inactive", "Yes", "No", "All branches",
-	"This person also has access outside your branch scope. A company-wide administrator must manage their access.", "Account setup pending",
+	"This person also has access outside your branch scope. The owner or an administrator covering all of their branches must manage their access.", "Account setup pending",
 	"Edit access for {name}", "Edit access: {name}", "Edit access", "Deactivate company access for {name}", "Reactivate company access for {name}",
 	"Deactivate access", "Reactivate access", "Resend setup for {name}", "Resend setup", "Select at least one branch.",
 	"We could not save this member. Check their role and branches, then try again. Retrying will not create a duplicate member.",

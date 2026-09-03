@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
 /**
- * Abnormal state: an authenticated user with no organization. Companies are
- * provisioned by the operator, so there is deliberately no self-service repair.
+ * No active company membership, either unassigned or deactivated. Access is
+ * provisioned by administrators, so there is no self-service company creation.
  */
 export function NoCompanyPage() {
 	const t = useT();

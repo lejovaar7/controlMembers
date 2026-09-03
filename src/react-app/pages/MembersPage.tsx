@@ -12,7 +12,7 @@ export function MembersPage() {
 	const shell = useAppShell();
 	if (!shell.canManageBranches) return <Navigate to="/app/dashboard" replace />;
 	// Switching companies discards all old form, request and feedback state.
-	return <MemberWorkspace key={shell.organizationId} />;
+	return <MemberWorkspace key={`${shell.organizationId}-${shell.organizationRole}-${shell.allBranches}-${shell.branches.map((branch) => branch.id).join(",")}`} />;
 }
 
 function MemberWorkspace() {
@@ -90,7 +90,7 @@ function MemberWorkspace() {
 							<p className="text-sm">{t("Company access: {status}", { status: t(entry.isActive ? "Active" : "Inactive") })}</p>
 							{entry.role === "admin" && <p className="text-sm">{t("Can appoint administrators: {permission}", { permission: t(entry.canAppointAdmins ? "Yes" : "No") })}</p>}
 							<p className="text-sm">{entry.branchAccess.kind === "all-branches" ? t("All branches") : entry.branchAccess.branchIds.map((id) => shell.branches.find((branch) => branch.id === id)?.name).filter(Boolean).join(", ") || t("No branch access")}</p>
-							{entry.scopeRestricted && <p className="mt-1 text-sm text-muted-foreground">{t("This person also has access outside your branch scope. A company-wide administrator must manage their access.")}</p>}
+							{entry.scopeRestricted && <p className="mt-1 text-sm text-muted-foreground">{t("This person also has access outside your branch scope. The owner or an administrator covering all of their branches must manage their access.")}</p>}
 							{entry.setupRequired && entry.isActive && <p className="mt-1 text-sm text-muted-foreground">{t("Account setup pending")}</p>}
 							{entry.canManage && <div className="mt-3 flex flex-wrap gap-2">
 								<Button variant="outline" aria-label={t("Edit access for {name}", { name: entry.user.name })} disabled={Boolean(form || statusTarget)} onClick={() => { setMessage(null); setForm(entry); }}>{t("Edit access")}</Button>

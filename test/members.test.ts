@@ -86,6 +86,15 @@ describe("employee provisioning", () => {
 			expect((await callApi("/api/members", owner, { name: "Invalid", email: "invalid-extra@test.invalid", role: "member", branchIds: [mainId], ...extra })).status).toBe(400);
 		}
 	});
+	it("allows the owner to create an admin with all-branch scope but not owner or platform fields", async () => {
+		const response = await callApi("/api/members", owner, { name: "Owner-created admin", email: "owner-created-admin@test.invalid", role: "admin", branchIds: [] });
+		expect(response.status).toBe(200);
+		const body = await (await callApi("/api/members", owner)).json() as { members: MemberSummary[]; };
+		expect(body.members.find((row) => row.user.email === "owner-created-admin@test.invalid")?.branchAccess).toEqual({ kind: "all-branches" });
+		for (const extra of [{ role: "owner" }, { userId: owner.userId }, { organizationId: foreignOrgId }, { password: "NeverAllowed" }, { emailVerified: true }]) {
+			expect((await callApi("/api/members", owner, { name: "Invalid", email: "owner-invalid-extra@test.invalid", role: "member", branchIds: [mainId], ...extra })).status).toBe(400);
+		}
+	});
 	it("rejects invalid scope before creating an identity", async () => {
 		for (const branchIds of [[], [foreignBranchId], ["missing"], [mainId, foreignBranchId], [123]]) {
 			expect((await callApi("/api/members", owner, { name: "Invalid", email: "invalid-scope@test.invalid", role: "member", branchIds })).status).toBe(400);

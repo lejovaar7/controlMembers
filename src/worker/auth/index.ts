@@ -48,6 +48,7 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler, emailContext: Email
 			"/organization/get-full-organization", "/organization/list-members",
 			"/organization/get-active-member-role",
 			"/organization/get-active-member", "/organization/list", "/organization/set-active",
+			"/organization/get-organization", "/organization/has-permission",
 			"/organization/add-member", // Company/access changes use the guarded application API.
 			"/organization/list-teams", "/organization/list-team-members", "/organization/list-user-teams",
 			"/organization/update-member-role", "/organization/remove-team-member",
