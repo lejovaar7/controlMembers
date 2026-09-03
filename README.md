@@ -29,7 +29,7 @@ index.html        # Frontend entry point
 vite.config.ts    # Vite + @cloudflare/vite-plugin
 wrangler.json     # Worker, static assets and D1 configuration
 scripts/          # Explicit environment commands and safety tests
-tsconfig.*.json   # Separate TS projects: app / worker / node
+tsconfig.*.json   # Separate TS projects: app / worker / node / tests
 ```
 
 Frontend and backend share a single dev process: `@cloudflare/vite-plugin` runs
@@ -70,7 +70,9 @@ to 16 KiB and responses are not cached.
 Routing is split by `run_worker_first: ["/api/*"]`: only `/api/*` reaches the
 Worker. Everything else is served by Static Assets, with
 `not_found_handling: "single-page-application"` so SPA deep links work. Unknown
-`/api/*` routes return `404` with `{ "error": "Not Found" }`.
+application API routes return `404` with `{ "error": "Not Found" }`; unknown or
+disabled `/api/auth/*` routes are owned by Better Auth and may return an empty or
+plain-text `404` instead.
 
 ## Development
 
@@ -411,12 +413,13 @@ npm run check
 
 When explicitly releasing: apply `npm run db:migrate:dev`, then deploy dev and
 verify its emails/UI. Only after approval, migrate and deploy production with
-the corresponding explicit commands. This worktree has not been deployed.
+the corresponding explicit commands. This repository state has not been
+deployed to either remote environment.
 
 ## Current status
 
-Starter v1 is implemented. The quality gate includes
-typecheck, lint, Workers/D1 tests, production build and deployment dry run.
+Starter v1 is implemented. The quality gate includes typecheck, lint, Node and
+Workers/D1 tests, and all three environment builds/deployment dry runs.
 See [the dated verification record](specs/VERIFICATION.md) for results, manual
 checks and dependency-audit results. The 2026-09-02 dependency remediation leaves
 both the full and production-only audits at zero reported vulnerabilities.

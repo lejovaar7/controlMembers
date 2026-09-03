@@ -98,10 +98,11 @@ index.html         Frontend entry point
 vite.config.ts     Vite + @cloudflare/vite-plugin
 wrangler.json      Worker config + static assets
 scripts/           Explicit environment commands and their Node safety tests
-tsconfig.json      References the three projects below
+tsconfig.json      References the four projects below
   tsconfig.app.json      frontend + imported shared modules, DOM types
   tsconfig.worker.json   backend + imported shared modules, Workers types
-  tsconfig.node.json     only vite.config.ts
+  tsconfig.node.json     Vite and Drizzle configuration
+  test/tsconfig.json     Workers-runtime tests and Vitest configuration
 worker-configuration.d.ts   Generated — never edit by hand
 ```
 
@@ -124,7 +125,8 @@ Consequences to respect:
   SPA routing is the asset router's job, not Hono's.
 - All backend routes must live under `/api/`. A route outside that prefix will
   never reach the Worker.
-- Unknown `/api/*` routes return a JSON 404 via `app.notFound`.
+- Unknown application API routes return a JSON 404 via `app.notFound`. Better
+  Auth owns `/api/auth/*` and may return empty or plain-text 404 responses.
 
 The `ASSETS` binding is declared and typed but currently unused.
 
@@ -455,7 +457,7 @@ Do not roll back to code that ignores these controls after relying on them.
 | Command              | Purpose                                          |
 | -------------------- | ------------------------------------------------ |
 | `npm run dev`        | Dev server, frontend + worker (port 5173)        |
-| `npm run typecheck`  | `tsc -b` across all three TS projects            |
+| `npm run typecheck`  | `tsc -b` across all four TS projects             |
 | `npm run lint`       | ESLint                                           |
 | `npm run build`      | Typecheck + optimized local-target build        |
 | `npm run build:dev` / `build:production` | Build explicit remote target only |
