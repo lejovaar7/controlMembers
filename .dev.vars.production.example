@@ -1,0 +1,6 @@
+# Optional local build-time values for the production target; not Cloudflare secrets.
+# Copy to .dev.vars.production to avoid falling back to .dev.vars during builds.
+# These non-secret fixtures must never be installed as deployed secrets.
+BETTER_AUTH_SECRET=build-only-production-value-not-a-deployed-secret
+APP_URL=https://app.example.invalid
+EMAIL_FROM=no-reply@example.invalid

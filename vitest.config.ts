@@ -9,7 +9,8 @@ const migrations = await readD1Migrations(
 export default defineConfig({
 	plugins: [
 		cloudflareTest({
-			wrangler: { configPath: "./wrangler.json" },
+			remoteBindings: false,
+			wrangler: { configPath: "./wrangler.json", environment: "" },
 			miniflare: {
 				// Test-only values. Never the real secret, domain or recipient.
 				bindings: {
@@ -22,6 +23,7 @@ export default defineConfig({
 		}),
 	],
 	test: {
+		include: ["test/**/*.test.ts"],
 		setupFiles: ["./test/setup.ts"],
 	},
 });

@@ -3,6 +3,9 @@
 	"name": "saas-template",
 	"main": "./src/worker/index.ts",
 	"compatibility_date": "2026-08-27",
+	"workers_dev": false,
+	"preview_urls": false,
+	"routes": [],
 	"secrets": {
 		"required": ["BETTER_AUTH_SECRET", "APP_URL", "EMAIL_FROM"]
 	},
@@ -18,7 +21,8 @@
 	},
 	"send_email": [
 		{
-			"name": "EMAIL"
+			"name": "EMAIL",
+			"remote": false
 		}
 	],
 	"d1_databases": [
@@ -26,7 +30,48 @@
 			"binding": "DB",
 			"database_name": "saas-template-db",
 			"database_id": "REPLACE_WITH_REAL_D1_DATABASE_ID",
-			"migrations_dir": "./drizzle"
+			"migrations_dir": "./drizzle",
+			"remote": false
 		}
-	]
+	],
+	"env": {
+		"dev": {
+			"name": "saas-template-dev",
+			"workers_dev": false,
+			"preview_urls": false,
+			"routes": [{ "pattern": "dev.example.invalid", "custom_domain": true }],
+			"secrets": {
+				"required": ["BETTER_AUTH_SECRET", "APP_URL", "EMAIL_FROM"]
+			},
+			"send_email": [{
+				"name": "EMAIL",
+				"allowed_destination_addresses": ["qa@example.invalid"],
+				"remote": false
+			}],
+			"d1_databases": [{
+				"binding": "DB",
+				"database_name": "saas-template-dev-db",
+				"database_id": "REPLACE_WITH_DEV_D1_DATABASE_ID",
+				"migrations_dir": "./drizzle",
+				"remote": false
+			}]
+		},
+		"production": {
+			"name": "saas-template-production",
+			"workers_dev": false,
+			"preview_urls": false,
+			"routes": [{ "pattern": "app.example.invalid", "custom_domain": true }],
+			"secrets": {
+				"required": ["BETTER_AUTH_SECRET", "APP_URL", "EMAIL_FROM"]
+			},
+			"send_email": [{ "name": "EMAIL", "remote": false }],
+			"d1_databases": [{
+				"binding": "DB",
+				"database_name": "saas-template-production-db",
+				"database_id": "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID",
+				"migrations_dir": "./drizzle",
+				"remote": false
+			}]
+		}
+	}
 }
