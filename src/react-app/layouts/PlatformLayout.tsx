@@ -1,6 +1,8 @@
+import { useT } from "@/lib/i18n";
 import { Link, Navigate, Outlet } from "react-router";
 import { Button } from "@/components/ui/button";
 import { authClient, useSession } from "@/lib/auth-client";
+import { LanguagePicker } from "@/components/language-picker";
 
 function isPlatformAdmin(role: unknown): boolean {
 	return typeof role === "string" && role.split(",").includes("admin");
@@ -14,6 +16,7 @@ function isPlatformAdmin(role: unknown): boolean {
  * re-checks with requirePlatformAdmin().
  */
 export function PlatformLayout() {
+	const t = useT();
 	const { data: session, isPending } = useSession();
 
 	if (isPending) return null;
@@ -24,11 +27,11 @@ export function PlatformLayout() {
 
 	return (
 		<div className="flex min-h-svh flex-col">
-			<header className="flex h-14 items-center justify-between gap-4 border-b px-4 sm:px-6">
+			<header className="flex min-h-14 flex-wrap items-center justify-between gap-4 border-b px-4 py-2 sm:px-6">
 				<Link to="/platform" className="text-sm font-medium">
-					Platform administration
-				</Link>
-				<div className="flex items-center gap-3">
+					{t("Platform administration")}</Link>
+				<div className="flex min-w-0 flex-wrap items-center gap-3">
+					<LanguagePicker />
 					<span className="text-muted-foreground max-w-[12rem] truncate text-sm">
 						{session.user.name || session.user.email}
 					</span>
@@ -41,8 +44,7 @@ export function PlatformLayout() {
 								.then(() => window.location.assign("/login"));
 						}}
 					>
-						Sign out
-					</Button>
+						{t("Sign out")}</Button>
 				</div>
 			</header>
 			<main className="flex-1">

@@ -1,3 +1,4 @@
+import { useT } from "@/lib/i18n";
 import { Building2, LayoutDashboard, Settings, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation } from "react-router";
@@ -15,13 +16,14 @@ import {
 	useSession,
 } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+import { LanguagePicker } from "@/components/language-picker";
 
 const navigation = [
 	{ to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, manage: false },
 	{ to: "/app/branches", label: "Branches", icon: Building2, manage: true },
 	{ to: "/app/members", label: "Members", icon: Users, manage: true },
 	{ to: "/app/settings", label: "Settings", icon: Settings, manage: false },
-];
+] as const;
 
 function Navigation({
 	className,
@@ -30,8 +32,9 @@ function Navigation({
 	className?: string;
 	showManagement: boolean;
 }) {
+	const t = useT();
 	return (
-		<nav aria-label="Main" className={className}>
+		<nav aria-label={t("Main")} className={className}>
 			<ul className="flex flex-wrap gap-1 md:flex-col">
 				{navigation
 					.filter((item) => showManagement || !item.manage)
@@ -50,7 +53,7 @@ function Navigation({
 							}
 						>
 							<Icon aria-hidden="true" className="size-4" />
-							{label}
+							{t(label)}
 						</NavLink>
 					</li>
 				))}
@@ -77,6 +80,7 @@ function Centered({ children }: { children: React.ReactNode }) {
  * (requireAuth / requireTenant / requireBranch), never here.
  */
 export function AppLayout() {
+	const t = useT();
 	const { data: session, isPending } = useSession();
 	const location = useLocation();
 	const [signingOut, setSigningOut] = useState(false);
@@ -145,7 +149,7 @@ export function AppLayout() {
 		}
 	}
 
-	if (isPending || signingOut) return <Centered>Loading\u2026</Centered>;
+	if (isPending || signingOut) return <Centered>{t("Loading…")}</Centered>;
 
 	if (!session) {
 		const returnTo = `${location.pathname}${location.search}`;
@@ -156,28 +160,29 @@ export function AppLayout() {
 
 	// Companies are provisioned, so a user genuinely without one is in an
 	// abnormal state rather than one they can repair themselves.
-	if (!companies) return <Centered>Loading\u2026</Centered>;
+	if (!companies) return <Centered>{t("Loading…")}</Centered>;
 	if (companiesFailed || recoveryFailed) {
-		return <Centered>We could not load your workspace. <Button variant="outline" onClick={() => window.location.reload()}>Try again</Button></Centered>;
+		return <Centered>{t("We could not load your workspace.")}<Button variant="outline" onClick={() => window.location.reload()}>{t("Try again")}</Button></Centered>;
 	}
 	if (selection?.kind === "none") {
 		return <Navigate to="/no-company" replace />;
 	}
 	if (selection?.kind === "choose") {
 		return <div className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-4 p-6">
-			<h1 className="text-2xl font-semibold">Choose a company</h1>
-			<p className="text-muted-foreground">Select the company you want to work in. Access and permissions are separate for each company.</p>
+			<LanguagePicker />
+			<h1 className="text-2xl font-semibold">{t("Choose a company")}</h1>
+			<p className="text-muted-foreground">{t("Select the company you want to work in. Access and permissions are separate for each company.")}</p>
 			{companies.map((company) => <Button key={company.id} variant="outline" className="h-auto min-h-10 whitespace-normal break-words" disabled={switchingOrganization} onClick={() => void selectCompany(company.id)}>{company.name}</Button>)}
-			{switchingOrganization && <p role="status">Opening company…</p>}
-			<Button variant="ghost" disabled={switchingOrganization} onClick={() => void handleSignOut()}>Sign out</Button>
+			{switchingOrganization && <p role="status">{t("Opening company…")}</p>}
+			<Button variant="ghost" disabled={switchingOrganization} onClick={() => void handleSignOut()}>{t("Sign out")}</Button>
 		</div>;
 	}
-	if (selection?.kind === "activate") return <Centered>Opening company…</Centered>;
-	if (!activeOrganizationId) return <Centered>Loading workspace\u2026</Centered>;
-	if (branches === null) return <Centered>Loading workspace\u2026</Centered>;
+	if (selection?.kind === "activate") return <Centered>{t("Opening company…")}</Centered>;
+	if (!activeOrganizationId) return <Centered>{t("Loading workspace…")}</Centered>;
+	if (branches === null) return <Centered>{t("Loading workspace…")}</Centered>;
 	// A failed lookup is not the same as an empty accessible list.
 	if (branchesFailed) {
-		return <Centered>We could not load your workspace. <Button variant="outline" onClick={reload}>Try again</Button></Centered>;
+		return <Centered>{t("We could not load your workspace.")}<Button variant="outline" onClick={reload}>{t("Try again")}</Button></Centered>;
 	}
 	const organizationRole = organization?.role ?? null;
 	const manageBranches = canManageBranches(organizationRole);
@@ -196,7 +201,7 @@ export function AppLayout() {
 	const activeBranch =
 		branches.find((branch) => branch.id === activeBranchId) ?? null;
 	if (branches.length > 0 && !activeBranch) {
-		return <Centered>Loading workspace\u2026</Centered>;
+		return <Centered>{t("Loading workspace…")}</Centered>;
 	}
 
 	const shell: AppShellContext = {
@@ -237,17 +242,17 @@ export function AppLayout() {
 							</span>
 						) : null}
 					</div>
-					<div className="flex items-center gap-3">
+					<div className="flex min-w-0 flex-wrap items-center gap-3">
+						<LanguagePicker />
 						<span className="text-muted-foreground max-w-[12rem] truncate text-sm">
 							{session.user.name || session.user.email}
 						</span>
 						<Button variant="outline" size="sm" onClick={handleSignOut}>
-							Sign out
-						</Button>
+							{t("Sign out")}</Button>
 					</div>
 				</header>
 				<main className="flex-1">
-					{switchingOrganization ? <p role="status" className="p-6">Switching company…</p> : <Outlet context={shell} />}
+					{switchingOrganization ? <p role="status" className="p-6">{t("Switching company…")}</p> : <Outlet context={shell} />}
 				</main>
 			</div>
 		</div>

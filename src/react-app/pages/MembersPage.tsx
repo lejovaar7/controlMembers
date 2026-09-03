@@ -1,3 +1,5 @@
+import { roleMessage, type MessageKey } from "../../shared/i18n";
+import { useT } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router";
 import { PageContainer, PageHeader } from "@/components/page";
@@ -14,12 +16,13 @@ export function MembersPage() {
 }
 
 function MemberWorkspace() {
+	const t = useT();
 	const shell = useAppShell();
 	const [directory, setDirectory] = useState<MemberDirectory | null>(null);
 	const [failed, setFailed] = useState(false);
 	const [revision, setRevision] = useState(0);
 	const [form, setForm] = useState<MemberSummary | "new" | null>(null);
-	const [message, setMessage] = useState<string | null>(null);
+	const [message, setMessage] = useState<MessageKey | null>(null);
 	const [resending, setResending] = useState<string | null>(null);
 	const [statusTarget, setStatusTarget] = useState<MemberSummary | null>(null);
 	const [changingStatus, setChangingStatus] = useState(false);
@@ -69,30 +72,30 @@ function MemberWorkspace() {
 	const current = directory?.organizationId === shell.organizationId ? directory : null;
 	return (
 		<PageContainer className="space-y-4">
-			<PageHeader title="Members" description="People and access in this company." />
-			{message && <p role="status" className="rounded-lg border p-3 text-sm">{message}</p>}
+			<PageHeader title={t("Members")} description={t("People and access in this company.")} />
+			{message && <p role="status" className="rounded-lg border p-3 text-sm">{message ? t(message) : null}</p>}
 			{statusTarget && <section role="alertdialog" aria-labelledby="status-title" aria-describedby="status-description" className="space-y-3 rounded-lg border p-4">
-				<h2 id="status-title" className="font-medium">{statusTarget.isActive ? "Deactivate" : "Reactivate"} access for {statusTarget.user.name}?</h2>
-				<p id="status-description" className="text-sm">This affects only {shell.organizationName}. The account and historical records are kept. Access to other companies is unchanged.{!statusTarget.isActive && " Their saved role, permissions and branch assignments will be restored."}</p>
-				<div className="flex flex-wrap gap-2"><Button autoFocus disabled={changingStatus} onClick={() => void changeStatus()}>{changingStatus ? "Saving…" : statusTarget.isActive ? "Confirm deactivation" : "Confirm reactivation"}</Button><Button variant="outline" disabled={changingStatus} onClick={() => setStatusTarget(null)}>Cancel</Button></div>
+				<h2 id="status-title" className="font-medium">{t(statusTarget.isActive ? "Deactivate access for {name}?" : "Reactivate access for {name}?", { name: statusTarget.user.name })}</h2>
+				<p id="status-description" className="text-sm">{t("This affects only {company}. The account and historical records are kept. Access to other companies is unchanged.", { company: shell.organizationName ?? "" })}{!statusTarget.isActive && <> {t("Their saved role, permissions and branch assignments will be restored.")}</>}</p>
+				<div className="flex flex-wrap gap-2"><Button autoFocus disabled={changingStatus} onClick={() => void changeStatus()}>{changingStatus ? t("Saving…") : statusTarget.isActive ? t("Confirm deactivation") : t("Confirm reactivation")}</Button><Button variant="outline" disabled={changingStatus} onClick={() => setStatusTarget(null)}>{t("Cancel")}</Button></div>
 			</section>}
-			{form ? <MemberForm key={`${form === "new" ? "new" : form.membershipId}-${shell.allBranches}-${shell.canAppointAdmins}-${shell.organizationRole}`} branches={shell.branches} member={form === "new" ? undefined : form} allBranchesAllowed={shell.allBranches} canAppointAdmins={shell.canAppointAdmins} isOwner={shell.organizationRole === "owner"} onCancel={() => setForm(null)} onSaved={(status) => { setForm(null); setMessage(status ? setupMessage(status) : "Member access updated."); setRevision((value) => value + 1); }} /> : <div><Button disabled={Boolean(statusTarget)} onClick={() => { setMessage(null); setForm("new"); }}>Add member</Button></div>}
-			{failed ? <div role="alert">We could not load members. <Button variant="outline" onClick={() => setRevision((value) => value + 1)}>Try again</Button></div> : !current ? <p role="status">Loading members…</p> : current.members.length === 0 ? <p>No members found.</p> : (
+			{form ? <MemberForm key={`${form === "new" ? "new" : form.membershipId}-${shell.allBranches}-${shell.canAppointAdmins}-${shell.organizationRole}`} branches={shell.branches} member={form === "new" ? undefined : form} allBranchesAllowed={shell.allBranches} canAppointAdmins={shell.canAppointAdmins} isOwner={shell.organizationRole === "owner"} onCancel={() => setForm(null)} onSaved={(status) => { setForm(null); setMessage(status ? setupMessage(status) : "Member access updated."); setRevision((value) => value + 1); }} /> : <div><Button disabled={Boolean(statusTarget)} onClick={() => { setMessage(null); setForm("new"); }}>{t("Add member")}</Button></div>}
+			{failed ? <div role="alert">{t("We could not load members.")}<Button variant="outline" onClick={() => setRevision((value) => value + 1)}>{t("Try again")}</Button></div> : !current ? <p role="status">{t("Loading members…")}</p> : current.members.length === 0 ? <p>{t("No members found.")}</p> : (
 				<ul className="grid gap-3">
 					{current.members.map((entry) => (
 						<li key={entry.membershipId} className="rounded-lg border p-4">
 							<h2 className="break-words font-medium">{entry.user.name}</h2>
 							<p className="text-muted-foreground break-all text-sm">{entry.user.email}</p>
-							<p className="mt-2 text-sm">Role: {entry.role}</p>
-							<p className="text-sm">Company access: {entry.isActive ? "Active" : "Inactive"}</p>
-							{entry.role === "admin" && <p className="text-sm">Can appoint administrators: {entry.canAppointAdmins ? "Yes" : "No"}</p>}
-							<p className="text-sm">{entry.branchAccess.kind === "all-branches" ? "All branches" : entry.branchAccess.branchIds.map((id) => shell.branches.find((branch) => branch.id === id)?.name).filter(Boolean).join(", ") || "No branch access"}</p>
-							{entry.scopeRestricted && <p className="mt-1 text-sm text-muted-foreground">This person also has access outside your branch scope. A company-wide administrator must manage their access.</p>}
-							{entry.setupRequired && entry.isActive && <p className="mt-1 text-sm text-muted-foreground">Account setup pending</p>}
+							<p className="mt-2 text-sm">{t("Role: {role}", { role: t(roleMessage(entry.role)) })}</p>
+							<p className="text-sm">{t("Company access: {status}", { status: t(entry.isActive ? "Active" : "Inactive") })}</p>
+							{entry.role === "admin" && <p className="text-sm">{t("Can appoint administrators: {permission}", { permission: t(entry.canAppointAdmins ? "Yes" : "No") })}</p>}
+							<p className="text-sm">{entry.branchAccess.kind === "all-branches" ? t("All branches") : entry.branchAccess.branchIds.map((id) => shell.branches.find((branch) => branch.id === id)?.name).filter(Boolean).join(", ") || t("No branch access")}</p>
+							{entry.scopeRestricted && <p className="mt-1 text-sm text-muted-foreground">{t("This person also has access outside your branch scope. A company-wide administrator must manage their access.")}</p>}
+							{entry.setupRequired && entry.isActive && <p className="mt-1 text-sm text-muted-foreground">{t("Account setup pending")}</p>}
 							{entry.canManage && <div className="mt-3 flex flex-wrap gap-2">
-								<Button variant="outline" aria-label={`Edit access for ${entry.user.name}`} disabled={Boolean(form || statusTarget)} onClick={() => { setMessage(null); setForm(entry); }}>Edit access</Button>
-								<Button variant="outline" aria-label={`${entry.isActive ? "Deactivate" : "Reactivate"} company access for ${entry.user.name}`} disabled={Boolean(form || statusTarget || resending)} onClick={() => { setMessage(null); setStatusTarget(entry); }}>{entry.isActive ? "Deactivate access" : "Reactivate access"}</Button>
-								{entry.setupRequired && entry.isActive && <Button variant="outline" aria-label={`Resend setup for ${entry.user.name}`} disabled={Boolean(resending || statusTarget)} onClick={() => void resend(entry)}>{resending === entry.membershipId ? "Sending…" : "Resend setup"}</Button>}
+								<Button variant="outline" aria-label={t("Edit access for {name}", { name: entry.user.name })} disabled={Boolean(form || statusTarget)} onClick={() => { setMessage(null); setForm(entry); }}>{t("Edit access")}</Button>
+								<Button variant="outline" aria-label={t(entry.isActive ? "Deactivate company access for {name}" : "Reactivate company access for {name}", { name: entry.user.name })} disabled={Boolean(form || statusTarget || resending)} onClick={() => { setMessage(null); setStatusTarget(entry); }}>{entry.isActive ? t("Deactivate access") : t("Reactivate access")}</Button>
+								{entry.setupRequired && entry.isActive && <Button variant="outline" aria-label={t("Resend setup for {name}", { name: entry.user.name })} disabled={Boolean(resending || statusTarget)} onClick={() => void resend(entry)}>{resending === entry.membershipId ? t("Sending…") : t("Resend setup")}</Button>}
 							</div>}
 						</li>
 					))}

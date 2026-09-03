@@ -1,3 +1,5 @@
+import type { MessageKey } from "../../shared/i18n";
+import { useT } from "@/lib/i18n";
 import { type FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { AuthCard, FormMessage } from "@/components/auth-card";
@@ -9,13 +11,14 @@ import { authErrorMessage, isEmailNotVerified } from "@/lib/auth-errors";
 import { safeReturnPath } from "@/lib/return-path";
 
 export function LoginPage() {
+	const t = useT();
 	const { data: session, isPending: sessionPending } = useSession();
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
 
 	const [email, setEmail] = useState("");
 	const [submitting, setSubmitting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<MessageKey | null>(null);
 	const [needsVerification, setNeedsVerification] = useState(false);
 
 	const returnTo = safeReturnPath(searchParams.get("returnTo"));
@@ -52,18 +55,17 @@ export function LoginPage() {
 
 	return (
 		<AuthCard
-			title="Sign in"
-			description="Use your email and password."
+			title={t("Sign in")}
+			description={t("Use your email and password.")}
 		>
 			<form onSubmit={handleSubmit} className="flex flex-col gap-4">
 				{justReset ? (
 					<FormMessage tone="success">
-						Your password was changed. Sign in with your new password.
-					</FormMessage>
+						{t("Your password was changed. Sign in with your new password.")}</FormMessage>
 				) : null}
 
 				<div className="grid gap-2">
-					<Label htmlFor="email">Email</Label>
+					<Label htmlFor="email">{t("Email")}</Label>
 					<Input
 						id="email"
 						name="email"
@@ -78,10 +80,9 @@ export function LoginPage() {
 
 				<div className="grid gap-2">
 					<div className="flex items-center justify-between">
-						<Label htmlFor="password">Password</Label>
+						<Label htmlFor="password">{t("Password")}</Label>
 						<Link to="/forgot-password" className="text-muted-foreground text-sm underline">
-							Forgot?
-						</Link>
+							{t("Forgot?")}</Link>
 					</div>
 					<Input
 						id="password"
@@ -93,17 +94,16 @@ export function LoginPage() {
 					/>
 				</div>
 
-				<FormMessage id="login-error">{error}</FormMessage>
+				<FormMessage id="login-error">{error ? t(error) : null}</FormMessage>
 				{needsVerification ? (
 					<p className="text-sm">
 						<Link to="/verify-email" className="underline">
-							Resend the verification email
-						</Link>
+							{t("Resend the verification email")}</Link>
 					</p>
 				) : null}
 
 				<Button type="submit" disabled={submitting}>
-					{submitting ? "Signing in\u2026" : "Sign in"}
+					{submitting ? t("Signing in…") : t("Sign in")}
 				</Button>
 			</form>
 		</AuthCard>

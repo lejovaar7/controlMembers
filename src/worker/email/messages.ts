@@ -1,8 +1,6 @@
-type EmailContent = {
-	subject: string;
-	text: string;
-	html: string;
-};
+import { createTranslator, DEFAULT_LOCALE, languages, type Locale, type MessageKey } from "../../shared/i18n";
+
+type EmailContent = { subject: string; text: string; html: string };
 
 function escapeHtml(value: string) {
 	return value
@@ -12,60 +10,53 @@ function escapeHtml(value: string) {
 		.replace(/"/g, "&quot;");
 }
 
-function layout(heading: string, paragraph: string, action: string, url: string) {
+function message(locale: Locale, heading: string, paragraph: string, action: MessageKey, footer: MessageKey, url: string): EmailContent {
+	const t = createTranslator(locale);
 	const safeUrl = escapeHtml(url);
-	return [
-		'<div style="font-family:system-ui,sans-serif;line-height:1.5;max-width:32rem">',
-		`<h1 style="font-size:1.25rem">${escapeHtml(heading)}</h1>`,
-		`<p>${escapeHtml(paragraph)}</p>`,
-		`<p><a href="${safeUrl}">${escapeHtml(action)}</a></p>`,
-		`<p style="color:#666;font-size:0.875rem">If the link does not work, copy this URL into your browser:<br>${safeUrl}</p>`,
-		"</div>",
-	].join("");
-}
-
-export function verificationEmail(url: string): EmailContent {
-	const heading = "Verify your email";
-	const paragraph =
-		"Confirm your email address to finish setting up your account.";
 	return {
 		subject: heading,
-		text: `${paragraph}\n\n${url}\n\nIf you did not create an account, you can ignore this email.`,
-		html: layout(heading, paragraph, "Verify email", url),
+		text: `${paragraph}\n\n${url}\n\n${t(footer)}`,
+		html: [
+			`<div lang="${locale}" dir="${languages[locale].dir}" style="font-family:system-ui,sans-serif;line-height:1.5;max-width:32rem">`,
+			`<h1 style="font-size:1.25rem">${escapeHtml(heading)}</h1>`,
+			`<p>${escapeHtml(paragraph)}</p>`,
+			`<p><a href="${safeUrl}">${escapeHtml(t(action))}</a></p>`,
+			`<p style="color:#666;font-size:0.875rem">${escapeHtml(t("If the link does not work, copy this URL into your browser:"))}<br>${safeUrl}</p>`,
+			`<p>${escapeHtml(t(footer))}</p>`,
+			"</div>",
+		].join(""),
 	};
 }
 
-export function passwordResetEmail(url: string): EmailContent {
-	const heading = "Reset your password";
-	const paragraph = "Use the link below to choose a new password.";
-	return {
-		subject: heading,
-		text: `${paragraph}\n\n${url}\n\nIf you did not request a password reset, you can ignore this email.`,
-		html: layout(heading, paragraph, "Reset password", url),
-	};
+export function verificationEmail(url: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+	const t = createTranslator(locale);
+	return message(locale, t("Verify your email"), t("Confirm your email address to finish setting up your account."),
+		"Verify email", "If you did not create an account, you can ignore this email.", url);
+}
+
+export function passwordResetEmail(url: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+	const t = createTranslator(locale);
+	return message(locale, t("Reset your password"), t("Use the link below to choose a new password."),
+		"Reset password", "If you did not request a password reset, you can ignore this email.", url);
 }
 
 export function organizationInvitationEmail(
 	organizationName: string,
 	inviterName: string,
 	url: string,
+	locale: Locale = DEFAULT_LOCALE,
 ): EmailContent {
-	const heading = "You have been invited to join a team";
-	const paragraph = `${inviterName} invited you to join ${organizationName}.`;
+	const t = createTranslator(locale);
 	return {
-		subject: `Invitation to join ${organizationName}`,
-		text: `${paragraph}\n\n${url}\n\nIf you were not expecting this invitation, you can ignore this email.`,
-		html: layout(heading, paragraph, "Accept invitation", url),
+		...message(locale, t("You have been invited to join a team"), t("{inviter} invited you to join {company}.", { inviter: inviterName, company: organizationName }),
+			"Accept invitation", "If you were not expecting this invitation, you can ignore this email.", url),
+		subject: t("Invitation to join {company}", { company: organizationName }),
 	};
 }
 
-export function accountSetupEmail(url: string): EmailContent {
-	const heading = "Finish setting up your account";
-	const paragraph =
-		"You have been given access to the application. Use this secure link to confirm your address and choose a password.";
-	return {
-		subject: heading,
-		text: `${paragraph}\n\n${url}\n\nIf you were not expecting this, you can ignore this email.`,
-		html: layout(heading, paragraph, "Set up my account", url),
-	};
+export function accountSetupEmail(url: string, locale: Locale = DEFAULT_LOCALE): EmailContent {
+	const t = createTranslator(locale);
+	return message(locale, t("Finish setting up your account"),
+		t("You have been given access to the application. Use this secure link to confirm your address and choose a password."),
+		"Set up my account", "If you were not expecting this, you can ignore this email.", url);
 }

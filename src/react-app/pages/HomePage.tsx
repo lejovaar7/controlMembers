@@ -1,21 +1,23 @@
+import { useT } from "@/lib/i18n";
 import { Link } from "react-router";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
 
 export function HomePage() {
+	const t = useT();
 	const { data: session, isPending } = useSession();
 
 	return (
 		<PageContainer>
 			<PageHeader
-				title="SaaS Template"
-				description="React, Vite, Hono and Cloudflare Workers."
+				title={t("SaaS Template")}
+				description={t("React, Vite, Hono and Cloudflare Workers.")}
 			/>
 			{isPending ? null : session ? (
-				<Button render={<Link to="/app/dashboard" />}>Open app</Button>
+				<Button render={<Link to="/app/dashboard" />}>{t("Open app")}</Button>
 			) : (
-				<Button render={<Link to="/login" />}>Sign in</Button>
+				<Button render={<Link to="/login" />}>{t("Sign in")}</Button>
 			)}
 		</PageContainer>
 	);

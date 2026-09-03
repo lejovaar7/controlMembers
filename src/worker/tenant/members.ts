@@ -148,13 +148,13 @@ export async function provisionMember(env: Env, request: Request, tenant: Tenant
 	for (const teamId of access.branchIds) {
 		await auth.api.addTeamMember({ headers: request.headers, body: { organizationId: tenant.organizationId, teamId, userId: identity.id } });
 	}
-	return { membershipId: membership.id, alreadyMember, setupEmailStatus: await sendAccountSetup(env, email) };
+	return { membershipId: membership.id, alreadyMember, setupEmailStatus: await sendAccountSetup(env, email, tenant.organizationId) };
 }
 
 export async function resendMemberSetup(env: Env, tenant: TenantContext, membershipId: string) {
 	const target = await requireManageableMember(env, tenant, membershipId);
 	if (!target.isActive) throw new RequestError(409, "MEMBER_INACTIVE");
-	return { setupEmailStatus: await sendAccountSetup(env, target.email) };
+	return { setupEmailStatus: await sendAccountSetup(env, target.email, tenant.organizationId) };
 }
 
 export async function updateMemberAccess(env: Env, request: Request, tenant: TenantContext, membershipId: string, body: Record<string, unknown>) {

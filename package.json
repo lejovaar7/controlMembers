@@ -25,7 +25,8 @@
 		"db:migrate:dev": "node scripts/environments.mjs dev migrate",
 		"db:migrate:production": "node scripts/environments.mjs production migrate",
 		"db:migrate:remote": "node scripts/environments.mjs",
-		"test": "npm run test:environments && node scripts/environments.mjs local test",
+		"test": "npm run test:environments && npm run test:i18n && node scripts/environments.mjs local test",
+		"test:i18n": "node --test scripts/i18n.test.mjs",
 		"test:environments": "node --test scripts/environments.test.mjs",
 		"test:watch": "node scripts/environments.mjs local test-watch"
 	},

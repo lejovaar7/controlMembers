@@ -1,3 +1,4 @@
+import { useT } from "@/lib/i18n";
 import { PageContainer, PageHeader } from "@/components/page";
 
 /**
@@ -6,11 +7,12 @@ import { PageContainer, PageHeader } from "@/components/page";
  * branch creation is offered.
  */
 export function NoBranchAccessPage() {
+	const t = useT();
 	return (
 		<PageContainer>
 			<PageHeader
-				title="No branch access"
-				description="You don't have access to any branch yet. Contact an administrator to be assigned to one."
+				title={t("No branch access")}
+				description={t("You don't have access to any branch yet. Contact an administrator to be assigned to one.")}
 			/>
 		</PageContainer>
 	);

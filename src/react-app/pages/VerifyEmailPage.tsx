@@ -1,3 +1,5 @@
+import type { MessageKey } from "../../shared/i18n";
+import { useT } from "@/lib/i18n";
 import { type FormEvent, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { AuthCard, FormMessage } from "@/components/auth-card";
@@ -6,8 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-errors";
+import { useI18n } from "@/lib/i18n";
 
 export function VerifyEmailPage() {
+	const t = useT();
+	const { locale } = useI18n();
 	const [searchParams] = useSearchParams();
 
 	// Better Auth verifies the token on the server and redirects here. We only
@@ -18,8 +23,8 @@ export function VerifyEmailPage() {
 
 	const [email, setEmail] = useState(sentTo ?? "");
 	const [submitting, setSubmitting] = useState(false);
-	const [status, setStatus] = useState<string | null>(null);
-	const [error, setError] = useState<string | null>(null);
+	const [status, setStatus] = useState<MessageKey | null>(null);
+	const [error, setError] = useState<MessageKey | null>(null);
 
 	async function handleResend(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -32,6 +37,7 @@ export function VerifyEmailPage() {
 		const { error: sendError } = await authClient.sendVerificationEmail({
 			email,
 			callbackURL: "/verify-email?verified=1",
+			fetchOptions: { headers: { "X-App-Locale": locale } },
 		}).catch(() => ({ error: { code: "NETWORK_ERROR" } }));
 
 		if (sendError) {
@@ -47,29 +53,28 @@ export function VerifyEmailPage() {
 	if (verified) {
 		return (
 			<AuthCard
-				title="Email verified"
-				description="Your address is confirmed. You can sign in now."
+				title={t("Email verified")}
+				description={t("Your address is confirmed. You can sign in now.")}
 			>
 				<Button render={<Link to="/login" />} className="w-full">
-					Go to sign in
-				</Button>
+					{t("Go to sign in")}</Button>
 			</AuthCard>
 		);
 	}
 
 	return (
 		<AuthCard
-			title={failed ? "Verification failed" : "Check your email"}
+			title={failed ? t("Verification failed") : t("Check your email")}
 			description={
 				failed
-					? "That link is invalid or has expired. Request a new one."
-					: "Open the link we sent to finish setting up your account."
+					? t("That link is invalid or has expired. Request a new one.")
+					: t("Open the link we sent to finish setting up your account.")
 			}
-			footer={<Link to="/login" className="underline">Back to sign in</Link>}
+			footer={<Link to="/login" className="underline">{t("Back to sign in")}</Link>}
 		>
 			<form onSubmit={handleResend} className="flex flex-col gap-4">
 				<div className="grid gap-2">
-					<Label htmlFor="email">Email</Label>
+					<Label htmlFor="email">{t("Email")}</Label>
 					<Input
 						id="email"
 						name="email"
@@ -81,11 +86,11 @@ export function VerifyEmailPage() {
 					/>
 				</div>
 
-				<FormMessage>{error}</FormMessage>
-				<FormMessage tone="success">{status}</FormMessage>
+				<FormMessage>{error ? t(error) : null}</FormMessage>
+				<FormMessage tone="success">{status ? t(status) : null}</FormMessage>
 
 				<Button type="submit" variant="outline" disabled={submitting}>
-					{submitting ? "Sending\u2026" : "Resend verification email"}
+					{submitting ? t("Sending…") : t("Resend verification email")}
 				</Button>
 			</form>
 		</AuthCard>

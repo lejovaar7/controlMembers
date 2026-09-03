@@ -1,3 +1,5 @@
+import type { MessageKey } from "../../shared/i18n";
+import { useT } from "@/lib/i18n";
 import { type FormEvent, useState } from "react";
 import { Link } from "react-router";
 import { AuthCard, FormMessage } from "@/components/auth-card";
@@ -13,18 +15,19 @@ import { GENERIC_ERROR } from "@/lib/auth-errors";
  * branch — those are provisioned before the link is sent.
  */
 export function SetupAccountPage() {
+	const t = useT();
 	const { data: session, isPending } = useSession();
 	const [submitting, setSubmitting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<MessageKey | null>(null);
 
 	if (isPending) return null;
 
 	if (!session) {
 		return (
 			<AuthCard
-				title="Setup link problem"
-				description="This setup link is invalid or has expired."
-				footer={<Link to="/login" className="underline">Go to sign in</Link>}
+				title={t("Setup link problem")}
+				description={t("This setup link is invalid or has expired.")}
+				footer={<Link to="/login" className="underline">{t("Go to sign in")}</Link>}
 			>
 				{null}
 			</AuthCard>
@@ -74,13 +77,13 @@ export function SetupAccountPage() {
 
 	return (
 		<AuthCard
-			title="Choose your password"
-			description="Your email is confirmed. Pick a password to finish setting up your account."
-			footer={<Link to="/login" className="underline">Go to sign in</Link>}
+			title={t("Choose your password")}
+			description={t("Your email is confirmed. Pick a password to finish setting up your account.")}
+			footer={<Link to="/login" className="underline">{t("Go to sign in")}</Link>}
 		>
 			<form onSubmit={handleSubmit} className="flex flex-col gap-4">
 				<div className="grid gap-2">
-					<Label htmlFor="newPassword">New password</Label>
+					<Label htmlFor="newPassword">{t("New password")}</Label>
 					<Input
 						id="newPassword"
 						name="newPassword"
@@ -92,7 +95,7 @@ export function SetupAccountPage() {
 					/>
 				</div>
 				<div className="grid gap-2">
-					<Label htmlFor="confirmPassword">Confirm password</Label>
+					<Label htmlFor="confirmPassword">{t("Confirm password")}</Label>
 					<Input
 						id="confirmPassword"
 						name="confirmPassword"
@@ -104,10 +107,10 @@ export function SetupAccountPage() {
 					/>
 				</div>
 
-				<FormMessage id="setup-error">{error}</FormMessage>
+				<FormMessage id="setup-error">{error ? t(error) : null}</FormMessage>
 
 				<Button type="submit" disabled={submitting}>
-					{submitting ? "Saving\u2026" : "Save password"}
+					{submitting ? t("Saving…") : t("Save password")}
 				</Button>
 			</form>
 		</AuthCard>

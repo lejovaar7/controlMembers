@@ -1,3 +1,4 @@
+import { useT } from "@/lib/i18n";
 import { useState } from "react";
 import type { Branch } from "@/hooks/use-branches";
 import { activateBranch } from "@/lib/activate-branch";
@@ -16,6 +17,7 @@ export function BranchSwitcher({
 	activeBranchId: string | null;
 	userId: string;
 }) {
+	const t = useT();
 	const [switching, setSwitching] = useState(false);
 	const [failed, setFailed] = useState(false);
 
@@ -39,8 +41,7 @@ export function BranchSwitcher({
 	return (
 		<div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
 			<label htmlFor="branch-switcher" className="sr-only">
-				Branch
-			</label>
+				{t("Branch")}</label>
 			<select
 				id="branch-switcher"
 				className="border-input bg-background focus-visible:ring-ring h-8 min-w-0 max-w-full rounded-md border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
@@ -54,7 +55,7 @@ export function BranchSwitcher({
 					</option>
 				))}
 			</select>
-			{failed ? <span role="alert" className="text-destructive text-sm">Could not switch branch. Try again.</span> : null}
+			{failed ? <span role="alert" className="text-destructive text-sm">{t("Could not switch branch. Try again.")}</span> : null}
 		</div>
 	);
 }

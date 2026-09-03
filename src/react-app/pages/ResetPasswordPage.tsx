@@ -1,3 +1,5 @@
+import type { MessageKey } from "../../shared/i18n";
+import { useT } from "@/lib/i18n";
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { AuthCard, FormMessage } from "@/components/auth-card";
@@ -8,6 +10,7 @@ import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-errors";
 
 export function ResetPasswordPage() {
+	const t = useT();
 	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
 
@@ -18,18 +21,17 @@ export function ResetPasswordPage() {
 	const linkError = searchParams.get("error");
 
 	const [submitting, setSubmitting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<MessageKey | null>(null);
 
 	if (!token || linkError) {
 		return (
 			<AuthCard
-				title="Reset link problem"
-				description="That link is invalid or has expired."
-				footer={<Link to="/login" className="underline">Back to sign in</Link>}
+				title={t("Reset link problem")}
+				description={t("That link is invalid or has expired.")}
+				footer={<Link to="/login" className="underline">{t("Back to sign in")}</Link>}
 			>
 				<Button render={<Link to="/forgot-password" />} className="w-full">
-					Request a new link
-				</Button>
+					{t("Request a new link")}</Button>
 			</AuthCard>
 		);
 	}
@@ -69,13 +71,13 @@ export function ResetPasswordPage() {
 
 	return (
 		<AuthCard
-			title="Reset password"
-			description="Choose a new password for your account."
-			footer={<Link to="/login" className="underline">Back to sign in</Link>}
+			title={t("Reset password")}
+			description={t("Choose a new password for your account.")}
+			footer={<Link to="/login" className="underline">{t("Back to sign in")}</Link>}
 		>
 			<form onSubmit={handleSubmit} className="flex flex-col gap-4">
 				<div className="grid gap-2">
-					<Label htmlFor="newPassword">New password</Label>
+					<Label htmlFor="newPassword">{t("New password")}</Label>
 					<Input
 						id="newPassword"
 						name="newPassword"
@@ -88,7 +90,7 @@ export function ResetPasswordPage() {
 				</div>
 
 				<div className="grid gap-2">
-					<Label htmlFor="confirmPassword">Confirm new password</Label>
+					<Label htmlFor="confirmPassword">{t("Confirm new password")}</Label>
 					<Input
 						id="confirmPassword"
 						name="confirmPassword"
@@ -99,10 +101,10 @@ export function ResetPasswordPage() {
 					/>
 				</div>
 
-				<FormMessage id="reset-error">{error}</FormMessage>
+				<FormMessage id="reset-error">{error ? t(error) : null}</FormMessage>
 
 				<Button type="submit" disabled={submitting}>
-					{submitting ? "Saving\u2026" : "Change password"}
+					{submitting ? t("Saving…") : t("Change password")}
 				</Button>
 			</form>
 		</AuthCard>

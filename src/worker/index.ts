@@ -12,6 +12,7 @@ import { requireOrganizationAdmin, requireTenant } from "./tenant";
 import { listAccessibleBranches } from "./tenant/branch";
 import { listMembers, provisionMember, resendMemberSetup, updateMemberAccess, updateMemberStatus } from "./tenant/members";
 import { listCompanies, selectCompany } from "./tenant/companies";
+import { getLocalePreferences, readLocale, updateCompanyLocale, updateUserLocale } from "./localization";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -24,7 +25,7 @@ app.use("/api/*", async (c, next) => {
 
 app.all("/api/auth/*", async (c) => {
 	await enforceAuthHttpPolicy(c.env, c.req.raw);
-	return getAuth(c.env, c.executionCtx).handler(c.req.raw);
+	return getAuth(c.env, c.executionCtx, { fallbackLocale: c.req.header("X-App-Locale") }).handler(c.req.raw);
 });
 
 app.get("/api/health", async (c) => {
@@ -57,6 +58,10 @@ app.get("/api/branches", async (c) => {
 
 app.get("/api/companies", async (c) => c.json({ companies: await listCompanies(c.env, c.req.raw) }));
 app.post("/api/companies/active", async (c) => c.json(await selectCompany(c.env, c.req.raw, await readJsonObject(c.req.raw))));
+
+app.get("/api/account/locale", async (c) => c.json(await getLocalePreferences(c.env, c.req.raw)));
+app.patch("/api/account/locale", async (c) => c.json(await updateUserLocale(c.env, c.req.raw, await readJsonObject(c.req.raw))));
+app.patch("/api/company/locale", async (c) => c.json(await updateCompanyLocale(c.env, c.req.raw, await readJsonObject(c.req.raw))));
 
 /** Tenant-scoped administration; never exposes platform roles. */
 app.get("/api/members", async (c) => {
@@ -93,6 +98,7 @@ app.post("/api/platform/organizations", async (c) => {
 	const companyName = typeof body.companyName === "string" ? body.companyName.trim() : "";
 	const ownerName = typeof body.ownerName === "string" ? body.ownerName.trim() : "";
 	const ownerEmail = typeof body.ownerEmail === "string" ? body.ownerEmail.trim() : "";
+	const locale = readLocale(body.locale ?? null);
 
 	if (!companyName || companyName.length > 200 || !ownerName || ownerName.length > 200 || ownerEmail.length > 254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ownerEmail)) {
 		return c.json({ error: "INVALID_INPUT" }, 400);
@@ -102,6 +108,7 @@ app.post("/api/platform/organizations", async (c) => {
 		companyName,
 		ownerName,
 		ownerEmail,
+		locale,
 	});
 
 	// Never echo anything derived from the provisional credential.
@@ -120,7 +127,8 @@ app.post("/api/platform/account-setup/resend", async (c) => {
 	const email = typeof body.email === "string" ? body.email.trim() : "";
 	if (!email) return c.json({ error: "INVALID_INPUT" }, 400);
 
-	const sent = await resendAccountSetup(c.env, email);
+	if (body.organizationId !== undefined && (typeof body.organizationId !== "string" || !body.organizationId.trim())) return c.json({ error: "INVALID_INPUT" }, 400);
+	const sent = await resendAccountSetup(c.env, email, body.organizationId as string | undefined);
 	return c.json({ sent });
 });
 

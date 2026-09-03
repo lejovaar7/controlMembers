@@ -1,17 +1,18 @@
+import { useT } from "@/lib/i18n";
 import { Link } from "react-router";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 
 export function PlatformHomePage() {
+	const t = useT();
 	return (
 		<PageContainer>
 			<PageHeader
-				title="Companies"
-				description="Provision a company and its first owner."
+				title={t("Companies")}
+				description={t("Provision a company and its first owner.")}
 			/>
 			<Button render={<Link to="/platform/organizations/new" />}>
-				Create company
-			</Button>
+				{t("Create company")}</Button>
 		</PageContainer>
 	);
 }

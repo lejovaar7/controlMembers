@@ -8,11 +8,14 @@ import {
 	team,
 } from "../db/auth-schema";
 import { slugify } from "./slug";
+import { readLocale } from "../localization";
+import type { Locale } from "../../shared/i18n";
 
 export type ProvisionOwnerInput = {
 	companyName: string;
 	ownerName: string;
 	ownerEmail: string;
+	locale?: Locale | null;
 };
 
 export type ProvisionOwnerResult = {
@@ -52,6 +55,7 @@ export async function provisionOrganizationWithOwner(
 ): Promise<ProvisionOwnerResult> {
 	const auth = getAuth(env);
 	const db = getDb(env);
+	const locale = readLocale(input.locale ?? null);
 
 	const companyName = input.companyName.trim();
 	const ownerName = input.ownerName.trim();
@@ -85,6 +89,7 @@ export async function provisionOrganizationWithOwner(
 		(await auth.api.createOrganization({
 			body: {
 				name: companyName,
+				...(locale ? { locale } : {}),
 				slug: await resolveSlug(env, companyName),
 				userId,
 				keepCurrentActiveOrganization: true,
@@ -113,7 +118,7 @@ export async function provisionOrganizationWithOwner(
 	// first use. Owner authority comes from the organization role either way.
 
 	// D. New accounts and interrupted setups receive a link; established ones do not.
-	const setupEmailStatus = await sendAccountSetup(env, ownerEmail);
+	const setupEmailStatus = await sendAccountSetup(env, ownerEmail, organization.id);
 
 	return {
 		organizationId: organization.id,

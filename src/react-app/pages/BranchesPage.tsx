@@ -1,3 +1,5 @@
+import type { MessageKey } from "../../shared/i18n";
+import { useT } from "@/lib/i18n";
 import { type FormEvent, useState } from "react";
 import { Navigate } from "react-router";
 import { FormMessage } from "@/components/auth-card";
@@ -23,10 +25,11 @@ export function BranchesPage() {
 }
 
 function BranchWorkspace() {
+	const t = useT();
 	const shell = useAppShell();
 	const [name, setName] = useState("");
 	const [submitting, setSubmitting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<MessageKey | null>(null);
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [renameValue, setRenameValue] = useState("");
 
@@ -90,8 +93,8 @@ function BranchWorkspace() {
 	return (
 		<PageContainer>
 			<PageHeader
-				title="Branches"
-				description="The locations this company operates."
+				title={t("Branches")}
+				description={t("The locations this company operates.")}
 			/>
 
 			<ul className="mb-8 flex flex-col gap-2">
@@ -106,7 +109,7 @@ function BranchWorkspace() {
 								className="flex flex-wrap items-end gap-2"
 							>
 								<div className="grid gap-1">
-									<Label htmlFor={`rename-${branch.id}`}>Branch name</Label>
+									<Label htmlFor={`rename-${branch.id}`}>{t("Branch name")}</Label>
 									<Input
 										id={`rename-${branch.id}`}
 										value={renameValue}
@@ -120,16 +123,14 @@ function BranchWorkspace() {
 									size="sm"
 									disabled={submitting || renameValue.trim().length === 0}
 								>
-									Save
-								</Button>
+									{t("Save")}</Button>
 								<Button
 									type="button"
 									size="sm"
 									variant="outline"
 									onClick={() => setRenamingId(null)}
 								>
-									Cancel
-								</Button>
+									{t("Cancel")}</Button>
 							</form>
 						) : (
 							<>
@@ -137,8 +138,7 @@ function BranchWorkspace() {
 									{branch.name}
 									{shell.activeBranch?.id === branch.id ? (
 										<span className="text-muted-foreground ml-2 text-sm font-normal">
-											Active
-										</span>
+											{t("Active")}</span>
 									) : null}
 								</span>
 								<Button
@@ -149,8 +149,7 @@ function BranchWorkspace() {
 										setRenameValue(branch.name);
 									}}
 								>
-									Rename
-								</Button>
+									{t("Rename")}</Button>
 							</>
 						)}
 					</li>
@@ -159,7 +158,7 @@ function BranchWorkspace() {
 
 			{shell.canCreateBranches ? <form onSubmit={handleCreate} className="flex max-w-sm flex-col gap-4">
 				<div className="grid gap-2">
-					<Label htmlFor="branchName">New branch name</Label>
+					<Label htmlFor="branchName">{t("New branch name")}</Label>
 					<Input
 						id="branchName"
 						name="branchName"
@@ -172,12 +171,12 @@ function BranchWorkspace() {
 					/>
 				</div>
 
-				<FormMessage id="branch-error">{error}</FormMessage>
+				<FormMessage id="branch-error">{error ? t(error) : null}</FormMessage>
 
 				<Button type="submit" disabled={submitting || name.trim().length === 0}>
-					{submitting ? "Saving\u2026" : "Add branch"}
+					{submitting ? t("Saving…") : t("Add branch")}
 				</Button>
-			</form> : <p className="text-sm text-muted-foreground">You can rename your assigned branches. Creating a new branch requires company-wide administration.</p>}
+			</form> : <p className="text-sm text-muted-foreground">{t("You can rename your assigned branches. Creating a new branch requires company-wide administration.")}</p>}
 		</PageContainer>
 	);
 }

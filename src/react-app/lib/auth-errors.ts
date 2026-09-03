@@ -1,5 +1,7 @@
-/** Better Auth error codes mapped to stable, non-revealing copy. */
-const MESSAGES: Record<string, string> = {
+import type { MessageKey } from "../../shared/i18n";
+
+/** Store message keys, so existing feedback changes with the language too. */
+const MESSAGES: Record<string, MessageKey> = {
 	INVALID_EMAIL_OR_PASSWORD: "Incorrect email or password.",
 	INVALID_EMAIL: "Enter a valid email address.",
 	INVALID_PASSWORD: "Incorrect password.",
@@ -18,7 +20,7 @@ const MESSAGES: Record<string, string> = {
 export const GENERIC_ERROR = "Something went wrong. Please try again.";
 
 /** Never surface a raw Better Auth message; unknown codes fall back. */
-export function authErrorMessage(error?: { code?: string } | null): string {
+export function authErrorMessage(error?: { code?: string } | null): MessageKey {
 	const code = error?.code;
 	return (code && MESSAGES[code]) || GENERIC_ERROR;
 }

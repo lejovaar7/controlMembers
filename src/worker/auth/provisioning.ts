@@ -1,7 +1,7 @@
 import { and, eq, isNotNull } from "drizzle-orm";
 import { getAuth } from ".";
 import { getDb } from "../db";
-import { account, user } from "../db/auth-schema";
+import { account, member, user } from "../db/auth-schema";
 import { RequestError } from "../http";
 
 export type SetupEmailStatus = "sent" | "not-required" | "failed";
@@ -39,15 +39,20 @@ export async function ensureProvisionedUser(env: Env, email: string, name: strin
 }
 
 /** Includes interrupted setup: verified mailbox but no chosen password yet. */
-export async function resendAccountSetup(env: Env, email: string): Promise<boolean> {
+export async function resendAccountSetup(env: Env, email: string, organizationId?: string): Promise<boolean> {
 	const existing = await findUserByEmail(env, email);
 	if (!existing || (existing.emailVerified && await hasCredentialAccount(env, existing.id))) return false;
-	await getAuth(env).api.signInMagicLink({ body: { email: existing.email, callbackURL: "/setup-account" }, headers: new Headers() });
+	if (organizationId) {
+		const [membership] = await getDb(env).select({ id: member.id }).from(member)
+			.where(and(eq(member.userId, existing.id), eq(member.organizationId, organizationId), eq(member.isActive, true))).limit(1);
+		if (!membership) return false;
+	}
+	await getAuth(env, undefined, { organizationId }).api.signInMagicLink({ body: { email: existing.email, callbackURL: "/setup-account" }, headers: new Headers() });
 	return true;
 }
 
 /** Email failure does not roll back valid identity/access records. */
-export async function sendAccountSetup(env: Env, email: string): Promise<SetupEmailStatus> {
-	try { return await resendAccountSetup(env, email) ? "sent" : "not-required"; }
+export async function sendAccountSetup(env: Env, email: string, organizationId?: string): Promise<SetupEmailStatus> {
+	try { return await resendAccountSetup(env, email, organizationId) ? "sent" : "not-required"; }
 	catch { return "failed"; }
 }

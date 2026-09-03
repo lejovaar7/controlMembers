@@ -13,6 +13,7 @@ import {
 	passwordResetEmail,
 	verificationEmail,
 } from "../email/messages";
+import { localizedAuthUrl, resolveEmailLocale, resolveInvitationLocale, type EmailLocaleContext } from "../email/locale";
 
 /** Only the part of the Worker ExecutionContext this module needs. */
 type BackgroundScheduler = {
@@ -37,7 +38,7 @@ const organizationSettingsFields = {
  * response via waitUntil. Without it Better Auth awaits the send instead of
  * dropping it.
  */
-export function getAuth(env: Env, ctx?: BackgroundScheduler) {
+export function getAuth(env: Env, ctx?: BackgroundScheduler, emailContext: EmailLocaleContext = {}) {
 	const emailService = getEmailService(env);
 
 	return betterAuth({
@@ -54,10 +55,11 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler) {
 			"/organization/delete", "/organization/invite-member", "/organization/accept-invitation",
 			"/organization/reject-invitation", "/organization/cancel-invitation",
 			"/organization/get-invitation", "/organization/list-invitations", "/organization/list-user-invitations",
-			"/organization/update", // Settings editing is intentionally deferred.
+			"/organization/update", // Language editing uses the guarded application API.
 		],
 		baseURL: env.APP_URL,
 		secret: env.BETTER_AUTH_SECRET,
+		user: { additionalFields: { locale: { type: "string", required: false, input: false } } },
 		database: drizzleAdapter(getDb(env), {
 			provider: "sqlite",
 			schema: authSchema,
@@ -68,13 +70,15 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler) {
 			// Closed SaaS: accounts are provisioned, never self-registered.
 			disableSignUp: true,
 			sendResetPassword: async ({ user, url }) => {
-				await emailService.send({ to: user.email, ...passwordResetEmail(url) });
+				const locale = await resolveEmailLocale(env, user.email, emailContext);
+				await emailService.send({ to: user.email, ...passwordResetEmail(localizedAuthUrl(url, locale), locale) });
 			},
 		},
 		emailVerification: {
 			sendOnSignUp: true,
 			sendVerificationEmail: async ({ user, url }) => {
-				await emailService.send({ to: user.email, ...verificationEmail(url) });
+				const locale = await resolveEmailLocale(env, user.email, emailContext);
+				await emailService.send({ to: user.email, ...verificationEmail(localizedAuthUrl(url, locale), locale) });
 			},
 		},
 		plugins: [
@@ -86,7 +90,8 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler) {
 			magicLink({
 				disableSignUp: true,
 				sendMagicLink: async ({ email, url }) => {
-					await emailService.send({ to: email, ...accountSetupEmail(url) });
+					const locale = await resolveEmailLocale(env, email, emailContext);
+					await emailService.send({ to: email, ...accountSetupEmail(localizedAuthUrl(url, locale), locale) });
 				},
 			}),
 			organization({
@@ -118,6 +123,7 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler) {
 					} },
 				},
 				sendInvitationEmail: async (data) => {
+					const locale = await resolveInvitationLocale(env, data.email, data.organization.id);
 					const url = `${env.APP_URL}/accept-invitation?invitationId=${data.id}`;
 					await emailService.send({
 						to: data.email,
@@ -125,6 +131,7 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler) {
 							data.organization.name,
 							data.inviter.user.name || data.inviter.user.email,
 							url,
+							locale,
 						),
 					});
 				},

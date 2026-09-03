@@ -1,3 +1,5 @@
+import { DEFAULT_LOCALE, languages, localeOptions, type MessageKey } from "../../shared/i18n";
+import { useT } from "@/lib/i18n";
 import { type FormEvent, useState } from "react";
 import { FormMessage } from "@/components/auth-card";
 import { PageContainer, PageHeader } from "@/components/page";
@@ -8,16 +10,18 @@ import { GENERIC_ERROR } from "@/lib/auth-errors";
 import type { SetupEmailStatus } from "@/lib/members";
 
 type Result = {
+	organizationId: string;
 	organizationName: string;
 	ownerEmail: string;
 	setupEmailStatus: SetupEmailStatus;
 };
 
 export function PlatformNewOrganizationPage() {
+	const t = useT();
 	const [submitting, setSubmitting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [error, setError] = useState<MessageKey | null>(null);
 	const [result, setResult] = useState<Result | null>(null);
-	const [resendState, setResendState] = useState<string | null>(null);
+	const [resendState, setResendState] = useState<MessageKey | null>(null);
 	const [resending, setResending] = useState(false);
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -37,6 +41,7 @@ export function PlatformNewOrganizationPage() {
 					companyName: String(data.get("companyName") ?? ""),
 					ownerName: String(data.get("ownerName") ?? ""),
 					ownerEmail: String(data.get("ownerEmail") ?? ""),
+					locale: String(data.get("locale") ?? "") || null,
 				}),
 			});
 
@@ -60,7 +65,7 @@ export function PlatformNewOrganizationPage() {
 			const response = await fetch("/api/platform/account-setup/resend", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ email: result.ownerEmail }),
+				body: JSON.stringify({ email: result.ownerEmail, organizationId: result.organizationId }),
 			});
 			if (!response.ok) throw new Error("Setup resend failed");
 			const body = (await response.json()) as { sent?: boolean; };
@@ -77,27 +82,26 @@ export function PlatformNewOrganizationPage() {
 		return (
 			<PageContainer>
 				<PageHeader
-					title="Company created"
-					description={`${result.organizationName} is ready with its Main branch.`}
+					title={t("Company created")}
+					description={t("{company} is ready with its Main branch.", { company: result.organizationName })}
 				/>
 				<div className="flex flex-col gap-4">
 					<FormMessage tone="success">
 						{result.setupEmailStatus === "failed"
-							? "Company access is ready, but the setup email could not be sent. Please resend the link."
+							? t("Company access is ready, but the setup email could not be sent. Please resend the link.")
 							: result.setupEmailStatus === "sent"
-								? `An account setup link was sent to ${result.ownerEmail}.`
-								: `${result.ownerEmail} already has an account and was added as owner.`}
+								? t("An account setup link was sent to {email}.", { email: result.ownerEmail })
+								: t("{email} already has an account and was added as owner.", { email: result.ownerEmail })}
 					</FormMessage>
-					<FormMessage tone="success">{resendState}</FormMessage>
+					<FormMessage tone="success">{resendState ? t(resendState) : null}</FormMessage>
 					<div className="flex flex-wrap gap-3">
 						{result.setupEmailStatus !== "not-required" ? (
 							<Button variant="outline" disabled={resending} onClick={handleResend}>
-								{resending ? "Sending…" : "Resend setup link"}
+								{resending ? t("Sending…") : t("Resend setup link")}
 							</Button>
 						) : null}
 						<Button disabled={resending} onClick={() => { setResult(null); setResendState(null); setError(null); }}>
-							Create another
-						</Button>
+							{t("Create another")}</Button>
 					</div>
 				</div>
 			</PageContainer>
@@ -107,16 +111,23 @@ export function PlatformNewOrganizationPage() {
 	return (
 		<PageContainer>
 			<PageHeader
-				title="Create company"
-				description="The company starts with one branch named Main."
+				title={t("Create company")}
+				description={t("The company starts with one branch named Main.")}
 			/>
 			<form onSubmit={handleSubmit} className="flex max-w-sm flex-col gap-4">
 				<div className="grid gap-2">
-					<Label htmlFor="companyName">Company name</Label>
+					<Label htmlFor="locale">{t("Company language")}</Label>
+					<select id="locale" name="locale" defaultValue="" className="h-10 min-w-0 rounded-md border bg-background px-3">
+						<option value="">{t("Application default ({language})", { language: languages[DEFAULT_LOCALE].name })}</option>
+						{localeOptions.map((option) => <option key={option.value} value={option.value} lang={option.value}>{option.name}</option>)}
+					</select>
+				</div>
+				<div className="grid gap-2">
+					<Label htmlFor="companyName">{t("Company name")}</Label>
 					<Input id="companyName" name="companyName" type="text" required />
 				</div>
 				<div className="grid gap-2">
-					<Label htmlFor="ownerName">Owner name</Label>
+					<Label htmlFor="ownerName">{t("Owner name")}</Label>
 					<Input
 						id="ownerName"
 						name="ownerName"
@@ -126,7 +137,7 @@ export function PlatformNewOrganizationPage() {
 					/>
 				</div>
 				<div className="grid gap-2">
-					<Label htmlFor="ownerEmail">Owner email</Label>
+					<Label htmlFor="ownerEmail">{t("Owner email")}</Label>
 					<Input
 						id="ownerEmail"
 						name="ownerEmail"
@@ -137,10 +148,10 @@ export function PlatformNewOrganizationPage() {
 					/>
 				</div>
 
-				<FormMessage id="provision-error">{error}</FormMessage>
+				<FormMessage id="provision-error">{error ? t(error) : null}</FormMessage>
 
 				<Button type="submit" disabled={submitting}>
-					{submitting ? "Creating\u2026" : "Create company"}
+					{submitting ? t("Creating…") : t("Create company")}
 				</Button>
 			</form>
 		</PageContainer>
