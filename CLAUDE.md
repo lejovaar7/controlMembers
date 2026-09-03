@@ -320,10 +320,12 @@ Rules:
 
 Access rules:
 
-- `owner` and admins with `member.allBranches` reach **every** branch in their
-  organization, with no `team_member` row required.
-- Branch-scoped admins and `member` reach **only** assigned branches.
+- An active `owner` reaches every branch, with no assignment required.
+- An active `admin` with `member.allBranches` reaches every current/future branch;
+  a limited admin (`allBranches:false`) requires `team_member` assignments.
+- An active `member` reaches **only** branches they have a `team_member` row for.
   Organization membership alone grants no branch access.
+- `member.isActive:false` grants no tenant authority, even with an existing session.
 - A branch is never reachable from another organization.
 
 Authorization rules:
@@ -343,8 +345,13 @@ Provisioning and switching:
 
 - End users never create their own Organization. Platform administration
   provisions the Organization, first Owner, and Main Branch before access.
-- An authenticated user with no Organization is in an abnormal provisioning
-  state and sees `/no-company`; never send them to company creation.
+- An authenticated user with no active company membership sees `/no-company`,
+  including after deactivation; never send them to company creation.
+- Use `/api/companies` for the active-only safe company list, not native
+  Organization listing. Retain valid active context; otherwise auto-enter one
+  company, require an explicit choice for several, and show no-access for zero.
+- Use `/api/companies/active` to validate active membership and clear the old Team.
+  Reload after switching to discard old session, Branch and form state.
 - `/onboarding` is not a supported product flow and redirects into the
   application, where the normal guards resolve the safe state.
 - `activeOrganizationId` is the only source of truth for the current tenant, and
@@ -353,7 +360,7 @@ Provisioning and switching:
 - Switching organization must re-evaluate branch state; a branch from the
   previous organization must never stay active.
 - Better Auth's `setActiveTeam` requires a `team_member` row even for an owner,
-  while our rules give owners/company-wide admins every branch without one. Use
+  while our rules give Owner/unrestricted admin every branch without one. Use
   `activateBranch()`, which adds the missing membership and retries.
 - `GET /api/branches` is the authoritative accessible-branch list. Better Auth's
   own team endpoints do not match our rules: listing an organization's teams
@@ -365,17 +372,17 @@ Branches:
   platform provisioning; never remove that model.
 - A single-location business must not be forced to think about branch selection.
   With one accessible branch the switcher is a plain label, not a control.
-- Branch access derives from the **organization role plus allBranches scope**;
-  branch-scoped admins and members use **team_member** assignments.
+- Owner/unrestricted-admin access derives from role plus the all-Branch flag.
+  Limited-admin/member access derives from **team_member** assignments.
 - `activateBranch()` may create a team_member row for an owner/admin purely
-  because Better Auth's `setActiveTeam` demands one. **That row is never the
-  source of authorization for owners or company-wide admins**. Restricted
-  admins do use actual assignments as their permission scope.
-- A member with zero branch assignments goes to `/app/no-branch-access` — never
+  because Better Auth's `setActiveTeam` demands one. For Owner/unrestricted admin,
+  that row is compatibility only, not scope. A limited admin may never add a row
+  outside their already-authorized Branches through this native HTTP path.
+- A member or limited admin with zero branch assignments goes to `/app/no-branch-access` — never
   to company or branch creation, and never shown branch names they cannot reach.
-- Branch create/rename go through Better Auth's Team APIs, which already enforce
-  the organization role. Do not add a custom endpoint or write team rows from
-  React.
+- Branch create/rename go through Better Auth's Team APIs plus `auth/http-policy.ts`.
+  Only Owner/unrestricted admin creates; limited admins rename assigned Branches
+  only. Keep native active-Team validation too. Do not write Team rows from React.
 - **Never treat an API error as an empty branch list.** Loading, failure, zero
   branches and zero *accessible* branches are four distinct states.
 - Re-evaluate branch state whenever the organization changes.
@@ -392,20 +399,36 @@ Rules for SaaS features built on this template:
 Roles are the Better Auth defaults (`owner`, `admin`, `member`). Do not add
 business roles or dynamic access control here — those belong to each SaaS.
 
+Member administration:
+
+- Only Owner may grant/revoke `member.canAppointAdmins`; default false. An admin
+  with that flag can create/promote admins, never edit peer admins or delegate
+  onward. No self edits, Owner edits or ownership transfer in this module.
+- Owner manages admin/member; admin manages members only and only when the
+  target's entire Branch scope is within the actor's scope. Shared wider-scope
+  employees are read-only with inaccessible Branch IDs redacted.
+- Validate desired scope before identity creation. An admin cannot grant wider
+  scope, reactivate via provisioning, or use repeat POST to edit/resend a peer
+  admin. That conflict requires Owner intervention, not a bypass.
+- Deactivate/reactivate changes only `member.isActive`. Preserve identity,
+  credentials, history, saved role/flags/assignments and other companies. Do not
+  substitute a global ban or deletion. Reactivation restores saved permissions.
+- `requireTenant` rechecks active membership; all tenant routes and supported
+  native writes must use those guards. UI refresh is not the security boundary.
+
 ## Completed Starter v1
 
 The current module contracts cover:
 
 - `/app/branches` and `/app/no-branch-access`
-- owner/admin Branch creation and rename through Better Auth Team APIs
+- Owner/unrestricted-admin Branch creation; scope-aware admin rename
 - single-Branch and multi-Branch UX
 - shared app-shell Branch state
 - role and cross-tenant Branch tests
 - owner/admin-only Member directory and direct employee provisioning
-- role/access editing: owner manages admin/member; admin manages members fully
-  within its scope; admin appointment additionally requires `canAppointAdmins`
-- active/inactive company memberships preserve identity and history; company
-  selection lists active memberships only
+- role/access editing: owner manages admin/member; admin manages member only
+- Owner-controlled admin appointment and all/selected administrative Branch scope
+- company-only deactivation/reactivation and active-only company selection
 - read-only Owners; no ownership transfer or member/Branch deletion
 - secure setup resends, safe existing-account reuse, idempotent assignments
 - native HTTP bypass protection, body/origin validation and generic errors
@@ -423,6 +446,9 @@ preserve `auth/http-policy.ts`; do not re-enable them to make a UI shortcut work
 Member writes must use the guarded orchestration and Better Auth server APIs.
 Add desired assignments before removing old ones; only then downgrade an admin.
 Preserve the unique Organization/user membership index when updating auth schema.
+Preserve `isActive`, `allBranches`, `canAppointAdmins` and their Better Auth
+additionalFields configuration too. Migration 0005 must precede new-code startup.
+Do not roll back to code that ignores these controls after relying on them.
 
 ## Commands
 

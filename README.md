@@ -51,7 +51,7 @@ served by Vite. In production, `wrangler.json` points the Worker at
 | GET    | `/api/members`                        | Owner/admin-only directory in the active Organization |
 | POST   | `/api/members`                        | Provision/reuse an employee with supported role and Branches |
 | PATCH  | `/api/members/:membershipId`          | Update a manageable employee's role and exact Branch scope |
-| PATCH  | `/api/members/:membershipId/status`   | Deactivate/reactivate company access, preserving identity/history |
+| PATCH  | `/api/members/:membershipId/status`   | Deactivate/reactivate this company's access, preserving identity/history |
 | POST   | `/api/members/:membershipId/setup/resend` | Resend setup for an unfinished, manageable account |
 | POST   | `/api/platform/organizations`         | Platform-only company, Owner, and Main Branch provisioning |
 | POST   | `/api/platform/account-setup/resend`  | Platform-only setup-link resend |
@@ -154,8 +154,10 @@ migration authority.
 
 - Configuration: `src/worker/auth/index.ts` (`getAuth(env)`)
 - Schema: `src/worker/db/auth-schema.ts` — derived from Better Auth 1.7.2 with
-  an application-level unique `(organizationId, userId)` membership index.
-  Preserve that index when regenerating auth models, inspect the diff, then use
+  an application-level unique `(organizationId, userId)` membership index and
+  the `isActive`, `allBranches`, `canAppointAdmins` membership fields.
+  Preserve these extensions and matching Better Auth additionalFields when
+  regenerating auth models, inspect the diff, then use
   `npm run db:generate` for migrations. Do not use a newer auth CLI blindly.
 
 Email verification is required before an email/password user can sign in, and
@@ -206,20 +208,49 @@ Owner           →  receives one account-setup link
 ```
 
 Owners/admins add employees at `/app/members` using name, email, role and Branches.
-Members and branch-scoped admins need at least one Branch; company-wide admins
-have all-Branch access. New users receive
-the same secure setup flow as Owners. Existing identities, passwords and platform
-roles are preserved. Email failure keeps valid access and exposes a safe resend.
+Members need at least one Branch. Admins can have all current/future Branches or
+selected Branches. New users receive the same secure setup flow as Owners.
+Existing identities, passwords and platform roles are preserved. Email failure
+keeps valid access and exposes an authorized resend.
 
 Owners can edit admins/members; admins can edit members only. Owner entries are
-read-only. Admins may create/promote admins only when the Owner grants
-`canAppointAdmins`; they still cannot edit existing admins. Only an Owner can
-delegate that permission. Restricted admins cannot grant access beyond their own
-Branches. A saved Branch set is exact; company access can be deactivated and
-reactivated without deleting the account or history. Removed access is denied
-immediately by the server, including stale active
-Teams. The shell revalidates on focus and every 30 seconds while visible.
+read-only, and nobody edits their own access here. Only the Owner may enable
+**Can appoint administrators** for an admin; it is off by default. That permission
+allows creating/promoting admins, not editing peer admins or passing the
+permission on. Limited admins cannot grant wider scope, create new Branches, or
+manage an employee shared with locations outside their scope.
+
+The directory also offers **Deactivate access** / **Reactivate access** with a
+confirmation. This changes only the person's access to this company, not their
+account, password, history or access to other companies. Reactivation restores
+saved permissions; review scope first if their responsibilities changed. Inactive
+members cannot receive setup resends or regain access by being provisioned again.
+Removed access is denied on the next server request, including stale active
+Teams. The shell refreshes on focus and every 30 seconds while visible; it cannot
+erase information already displayed or downloaded.
 Direct provisioning is canonical; invitation acceptance remains deferred.
+
+### Upgrading membership access controls
+
+The generated migration `0005_safe_thunderbird.sql` adds membership status,
+admin scope and appointment permission. Apply it before starting the new code:
+
+```bash
+npm run db:migrate:local
+npm run dev
+```
+
+Existing memberships stay active and existing admins retain all-Branch access.
+Their permission to appoint admins now requires an explicit Owner grant at
+**Members → Edit access → Can appoint administrators**. No one gains that
+delegation automatically.
+
+For a separately authorized release, apply `npm run db:migrate:dev` before
+`npm run deploy:dev`, validate the flows, then repeat with the explicit production
+commands when approved. Deploy never runs migrations implicitly. Do not roll back
+to authorization code that ignores inactive memberships or scoped admins after
+relying on those controls. See [Member Management](specs/07-member-management.md)
+for policies and the limits of ordered, non-transactional access edits.
 
 ### Bootstrapping the first platform admin
 
@@ -262,14 +293,16 @@ The template models tenancy with Better Auth's Organization plugin:
 | Application term | Better Auth model            |
 | ---------------- | ---------------------------- |
 | Tenant / company | `organization`               |
+| User's company access | `member`                |
 | Branch / location| `team`                       |
 | Branch membership| `teamMember`                 |
 
 Default access:
 
-- `owner` and company-wide `admin` reach every branch in their organization
-- branch-scoped `admin` and `member` reach only assigned branches
-- inactive memberships grant no company access
+- `owner` reaches every Branch in their company
+- `admin` reaches all Branches or only selected ones, according to their membership
+- `member` reaches only assigned Branches
+- inactive company memberships authorize no tenant access
 
 Roles are Better Auth's defaults (`owner`, `admin`, `member`). Each SaaS built on
 this template can add its own roles and domain permissions on top.
@@ -277,10 +310,13 @@ this template can add its own roles and domain permissions on top.
 Each organization carries optional settings: `locale`, `timezone` and
 `currency`.
 
-An owner signs in to a company that already exists, with its `Main` branch
-already created. The topbar carries a company switcher and a branch switcher;
-switching company re-evaluates which branches are available. A single-location
-business simply has one branch named `Main`.
+An owner signs in to a company that already exists, with its `Main` Branch
+already created. One active company is entered automatically and appears as a
+label, not a selector. With multiple active companies, an existing valid selection
+is kept; otherwise the user explicitly chooses one. Switching company clears the
+old Branch and reloads the app to discard previous-company state. With no active
+memberships, the user sees a no-active-company-access notice. There is still one
+identity and one login; memberships are company access records, not subscriptions.
 
 Every company has at least one internal branch. A single-location business keeps
 just `Main` and the branch selector stays out of the way — it appears as a plain
@@ -288,15 +324,15 @@ label. Add a second branch and the switcher becomes a real control.
 
 | Role | Branches | Management |
 | ---- | -------- | ---------- |
-| owner | all branches in the company | Branches; provision employees; edit admin/member access |
-| admin | all or explicitly assigned branches | Rename accessible Branches; create Branches only with company-wide scope; manage members within scope |
+| owner | all Branches | Create/rename Branches; manage admin/member access and status; delegate admin appointment |
+| admin | all or selected Branches | Rename permitted Branches; manage fully in-scope members; appoint admins only if Owner-authorized; create Branches only with all-Branch scope |
 | member | only assigned branches | none |
 
-A member with no branch assignment sees a dedicated notice rather than any
+A member or limited admin with no Branch assignment sees a dedicated notice rather than any
 company or branch creation flow.
 
-Branch management is complete: owners/company-wide admins may add Branches;
-admins may rename only accessible Branches through Better Auth Team APIs. Branch deletion remains
+Branch management uses guarded Better Auth Team APIs: Owner/unrestricted admin
+may add Branches; limited admins may rename only their assigned Branches. Deletion remains
 deliberately unsupported.
 
 Server-side helpers live in `src/worker/tenant/`:
