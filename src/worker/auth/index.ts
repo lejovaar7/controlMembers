@@ -1,5 +1,6 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { admin } from "better-auth/plugins/admin";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { organization } from "better-auth/plugins/organization";
@@ -40,6 +41,19 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler) {
 	const emailService = getEmailService(env);
 
 	return betterAuth({
+		// Browser endpoints that bypass the starter's guarded access workflows.
+		// Better Auth's server-only API remains available to authorized features.
+		disabledPaths: [
+			"/organization/get-full-organization", "/organization/list-members",
+			"/organization/get-active-member-role",
+			"/organization/list-teams", "/organization/list-team-members", "/organization/list-user-teams",
+			"/organization/update-member-role", "/organization/remove-team-member",
+			"/organization/remove-member", "/organization/leave", "/organization/remove-team",
+			"/organization/delete", "/organization/invite-member", "/organization/accept-invitation",
+			"/organization/reject-invitation", "/organization/cancel-invitation",
+			"/organization/get-invitation", "/organization/list-invitations", "/organization/list-user-invitations",
+			"/organization/update", // Settings editing is intentionally deferred.
+		],
 		baseURL: env.APP_URL,
 		secret: env.BETTER_AUTH_SECRET,
 		database: drizzleAdapter(getDb(env), {
@@ -78,6 +92,18 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler) {
 				// creation path (no session + userId) stays available.
 				allowUserToCreateOrganization: false,
 				teams: { enabled: true, defaultTeam: { enabled: false } },
+				organizationHooks: {
+					beforeCreateTeam: async ({ team }) => {
+						const name = team.name.trim();
+						if (!name || name.length > 100) throw new APIError("BAD_REQUEST", { message: "Invalid branch name" });
+						return { data: { ...team, name } };
+					},
+					beforeUpdateTeam: async ({ updates }) => {
+						const name = updates.name?.trim();
+						if (!name || name.length > 100) throw new APIError("BAD_REQUEST", { message: "Invalid branch name" });
+						return { data: { ...updates, name } };
+					},
+				},
 				requireEmailVerificationOnInvitation: true,
 				schema: {
 					organization: { additionalFields: organizationSettingsFields },

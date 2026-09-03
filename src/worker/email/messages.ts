@@ -16,9 +16,9 @@ function layout(heading: string, paragraph: string, action: string, url: string)
 	const safeUrl = escapeHtml(url);
 	return [
 		'<div style="font-family:system-ui,sans-serif;line-height:1.5;max-width:32rem">',
-		`<h1 style="font-size:1.25rem">${heading}</h1>`,
-		`<p>${paragraph}</p>`,
-		`<p><a href="${safeUrl}">${action}</a></p>`,
+		`<h1 style="font-size:1.25rem">${escapeHtml(heading)}</h1>`,
+		`<p>${escapeHtml(paragraph)}</p>`,
+		`<p><a href="${safeUrl}">${escapeHtml(action)}</a></p>`,
 		`<p style="color:#666;font-size:0.875rem">If the link does not work, copy this URL into your browser:<br>${safeUrl}</p>`,
 		"</div>",
 	].join("");

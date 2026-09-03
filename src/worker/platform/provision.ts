@@ -1,12 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import { getAuth } from "../auth";
+import { ensureProvisionedUser, sendAccountSetup, type SetupEmailStatus } from "../auth/provisioning";
 import { getDb } from "../db";
 import {
-	account,
 	member,
 	organization as organizationTable,
 	team,
-	user as userTable,
 } from "../db/auth-schema";
 import { slugify } from "./slug";
 
@@ -21,35 +20,10 @@ export type ProvisionOwnerResult = {
 	organizationName: string;
 	branchId: string;
 	userId: string;
-	/** True when the owner still has to complete account setup. */
+	/** True only when an account-setup message was successfully requested. */
 	setupEmailSent: boolean;
+	setupEmailStatus: SetupEmailStatus;
 };
-
-/** Provisional credential, never returned, emailed, logged or stored in clear. */
-function generateProvisionalPassword(): string {
-	const bytes = new Uint8Array(32);
-	crypto.getRandomValues(bytes);
-	return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-/** A user who has never proven their mailbox still needs account setup. */
-async function needsAccountSetup(env: Env, userId: string): Promise<boolean> {
-	const [row] = await getDb(env)
-		.select({ emailVerified: userTable.emailVerified })
-		.from(userTable)
-		.where(eq(userTable.id, userId))
-		.limit(1);
-	return row ? !row.emailVerified : false;
-}
-
-async function findUserByEmail(env: Env, email: string) {
-	const [row] = await getDb(env)
-		.select({ id: userTable.id, emailVerified: userTable.emailVerified })
-		.from(userTable)
-		.where(eq(userTable.email, email))
-		.limit(1);
-	return row ?? null;
-}
 
 /** Free slug, retrying rather than trusting the first candidate. */
 async function resolveSlug(env: Env, name: string): Promise<string> {
@@ -57,12 +31,12 @@ async function resolveSlug(env: Env, name: string): Promise<string> {
 	for (let attempt = 0; attempt < 6; attempt += 1) {
 		const candidate =
 			attempt === 0 ? base : `${base}-${(attempt + 1).toString(36)}`;
-		const taken = await getAuth(env).api.checkOrganizationSlug({
-			body: { slug: candidate },
-		});
-		if (taken?.status) return candidate;
+		// Better Auth's check-slug throws for an occupied slug; a scoped read
+		// lets normal name collisions continue without swallowing other errors.
+		const [taken] = await getDb(env).select({ id: organizationTable.id }).from(organizationTable).where(eq(organizationTable.slug, candidate)).limit(1);
+		if (!taken) return candidate;
 	}
-	return `${base}-${Date.now().toString(36)}`;
+	return `${base}-${crypto.randomUUID().slice(0, 12)}`;
 }
 
 /**
@@ -85,19 +59,7 @@ export async function provisionOrganizationWithOwner(
 
 	// A. Reuse an existing account; never touch its password, verification
 	// state or platform role.
-	let existing = await findUserByEmail(env, ownerEmail);
-	if (!existing) {
-		await auth.api.createUser({
-			body: {
-				email: ownerEmail,
-				name: ownerName,
-				password: generateProvisionalPassword(),
-				// Platform role stays the default non-admin role.
-			},
-		});
-		existing = await findUserByEmail(env, ownerEmail);
-	}
-	if (!existing) throw new Error("owner account could not be provisioned");
+	const existing = await ensureProvisionedUser(env, ownerEmail, ownerName);
 	const userId = existing.id;
 
 	// B. Reuse a company this owner already has under the same name, so a retry
@@ -109,6 +71,7 @@ export async function provisionOrganizationWithOwner(
 		.where(
 			and(
 				eq(member.userId, userId),
+				eq(member.role, "owner"),
 				eq(organizationTable.name, companyName),
 			),
 		)
@@ -149,49 +112,15 @@ export async function provisionOrganizationWithOwner(
 	// exist during provisioning. The frontend's activateBranch() adds the row on
 	// first use. Owner authority comes from the organization role either way.
 
-	// E. Only a user who has never proven their mailbox gets a setup link.
-	const setupRequired = await needsAccountSetup(env, userId);
-	if (setupRequired) {
-		await auth.api.signInMagicLink({
-			body: { email: ownerEmail, callbackURL: "/setup-account" },
-			headers: new Headers(),
-		});
-	}
+	// D. New accounts and interrupted setups receive a link; established ones do not.
+	const setupEmailStatus = await sendAccountSetup(env, ownerEmail);
 
 	return {
 		organizationId: organization.id,
 		organizationName: organization.name,
 		branchId,
 		userId,
-		setupEmailSent: setupRequired,
+		setupEmailSent: setupEmailStatus === "sent",
+		setupEmailStatus,
 	};
-}
-
-/** Resends account setup for a provisioned user who has not finished it. */
-export async function resendAccountSetup(
-	env: Env,
-	email: string,
-): Promise<boolean> {
-	const normalized = email.trim().toLowerCase();
-	const existing = await findUserByEmail(env, normalized);
-	if (!existing || existing.emailVerified) return false;
-
-	await getAuth(env).api.signInMagicLink({
-		body: { email: normalized, callbackURL: "/setup-account" },
-		headers: new Headers(),
-	});
-	return true;
-}
-
-/** True when the user has no usable credential yet (first-time setup). */
-export async function hasCredentialAccount(
-	env: Env,
-	userId: string,
-): Promise<boolean> {
-	const [row] = await getDb(env)
-		.select({ id: account.id })
-		.from(account)
-		.where(eq(account.userId, userId))
-		.limit(1);
-	return Boolean(row);
 }

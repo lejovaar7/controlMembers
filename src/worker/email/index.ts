@@ -20,8 +20,6 @@ export function getEmailService(env: Env) {
 				html: message.html,
 			});
 			console.log("Email sent", {
-				to: message.to,
-				subject: message.subject,
 				messageId: result.messageId,
 			});
 		},

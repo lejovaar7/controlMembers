@@ -15,6 +15,7 @@ const ORGANIZATION_ADMIN_ROLES = new Set(["owner", "admin"]);
 export type TenantContext = {
 	userId: string;
 	organizationId: string;
+	organizationName: string;
 	organizationRole: string;
 	locale: string | null;
 	timezone: string | null;
@@ -40,6 +41,7 @@ export async function getCurrentTenant(
 	const db = getDb(env);
 	const [row] = await db
 		.select({
+			name: organization.name,
 			role: member.role,
 			locale: organization.locale,
 			timezone: organization.timezone,
@@ -61,6 +63,7 @@ export async function getCurrentTenant(
 	return {
 		userId: session.user.id,
 		organizationId,
+		organizationName: row.name,
 		organizationRole: row.role,
 		locale: row.locale,
 		timezone: row.timezone,
@@ -75,5 +78,12 @@ export async function requireTenant(
 ): Promise<TenantContext> {
 	const tenant = await getCurrentTenant(env, request);
 	if (!tenant) throw new AuthError(403, "NO_ACTIVE_ORGANIZATION");
+	return tenant;
+}
+
+/** Organization administration is unrelated to platform user.role. */
+export async function requireOrganizationAdmin(env: Env, request: Request) {
+	const tenant = await requireTenant(env, request);
+	if (!isOrganizationAdmin(tenant)) throw new AuthError(403, "NOT_ORGANIZATION_ADMIN");
 	return tenant;
 }

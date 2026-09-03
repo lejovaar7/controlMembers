@@ -371,6 +371,14 @@ describe("existing user provisioned as a second owner", () => {
 });
 
 describe("provisioning is retry safe", () => {
+	it("resolves same-name collisions without reusing an unrelated company", async () => {
+		const name = "Shared Company Name";
+		const first = await provisionOrganizationWithOwner(env, { companyName: name, ownerName: "First owner", ownerEmail: "collision-first@test.invalid" });
+		const second = await provisionOrganizationWithOwner(env, { companyName: name, ownerName: "Second owner", ownerEmail: "collision-second@test.invalid" });
+		expect(second.organizationId).not.toBe(first.organizationId);
+		const retried = await provisionOrganizationWithOwner(env, { companyName: name, ownerName: "Second owner", ownerEmail: "collision-second@test.invalid" });
+		expect(retried.organizationId).toBe(second.organizationId);
+	});
 	it("does not duplicate the company, user or Main branch", async () => {
 		const input = {
 			companyName: "Retry Co",
@@ -402,7 +410,8 @@ describe("provisioning is retry safe", () => {
 			.select({ id: organization.id })
 			.from(organization)
 			.where(eq(organization.name, "Retry Co"));
-		expect(orgs.length).toBeGreaterThanOrEqual(1);
+		expect(orgs).toHaveLength(1);
+		expect(first.organizationId).toBe(second.organizationId);
 	});
 });
 
