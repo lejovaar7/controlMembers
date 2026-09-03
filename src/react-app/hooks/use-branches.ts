@@ -4,15 +4,19 @@ export type Branch = { id: string; name: string };
 
 type Loaded = {
 	organizationId: string;
+	organization: { id: string; name: string; role: string } | null;
 	branches: Branch[];
 	failed: boolean;
 };
 
-function isBranchList(value: unknown): value is { branches: Branch[] } {
+function isBranchList(value: unknown): value is { branches: Branch[]; organization: { id: string; name: string; role: string } } {
+	const data = value as { branches?: unknown; organization?: { id?: unknown; name?: unknown; role?: unknown } } | null;
 	return (
 		typeof value === "object" &&
 		value !== null &&
-		Array.isArray((value as { branches?: unknown }).branches)
+		Array.isArray(data?.branches) && data.branches.every((branch: unknown) =>
+			typeof branch === "object" && branch !== null && typeof (branch as Branch).id === "string" && typeof (branch as Branch).name === "string") &&
+		typeof data.organization?.id === "string" && typeof data.organization.name === "string" && typeof data.organization.role === "string"
 	);
 }
 
@@ -30,6 +34,16 @@ export function useBranches(organizationId: string | null | undefined) {
 	const reload = useCallback(() => setReloadToken((token) => token + 1), []);
 
 	useEffect(() => {
+		// Permissions may change in another administrator's session. Revalidate
+		// on navigation/focus and periodically; the Worker enforces every access.
+		const refresh = () => { if (document.visibilityState === "visible") reload(); };
+		window.addEventListener("focus", refresh);
+		document.addEventListener("visibilitychange", refresh);
+		const timer = window.setInterval(refresh, 30_000);
+		return () => { window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", refresh); window.clearInterval(timer); };
+	}, [reload]);
+
+	useEffect(() => {
 		if (!organizationId) return;
 
 		let cancelled = false;
@@ -39,14 +53,14 @@ export function useBranches(organizationId: string | null | undefined) {
 			.then((data: unknown) => {
 				if (cancelled) return;
 				setLoaded(
-					isBranchList(data)
-						? { organizationId, branches: data.branches, failed: false }
-						: { organizationId, branches: [], failed: true },
+					isBranchList(data) && data.organization.id === organizationId
+						? { organizationId, organization: data.organization, branches: data.branches, failed: false }
+						: { organizationId, organization: null, branches: [], failed: true },
 				);
 			})
 			.catch(() => {
 				if (!cancelled) {
-					setLoaded({ organizationId, branches: [], failed: true });
+					setLoaded({ organizationId, organization: null, branches: [], failed: true });
 				}
 			});
 
@@ -60,6 +74,7 @@ export function useBranches(organizationId: string | null | undefined) {
 
 	return {
 		branches: current?.branches ?? null,
+		organization: current?.organization ?? null,
 		failed: current?.failed ?? false,
 		reload,
 	};

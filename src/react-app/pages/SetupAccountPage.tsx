@@ -48,31 +48,35 @@ export function SetupAccountPage() {
 		setSubmitting(true);
 		setError(null);
 
-		const response = await fetch("/api/account/setup-password", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ newPassword }),
-		});
-		form.reset();
+		try {
+			const response = await fetch("/api/account/setup-password", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ newPassword }),
+			});
+			form.reset();
 
-		if (!response.ok) {
-			setError(GENERIC_ERROR);
-			setSubmitting(false);
-			return;
-		}
+			if (!response.ok) {
+				setError(response.status === 409 ? "Your password is already configured. Sign in with your existing password or use password recovery." : GENERIC_ERROR);
+				setSubmitting(false);
+				return;
+			}
 
-		// A full load picks up the refreshed session. Platform admins have no
-		// company of their own, so they go to platform administration instead.
-		const role = (session?.user as { role?: unknown } | undefined)?.role;
-		const isPlatformAdmin =
-			typeof role === "string" && role.split(",").includes("admin");
-		window.location.assign(isPlatformAdmin ? "/platform" : "/app/dashboard");
+			// A full load picks up the refreshed session. Platform admins have no
+			// company of their own, so they go to platform administration instead.
+			const role = (session?.user as { role?: unknown; } | undefined)?.role;
+			const isPlatformAdmin =
+				typeof role === "string" && role.split(",").includes("admin");
+			window.location.assign(isPlatformAdmin ? "/platform" : "/app/dashboard");
+		} catch { setError(GENERIC_ERROR); }
+		finally { form.reset(); setSubmitting(false); }
 	}
 
 	return (
 		<AuthCard
 			title="Choose your password"
 			description="Your email is confirmed. Pick a password to finish setting up your account."
+			footer={<Link to="/login" className="underline">Go to sign in</Link>}
 		>
 			<form onSubmit={handleSubmit} className="flex flex-col gap-4">
 				<div className="grid gap-2">
@@ -83,6 +87,7 @@ export function SetupAccountPage() {
 						type="password"
 						autoComplete="new-password"
 						minLength={8}
+						maxLength={128}
 						required
 					/>
 				</div>

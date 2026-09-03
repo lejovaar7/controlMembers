@@ -27,7 +27,7 @@ export function ForgotPasswordPage() {
 		const { error: requestError } = await authClient.requestPasswordReset({
 			email,
 			redirectTo: "/reset-password",
-		});
+		}).catch(() => ({ error: { code: "NETWORK_ERROR" } }));
 
 		if (requestError) {
 			setError(authErrorMessage(requestError));

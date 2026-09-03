@@ -32,7 +32,7 @@ export function VerifyEmailPage() {
 		const { error: sendError } = await authClient.sendVerificationEmail({
 			email,
 			callbackURL: "/verify-email?verified=1",
-		});
+		}).catch(() => ({ error: { code: "NETWORK_ERROR" } }));
 
 		if (sendError) {
 			setError(authErrorMessage(sendError));

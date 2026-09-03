@@ -37,7 +37,7 @@ export function LoginPage() {
 		const { error: signInError } = await authClient.signIn.email({
 			email,
 			password: String(password ?? ""),
-		});
+		}).catch(() => ({ error: { code: "NETWORK_ERROR" } }));
 
 		if (signInError) {
 			setNeedsVerification(isEmailNotVerified(signInError));

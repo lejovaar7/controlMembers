@@ -17,6 +17,7 @@ export function BranchSwitcher({
 	userId: string;
 }) {
 	const [switching, setSwitching] = useState(false);
+	const [failed, setFailed] = useState(false);
 
 	if (branches.length === 0) return null;
 
@@ -25,18 +26,24 @@ export function BranchSwitcher({
 		if (!branches.some((branch) => branch.id === branchId)) return;
 
 		setSwitching(true);
-		await activateBranch(branchId, userId);
-		setSwitching(false);
+		setFailed(false);
+		try {
+			setFailed(!(await activateBranch(branchId, userId)));
+		} catch {
+			setFailed(true);
+		} finally {
+			setSwitching(false);
+		}
 	}
 
 	return (
-		<div className="flex items-center gap-2">
+		<div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
 			<label htmlFor="branch-switcher" className="sr-only">
 				Branch
 			</label>
 			<select
 				id="branch-switcher"
-				className="border-input bg-background focus-visible:ring-ring h-8 rounded-md border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+				className="border-input bg-background focus-visible:ring-ring h-8 min-w-0 max-w-full rounded-md border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
 				value={activeBranchId ?? ""}
 				disabled={switching}
 				onChange={(event) => void handleChange(event.target.value)}
@@ -47,6 +54,7 @@ export function BranchSwitcher({
 					</option>
 				))}
 			</select>
+			{failed ? <span role="alert" className="text-destructive text-sm">Could not switch branch. Try again.</span> : null}
 		</div>
 	);
 }

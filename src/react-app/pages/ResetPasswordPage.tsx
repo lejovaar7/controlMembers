@@ -54,7 +54,7 @@ export function ResetPasswordPage() {
 		const { error: resetError } = await authClient.resetPassword({
 			newPassword,
 			token: token ?? undefined,
-		});
+		}).catch(() => ({ error: { code: "NETWORK_ERROR" } }));
 
 		if (resetError) {
 			setError(authErrorMessage(resetError));
@@ -81,6 +81,8 @@ export function ResetPasswordPage() {
 						name="newPassword"
 						type="password"
 						autoComplete="new-password"
+						minLength={8}
+						maxLength={128}
 						required
 					/>
 				</div>

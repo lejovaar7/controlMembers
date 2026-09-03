@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { Branch } from "@/hooks/use-branches";
 import { authClient, useListOrganizations } from "@/lib/auth-client";
 
 /**
@@ -9,13 +8,16 @@ import { authClient, useListOrganizations } from "@/lib/auth-client";
  */
 export function OrganizationSwitcher({
 	activeOrganizationId,
-	onSwitched,
+	onSwitching,
+	onFailure,
 }: {
 	activeOrganizationId: string | null;
-	onSwitched?: (branches: Branch[] | null) => void;
+	onSwitching: (switching: boolean) => void;
+	onFailure: () => void;
 }) {
 	const organizations = useListOrganizations();
 	const [switching, setSwitching] = useState(false);
+	const [failed, setFailed] = useState(false);
 
 	const list = organizations.data ?? [];
 	if (organizations.isPending || list.length === 0) return null;
@@ -25,22 +27,32 @@ export function OrganizationSwitcher({
 		if (!list.some((organization) => organization.id === organizationId)) return;
 
 		setSwitching(true);
+		onSwitching(true);
+		setFailed(false);
 		// Clearing the branch first stops the previous organization's branch
 		// staying active while the new organization loads.
-		await authClient.organization.setActiveTeam({ teamId: null });
-		await authClient.organization.setActive({ organizationId });
-		setSwitching(false);
-		onSwitched?.(null);
+		try {
+			const cleared = await authClient.organization.setActiveTeam({ teamId: null });
+			if (cleared.error) throw new Error("switch failed");
+			const activated = await authClient.organization.setActive({ organizationId });
+			if (activated.error) throw new Error("switch failed");
+		} catch {
+			setFailed(true);
+			onFailure();
+		} finally {
+			setSwitching(false);
+			onSwitching(false);
+		}
 	}
 
 	return (
-		<div className="flex items-center gap-2">
+		<div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
 			<label htmlFor="organization-switcher" className="sr-only">
 				Company
 			</label>
 			<select
 				id="organization-switcher"
-				className="border-input bg-background focus-visible:ring-ring h-8 rounded-md border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+				className="border-input bg-background focus-visible:ring-ring h-8 min-w-0 max-w-full rounded-md border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
 				value={activeOrganizationId ?? ""}
 				disabled={switching}
 				onChange={(event) => void handleChange(event.target.value)}
@@ -51,6 +63,7 @@ export function OrganizationSwitcher({
 					</option>
 				))}
 			</select>
+			{failed ? <span role="alert" className="text-destructive text-sm">Could not switch company. Try again.</span> : null}
 		</div>
 	);
 }

@@ -1,16 +1,16 @@
 import { type FormEvent, useState } from "react";
-import { Link } from "react-router";
 import { FormMessage } from "@/components/auth-card";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GENERIC_ERROR } from "@/lib/auth-errors";
+import type { SetupEmailStatus } from "@/lib/members";
 
 type Result = {
 	organizationName: string;
 	ownerEmail: string;
-	setupEmailSent: boolean;
+	setupEmailStatus: SetupEmailStatus;
 };
 
 export function PlatformNewOrganizationPage() {
@@ -18,6 +18,7 @@ export function PlatformNewOrganizationPage() {
 	const [error, setError] = useState<string | null>(null);
 	const [result, setResult] = useState<Result | null>(null);
 	const [resendState, setResendState] = useState<string | null>(null);
+	const [resending, setResending] = useState(false);
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -28,41 +29,48 @@ export function PlatformNewOrganizationPage() {
 		setSubmitting(true);
 		setError(null);
 
-		const response = await fetch("/api/platform/organizations", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				companyName: String(data.get("companyName") ?? ""),
-				ownerName: String(data.get("ownerName") ?? ""),
-				ownerEmail: String(data.get("ownerEmail") ?? ""),
-			}),
-		});
+		try {
+			const response = await fetch("/api/platform/organizations", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					companyName: String(data.get("companyName") ?? ""),
+					ownerName: String(data.get("ownerName") ?? ""),
+					ownerEmail: String(data.get("ownerEmail") ?? ""),
+				}),
+			});
 
-		if (!response.ok) {
-			setError(GENERIC_ERROR);
-			setSubmitting(false);
-			return;
-		}
+			if (!response.ok) {
+				setError(GENERIC_ERROR);
+				setSubmitting(false);
+				return;
+			}
 
-		setResult((await response.json()) as Result);
-		form.reset();
-		setSubmitting(false);
+			setResult((await response.json()) as Result);
+			form.reset();
+		} catch { setError(GENERIC_ERROR); }
+		finally { setSubmitting(false); }
 	}
 
 	async function handleResend() {
-		if (!result) return;
+		if (!result || resending) return;
+		setResending(true);
 		setResendState(null);
-		const response = await fetch("/api/platform/account-setup/resend", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ email: result.ownerEmail }),
-		});
-		const body = (await response.json()) as { sent?: boolean };
-		setResendState(
-			body.sent
-				? "Account setup link sent again."
-				: "That owner has already finished setting up.",
-		);
+		try {
+			const response = await fetch("/api/platform/account-setup/resend", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ email: result.ownerEmail }),
+			});
+			if (!response.ok) throw new Error("Setup resend failed");
+			const body = (await response.json()) as { sent?: boolean; };
+			setResendState(
+				body.sent
+					? "Account setup link sent again."
+					: "That owner has already finished setting up.",
+			);
+		} catch { setResendState("We could not send the link. Please try again."); }
+		finally { setResending(false); }
 	}
 
 	if (result) {
@@ -74,18 +82,20 @@ export function PlatformNewOrganizationPage() {
 				/>
 				<div className="flex flex-col gap-4">
 					<FormMessage tone="success">
-						{result.setupEmailSent
-							? `An account setup link was sent to ${result.ownerEmail}.`
-							: `${result.ownerEmail} already has an account and was added as owner.`}
+						{result.setupEmailStatus === "failed"
+							? "Company access is ready, but the setup email could not be sent. Please resend the link."
+							: result.setupEmailStatus === "sent"
+								? `An account setup link was sent to ${result.ownerEmail}.`
+								: `${result.ownerEmail} already has an account and was added as owner.`}
 					</FormMessage>
 					<FormMessage tone="success">{resendState}</FormMessage>
-					<div className="flex gap-3">
-						{result.setupEmailSent ? (
-							<Button variant="outline" onClick={handleResend}>
-								Resend setup link
+					<div className="flex flex-wrap gap-3">
+						{result.setupEmailStatus !== "not-required" ? (
+							<Button variant="outline" disabled={resending} onClick={handleResend}>
+								{resending ? "Sending…" : "Resend setup link"}
 							</Button>
 						) : null}
-						<Button render={<Link to="/platform/organizations/new" />}>
+						<Button disabled={resending} onClick={() => { setResult(null); setResendState(null); setError(null); }}>
 							Create another
 						</Button>
 					</div>

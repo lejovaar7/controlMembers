@@ -2,12 +2,13 @@ import { createBrowserRouter, Navigate } from "react-router";
 import { AppLayout } from "@/layouts/AppLayout";
 import { PlatformLayout } from "@/layouts/PlatformLayout";
 import { PublicLayout } from "@/layouts/PublicLayout";
-import { AcceptInvitationPage } from "@/pages/AcceptInvitationPage";
+import { BranchesPage } from "@/pages/BranchesPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { HomePage } from "@/pages/HomePage";
 import { LoginPage } from "@/pages/LoginPage";
 import { MembersPage } from "@/pages/MembersPage";
+import { NoBranchAccessPage } from "@/pages/NoBranchAccessPage";
 import { NoCompanyPage } from "@/pages/NoCompanyPage";
 import { PlatformHomePage } from "@/pages/PlatformHomePage";
 import { PlatformNewOrganizationPage } from "@/pages/PlatformNewOrganizationPage";
@@ -26,7 +27,6 @@ export const router = createBrowserRouter([
 			{ path: "forgot-password", element: <ForgotPasswordPage /> },
 			{ path: "reset-password", element: <ResetPasswordPage /> },
 			{ path: "setup-account", element: <SetupAccountPage /> },
-			{ path: "accept-invitation", element: <AcceptInvitationPage /> },
 			{ path: "no-company", element: <NoCompanyPage /> },
 			// Public signup is disabled; the old route must not linger.
 			{ path: "register", element: <Navigate to="/login" replace /> },
@@ -50,6 +50,8 @@ export const router = createBrowserRouter([
 		children: [
 			{ index: true, element: <Navigate to="/app/dashboard" replace /> },
 			{ path: "dashboard", element: <DashboardPage /> },
+			{ path: "branches", element: <BranchesPage /> },
+			{ path: "no-branch-access", element: <NoBranchAccessPage /> },
 			{ path: "members", element: <MembersPage /> },
 			{ path: "settings", element: <SettingsPage /> },
 		],
