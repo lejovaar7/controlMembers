@@ -166,6 +166,9 @@ export const member = sqliteTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     role: text("role").default("member").notNull(),
+    isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
+    allBranches: integer("all_branches", { mode: "boolean" }).default(true).notNull(),
+    canAppointAdmins: integer("can_appoint_admins", { mode: "boolean" }).default(false).notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [

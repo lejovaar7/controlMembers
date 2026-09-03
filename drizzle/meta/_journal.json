@@ -36,6 +36,13 @@
       "when": 1788377712473,
       "tag": "0004_big_mentallo",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788444492784,
+      "tag": "0005_safe_thunderbird",
+      "breakpoints": true
     }
   ]
 }

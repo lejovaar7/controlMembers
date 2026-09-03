@@ -46,6 +46,8 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler) {
 		disabledPaths: [
 			"/organization/get-full-organization", "/organization/list-members",
 			"/organization/get-active-member-role",
+			"/organization/get-active-member", "/organization/list", "/organization/set-active",
+			"/organization/add-member", // Company/access changes use the guarded application API.
 			"/organization/list-teams", "/organization/list-team-members", "/organization/list-user-teams",
 			"/organization/update-member-role", "/organization/remove-team-member",
 			"/organization/remove-member", "/organization/leave", "/organization/remove-team",
@@ -107,6 +109,13 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler) {
 				requireEmailVerificationOnInvitation: true,
 				schema: {
 					organization: { additionalFields: organizationSettingsFields },
+					member: { additionalFields: {
+						isActive: { type: "boolean", defaultValue: true, input: false },
+						// addMember has no public HTTP endpoint. Its server-only caller
+						// validates scope before inserting a restricted admin atomically.
+						allBranches: { type: "boolean", defaultValue: true, required: false },
+						canAppointAdmins: { type: "boolean", defaultValue: false, required: false },
+					} },
 				},
 				sendInvitationEmail: async (data) => {
 					const url = `${env.APP_URL}/accept-invitation?invitationId=${data.id}`;

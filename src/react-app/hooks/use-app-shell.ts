@@ -14,6 +14,9 @@ export type AppShellContext = {
 	/** Organization role: "owner" | "admin" | "member". */
 	organizationRole: string | null;
 	canManageBranches: boolean;
+	canCreateBranches: boolean;
+	allBranches: boolean;
+	canAppointAdmins: boolean;
 	refreshBranches: () => void;
 };
 

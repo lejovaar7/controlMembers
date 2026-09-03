@@ -9,9 +9,10 @@ import { authClient } from "@/lib/auth-client";
 export function NoCompanyPage() {
 	return (
 		<AuthCard
-			title="No company assigned"
-			description="Your account is not assigned to a company yet. Contact your administrator."
+			title="No active company access"
+			description="Your account has no active company access. Contact your administrator if your access needs to be assigned or restored."
 		>
+			<Button className="w-full" onClick={() => window.location.assign("/app/dashboard")}>Check access again</Button>
 			<Button
 				variant="outline"
 				className="w-full"

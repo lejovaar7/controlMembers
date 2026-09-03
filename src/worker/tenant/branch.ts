@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { AuthError, requireAuth } from "../auth/session";
 import { getDb } from "../db";
 import { team, teamMember } from "../db/auth-schema";
-import { isOrganizationAdmin, requireTenant, type TenantContext } from ".";
+import { requireTenant, type TenantContext } from ".";
 
 /**
  * A validated branch. A Better Auth team is a branch.
@@ -41,8 +41,8 @@ async function loadBranch(
 
 /**
  * - a branch in another organization is never accessible
- * - owner/admin reach every branch in their organization
- * - member reaches only branches they are assigned to
+ * - owners and unrestricted admins reach every branch in their organization
+ * - scoped admins and members reach only assigned branches
  */
 async function isAccessible(
 	env: Env,
@@ -50,7 +50,7 @@ async function isAccessible(
 	branch: BranchRow,
 ): Promise<boolean> {
 	if (branch.organizationId !== tenant.organizationId) return false;
-	if (isOrganizationAdmin(tenant)) return true;
+	if (tenant.allBranches) return true;
 
 	const [assignment] = await getDb(env)
 		.select({ id: teamMember.id })
@@ -76,7 +76,7 @@ export async function listAccessibleBranches(
 ): Promise<BranchContext[]> {
 	const db = getDb(env);
 
-	const rows = isOrganizationAdmin(tenant)
+	const rows = tenant.allBranches
 		? await db
 				.select({
 					id: team.id,

@@ -6,17 +6,19 @@ type Loaded = {
 	organizationId: string;
 	organization: { id: string; name: string; role: string } | null;
 	branches: Branch[];
+	permissions: { allBranches: boolean; canAppointAdmins: boolean };
 	failed: boolean;
 };
 
-function isBranchList(value: unknown): value is { branches: Branch[]; organization: { id: string; name: string; role: string } } {
-	const data = value as { branches?: unknown; organization?: { id?: unknown; name?: unknown; role?: unknown } } | null;
+function isBranchList(value: unknown): value is { branches: Branch[]; organization: { id: string; name: string; role: string }; permissions: Loaded["permissions"] } {
+	const data = value as { branches?: unknown; organization?: { id?: unknown; name?: unknown; role?: unknown }; permissions?: { allBranches?: unknown; canAppointAdmins?: unknown } } | null;
 	return (
 		typeof value === "object" &&
 		value !== null &&
 		Array.isArray(data?.branches) && data.branches.every((branch: unknown) =>
 			typeof branch === "object" && branch !== null && typeof (branch as Branch).id === "string" && typeof (branch as Branch).name === "string") &&
-		typeof data.organization?.id === "string" && typeof data.organization.name === "string" && typeof data.organization.role === "string"
+		typeof data.organization?.id === "string" && typeof data.organization.name === "string" && typeof data.organization.role === "string" &&
+		typeof data.permissions?.allBranches === "boolean" && typeof data.permissions.canAppointAdmins === "boolean"
 	);
 }
 
@@ -54,13 +56,13 @@ export function useBranches(organizationId: string | null | undefined) {
 				if (cancelled) return;
 				setLoaded(
 					isBranchList(data) && data.organization.id === organizationId
-						? { organizationId, organization: data.organization, branches: data.branches, failed: false }
-						: { organizationId, organization: null, branches: [], failed: true },
+						? { organizationId, organization: data.organization, branches: data.branches, permissions: data.permissions, failed: false }
+						: { organizationId, organization: null, branches: [], permissions: { allBranches: false, canAppointAdmins: false }, failed: true },
 				);
 			})
 			.catch(() => {
 				if (!cancelled) {
-					setLoaded({ organizationId, organization: null, branches: [], failed: true });
+					setLoaded({ organizationId, organization: null, branches: [], permissions: { allBranches: false, canAppointAdmins: false }, failed: true });
 				}
 			});
 
@@ -75,6 +77,7 @@ export function useBranches(organizationId: string | null | undefined) {
 	return {
 		branches: current?.branches ?? null,
 		organization: current?.organization ?? null,
+		permissions: current?.permissions ?? null,
 		failed: current?.failed ?? false,
 		reload,
 	};

@@ -157,7 +157,7 @@ function BranchWorkspace() {
 				))}
 			</ul>
 
-			<form onSubmit={handleCreate} className="flex max-w-sm flex-col gap-4">
+			{shell.canCreateBranches ? <form onSubmit={handleCreate} className="flex max-w-sm flex-col gap-4">
 				<div className="grid gap-2">
 					<Label htmlFor="branchName">New branch name</Label>
 					<Input
@@ -177,7 +177,7 @@ function BranchWorkspace() {
 				<Button type="submit" disabled={submitting || name.trim().length === 0}>
 					{submitting ? "Saving\u2026" : "Add branch"}
 				</Button>
-			</form>
+			</form> : <p className="text-sm text-muted-foreground">You can rename your assigned branches. Creating a new branch requires company-wide administration.</p>}
 		</PageContainer>
 	);
 }

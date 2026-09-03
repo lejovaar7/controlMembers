@@ -10,7 +10,8 @@ import { hasCredentialAccount, resendAccountSetup } from "./auth/provisioning";
 import { readJsonObject, RequestError, requireSameOriginJson } from "./http";
 import { requireOrganizationAdmin, requireTenant } from "./tenant";
 import { listAccessibleBranches } from "./tenant/branch";
-import { listMembers, provisionMember, resendMemberSetup, updateMemberAccess } from "./tenant/members";
+import { listMembers, provisionMember, resendMemberSetup, updateMemberAccess, updateMemberStatus } from "./tenant/members";
+import { listCompanies, selectCompany } from "./tenant/companies";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -46,12 +47,16 @@ app.get("/api/branches", async (c) => {
 	const branches = await listAccessibleBranches(c.env, tenant);
 	return c.json({
 		organization: { id: tenant.organizationId, name: tenant.organizationName, role: tenant.organizationRole },
+		permissions: { allBranches: tenant.allBranches, canAppointAdmins: tenant.canAppointAdmins },
 		branches: branches.map((branch) => ({
 			id: branch.branchId,
 			name: branch.name,
 		})),
 	});
 });
+
+app.get("/api/companies", async (c) => c.json({ companies: await listCompanies(c.env, c.req.raw) }));
+app.post("/api/companies/active", async (c) => c.json(await selectCompany(c.env, c.req.raw, await readJsonObject(c.req.raw))));
 
 /** Tenant-scoped administration; never exposes platform roles. */
 app.get("/api/members", async (c) => {
@@ -72,6 +77,11 @@ app.post("/api/members/:membershipId/setup/resend", async (c) => {
 app.patch("/api/members/:membershipId", async (c) => {
 	const tenant = await requireOrganizationAdmin(c.env, c.req.raw);
 	return c.json(await updateMemberAccess(c.env, c.req.raw, tenant, c.req.param("membershipId"), await readJsonObject(c.req.raw)));
+});
+
+app.patch("/api/members/:membershipId/status", async (c) => {
+	const tenant = await requireOrganizationAdmin(c.env, c.req.raw);
+	return c.json(await updateMemberStatus(c.env, tenant, c.req.param("membershipId"), await readJsonObject(c.req.raw)));
 });
 
 /** Platform administration. Organization roles never grant access here. */

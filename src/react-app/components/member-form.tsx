@@ -5,24 +5,33 @@ import { Label } from "@/components/ui/label";
 import type { Branch } from "@/hooks/use-branches";
 import type { MemberAccess, MemberSummary, SetupEmailStatus } from "@/lib/members";
 
-export function MemberForm({ branches, member, onSaved, onCancel }: {
+export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdmins, isOwner, onSaved, onCancel }: {
 	branches: Branch[];
 	member?: MemberSummary;
+	allBranchesAllowed: boolean;
+	canAppointAdmins: boolean;
+	isOwner: boolean;
 	onSaved: (status?: SetupEmailStatus) => void;
 	onCancel: () => void;
 }) {
 	const id = useId();
 	const [role, setRole] = useState<"member" | "admin">(member?.role === "admin" ? "admin" : "member");
 	const [selected, setSelected] = useState<string[]>(member?.branchAccess.kind === "assigned-branches" ? member.branchAccess.branchIds : []);
+	const [allBranches, setAllBranches] = useState(member ? member.branchAccess.kind === "all-branches" : allBranchesAllowed);
+	const [appointmentPermission, setAppointmentPermission] = useState(member?.canAppointAdmins ?? false);
 	const [pending, setPending] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		if (pending) return;
-		if (role === "member" && !selected.length) { setError("Select at least one branch."); return; }
+		const grantsAllBranches = role === "admin" && allBranches;
+		if (!grantsAllBranches && !selected.length) { setError("Select at least one branch."); return; }
 		const form = new FormData(event.currentTarget);
-		const access: MemberAccess = { role, branchIds: role === "member" ? selected : [] };
+		const access: MemberAccess = {
+			role, branchIds: grantsAllBranches ? [] : selected, allBranches: grantsAllBranches,
+			...(isOwner ? { canAppointAdmins: role === "admin" && appointmentPermission } : {}),
+		};
 		setPending(true);
 		setError(null);
 		try {
@@ -48,16 +57,26 @@ export function MemberForm({ branches, member, onSaved, onCancel }: {
 			<div className="grid gap-2">
 				<Label htmlFor={`${id}-role`}>Company role</Label>
 				<select id={`${id}-role`} autoFocus={Boolean(member)} className="h-10 rounded-md border bg-background px-3 focus-visible:outline-2 focus-visible:outline-ring" value={role} onChange={(event) => setRole(event.target.value as "member" | "admin")}>
-					<option value="member">Member</option><option value="admin">Admin</option>
+					<option value="member">Member</option>{canAppointAdmins && <option value="admin">Admin</option>}
 				</select>
 			</div>
-			{role === "admin" ? <p className="text-sm text-muted-foreground">Admins can access all branches in this company.</p> : <fieldset className="grid gap-2" aria-describedby={`${id}-branches-help`}>
+			{role === "admin" && allBranchesAllowed && <div className="grid gap-2">
+				<Label htmlFor={`${id}-scope`}>Branch access</Label>
+				<select id={`${id}-scope`} className="h-10 rounded-md border bg-background px-3 focus-visible:outline-2 focus-visible:outline-ring" value={allBranches ? "all" : "assigned"} onChange={(event) => setAllBranches(event.target.value === "all")}>
+					<option value="all">All current and future branches</option><option value="assigned">Selected branches only</option>
+				</select>
+			</div>}
+			{role === "admin" && allBranches ? <p className="text-sm text-muted-foreground">Access includes every current and future branch in this company.</p> : <fieldset className="grid gap-2" aria-describedby={`${id}-branches-help`}>
 				<legend className="mb-2 font-medium text-sm">Branches</legend>
 				<p id={`${id}-branches-help`} className="text-sm text-muted-foreground">Select at least one branch.</p>
 				{branches.map((branch) => <label key={branch.id} className="flex min-h-10 items-center gap-3 text-sm">
 					<input type="checkbox" className="size-4 shrink-0 accent-primary" checked={selected.includes(branch.id)} onChange={(event) => setSelected((ids) => event.target.checked ? [...ids, branch.id] : ids.filter((item) => item !== branch.id))} /><span className="min-w-0 break-words">{branch.name}</span>
 				</label>)}
 			</fieldset>}
+			{role === "admin" && isOwner && <label className="flex items-start gap-3 text-sm">
+				<input type="checkbox" className="mt-1 size-4 shrink-0 accent-primary" checked={appointmentPermission} onChange={(event) => setAppointmentPermission(event.target.checked)} />
+				<span>Can appoint administrators<span className="mt-1 block text-muted-foreground">Allows creating or promoting admins within their branch scope. Only the owner can grant this permission. It does not allow editing other admins.</span></span>
+			</label>}
 			{!member && <p className="text-sm text-muted-foreground">New users receive a secure link to choose their own password. Existing accounts keep their sign-in details.</p>}
 		</fieldset>
 		{error && <p role="alert" className="text-sm text-destructive">{error}</p>}

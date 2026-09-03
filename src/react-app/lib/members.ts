@@ -3,14 +3,17 @@ export type MemberSummary = {
 	membershipId: string;
 	user: { id: string; name: string; email: string };
 	role: string;
+	isActive: boolean;
+	canAppointAdmins: boolean;
 	setupRequired: boolean;
 	canManage: boolean;
+	scopeRestricted: boolean;
 	branchAccess: { kind: "all-branches" } | { kind: "assigned-branches"; branchIds: string[] };
 };
 
 export type MemberDirectory = { organizationId: string; members: MemberSummary[] };
 
-export type MemberAccess = { role: "admin" | "member"; branchIds: string[] };
+export type MemberAccess = { role: "admin" | "member"; branchIds: string[]; allBranches: boolean; canAppointAdmins?: boolean };
 export type SetupEmailStatus = "sent" | "not-required" | "failed";
 
 export function setupMessage(status: SetupEmailStatus): string {

@@ -11,7 +11,4 @@ export const authClient = createAuthClient({
 	plugins: [organizationClient({ teams: { enabled: true } })],
 });
 
-export const {
-	useSession,
-	useListOrganizations,
-} = authClient;
+export const { useSession } = authClient;

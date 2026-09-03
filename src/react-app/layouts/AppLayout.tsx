@@ -1,16 +1,17 @@
 import { Building2, LayoutDashboard, Settings, Users } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation } from "react-router";
 import { BranchSwitcher } from "@/components/branch-switcher";
 import { OrganizationSwitcher } from "@/components/organization-switcher";
 import { Button } from "@/components/ui/button";
 import { useBranches } from "@/hooks/use-branches";
+import { useCompanies } from "@/hooks/use-companies";
+import { activateCompany, companySelection } from "@/lib/companies";
 import { activateBranch } from "@/lib/activate-branch";
 import type { AppShellContext } from "@/hooks/use-app-shell";
 import { canManageBranches } from "@/hooks/use-app-shell";
 import {
 	authClient,
-	useListOrganizations,
 	useSession,
 } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
@@ -88,37 +89,46 @@ export function AppLayout() {
 	const {
 		branches,
 		organization,
+		permissions,
 		failed: branchesFailed,
 		reload,
 	} = useBranches(activeOrganizationId);
-	const organizations = useListOrganizations();
-	const organizationList = useMemo(
-		() => organizations.data ?? [],
-		[organizations.data],
-	);
+	const { companies, failed: companiesFailed } = useCompanies(userId);
+	const selection = companies ? companySelection(companies, activeOrganizationId) : null;
+	const selectCompany = useCallback(async (id: string) => {
+		setSwitchingOrganization(true);
+		try {
+			await activateCompany(id);
+			// A reload discards the previous company's cached forms and session state.
+			window.location.assign(`${location.pathname}${location.search}`);
+		} catch { setRecoveryFailed(true); setSwitchingOrganization(false); }
+	}, [location.pathname, location.search]);
+	const automaticCompanyId = selection?.kind === "activate" ? selection.id : null;
+	const automaticActivation = useRef<{ id: string; pending: Promise<void> } | null>(null);
 
-	// Recovery only: select an organization the user already belongs to when the
-	// session has none active. Nothing is ever created here — companies and
-	// branches are provisioned.
+	// Exactly one active membership needs no choice; multiple memberships do.
 	useEffect(() => {
-		if (!userId || activeOrganizationId || organizations.isPending || recoveryFailed || switchingOrganization) return;
-		const first = organizationList[0];
-		if (!first) return;
-		void authClient.organization.setActive({ organizationId: first.id })
-			.then((result) => { if (result.error) setRecoveryFailed(true); })
-			.catch(() => setRecoveryFailed(true));
-	}, [userId, activeOrganizationId, organizations.isPending, organizationList, recoveryFailed, switchingOrganization]);
+		if (!userId || !automaticCompanyId || recoveryFailed || switchingOrganization || companiesFailed) return;
+		let cancelled = false;
+		if (automaticActivation.current?.id !== automaticCompanyId) {
+			automaticActivation.current = { id: automaticCompanyId, pending: activateCompany(automaticCompanyId) };
+		}
+		void automaticActivation.current.pending
+			.then(() => { if (!cancelled) window.location.assign(`${location.pathname}${location.search}`); })
+			.catch(() => { if (!cancelled) setRecoveryFailed(true); });
+		return () => { cancelled = true; };
+	}, [userId, automaticCompanyId, recoveryFailed, switchingOrganization, companiesFailed, location.pathname, location.search]);
 
 	// Same for the branch: adopt an accessible one rather than stranding the user.
 	useEffect(() => {
-		if (!userId || !branches || branches.length === 0 || recoveryFailed || switchingOrganization) return;
+		if (!userId || !branches || branches.length === 0 || recoveryFailed || switchingOrganization || selection?.kind !== "active") return;
 		if (branches.some((branch) => branch.id === activeBranchId)) return;
 		const first = branches[0];
 		if (!first) return;
 		void activateBranch(first.id, userId)
 			.then((ok) => { if (!ok) setRecoveryFailed(true); })
 			.catch(() => setRecoveryFailed(true));
-	}, [userId, branches, activeBranchId, recoveryFailed, switchingOrganization]);
+	}, [userId, branches, activeBranchId, recoveryFailed, switchingOrganization, selection?.kind]);
 
 	async function handleSignOut() {
 		if (signingOut) return;
@@ -146,13 +156,23 @@ export function AppLayout() {
 
 	// Companies are provisioned, so a user genuinely without one is in an
 	// abnormal state rather than one they can repair themselves.
-	if (organizations.isPending) return <Centered>Loading\u2026</Centered>;
-	if (organizations.error || recoveryFailed) {
+	if (!companies) return <Centered>Loading\u2026</Centered>;
+	if (companiesFailed || recoveryFailed) {
 		return <Centered>We could not load your workspace. <Button variant="outline" onClick={() => window.location.reload()}>Try again</Button></Centered>;
 	}
-	if (organizationList.length === 0) {
+	if (selection?.kind === "none") {
 		return <Navigate to="/no-company" replace />;
 	}
+	if (selection?.kind === "choose") {
+		return <div className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-4 p-6">
+			<h1 className="text-2xl font-semibold">Choose a company</h1>
+			<p className="text-muted-foreground">Select the company you want to work in. Access and permissions are separate for each company.</p>
+			{companies.map((company) => <Button key={company.id} variant="outline" className="h-auto min-h-10 whitespace-normal break-words" disabled={switchingOrganization} onClick={() => void selectCompany(company.id)}>{company.name}</Button>)}
+			{switchingOrganization && <p role="status">Opening company…</p>}
+			<Button variant="ghost" disabled={switchingOrganization} onClick={() => void handleSignOut()}>Sign out</Button>
+		</div>;
+	}
+	if (selection?.kind === "activate") return <Centered>Opening company…</Centered>;
 	if (!activeOrganizationId) return <Centered>Loading workspace\u2026</Centered>;
 	if (branches === null) return <Centered>Loading workspace\u2026</Centered>;
 	// A failed lookup is not the same as an empty accessible list.
@@ -161,12 +181,13 @@ export function AppLayout() {
 	}
 	const organizationRole = organization?.role ?? null;
 	const manageBranches = canManageBranches(organizationRole);
+	const createBranches = manageBranches && permissions?.allBranches === true;
 
 	if (branches.length === 0) {
 		// An owner/admin can still create the first branch; a member simply has
 		// no access and must never be offered branch creation. Both targets live
 		// inside this layout, so only redirect when not already there.
-		const target = manageBranches ? "/app/branches" : "/app/no-branch-access";
+		const target = createBranches ? "/app/branches" : "/app/no-branch-access";
 		if (location.pathname !== target) {
 			return <Navigate to={target} replace />;
 		}
@@ -185,6 +206,9 @@ export function AppLayout() {
 		activeBranch,
 		organizationRole,
 		canManageBranches: manageBranches,
+		canCreateBranches: createBranches,
+		allBranches: permissions?.allBranches === true,
+		canAppointAdmins: permissions?.canAppointAdmins === true,
 		refreshBranches: reload,
 	};
 
@@ -198,7 +222,7 @@ export function AppLayout() {
 			<div className="flex min-w-0 flex-1 flex-col">
 				<header className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
 					<div className="flex min-w-0 flex-wrap items-center gap-2">
-						<OrganizationSwitcher activeOrganizationId={activeOrganizationId} onSwitching={setSwitchingOrganization} onFailure={() => setRecoveryFailed(true)} />
+						<OrganizationSwitcher companies={companies} activeOrganizationId={activeOrganizationId} switching={switchingOrganization} onSelect={(id) => void selectCompany(id)} />
 						{branches.length > 1 ? (
 							<BranchSwitcher
 								branches={branches}

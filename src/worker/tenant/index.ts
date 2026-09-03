@@ -1,9 +1,9 @@
 import { and, eq } from "drizzle-orm";
 import { AuthError, requireAuth } from "../auth/session";
 import { getDb } from "../db";
-import { member, organization } from "../db/auth-schema";
+import { member, organization, team, teamMember } from "../db/auth-schema";
 
-/** Organization roles that grant organization-wide access. */
+/** Administration is independent from the administrator's Branch scope. */
 const ORGANIZATION_ADMIN_ROLES = new Set(["owner", "admin"]);
 
 /**
@@ -17,6 +17,10 @@ export type TenantContext = {
 	organizationId: string;
 	organizationName: string;
 	organizationRole: string;
+	membershipId: string;
+	allBranches: boolean;
+	canAppointAdmins: boolean;
+	branchIds: string[];
 	locale: string | null;
 	timezone: string | null;
 	currency: string | null;
@@ -41,8 +45,11 @@ export async function getCurrentTenant(
 	const db = getDb(env);
 	const [row] = await db
 		.select({
+			membershipId: member.id,
 			name: organization.name,
 			role: member.role,
+			allBranches: member.allBranches,
+			canAppointAdmins: member.canAppointAdmins,
 			locale: organization.locale,
 			timezone: organization.timezone,
 			currency: organization.currency,
@@ -53,18 +60,27 @@ export async function getCurrentTenant(
 			and(
 				eq(member.organizationId, organizationId),
 				eq(member.userId, session.user.id),
+				eq(member.isActive, true),
 			),
 		)
 		.limit(1);
 
 	// Membership may have been revoked after the organization became active.
 	if (!row) return null;
+	const allBranches = row.role === "owner" || (row.role === "admin" && row.allBranches);
+	const assignments = allBranches ? [] : await db.select({ id: team.id }).from(team)
+		.innerJoin(teamMember, eq(teamMember.teamId, team.id))
+		.where(and(eq(team.organizationId, organizationId), eq(teamMember.userId, session.user.id)));
 
 	return {
 		userId: session.user.id,
 		organizationId,
 		organizationName: row.name,
 		organizationRole: row.role,
+		membershipId: row.membershipId,
+		allBranches,
+		canAppointAdmins: row.role === "owner" || (row.role === "admin" && row.canAppointAdmins),
+		branchIds: assignments.map((branch) => branch.id),
 		locale: row.locale,
 		timezone: row.timezone,
 		currency: row.currency,
