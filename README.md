@@ -17,6 +17,7 @@ Generated from Cloudflare's official `cloudflare/templates/vite-react-template`.
 ```
 src/
   react-app/      # Frontend (React + Vite)
+  shared/i18n/    # Typed, extensible catalogs shared by UI and email
   worker/         # Backend (Hono on Cloudflare Workers)
     db/
       index.ts    # getDb() / getTenantDb()
@@ -42,9 +43,15 @@ served by Vite. In production, `wrangler.json` points the Worker at
 | ------ | ------------------------------------- | ------- |
 | GET    | `/api/health`                         | D1-backed application health check |
 | GET    | `/api/branches`                       | Accessible Branches in the validated active Organization |
+| GET    | `/api/companies`                      | Companies with active membership for the signed-in user |
+| POST   | `/api/companies/active`               | Guarded company selection; clears the previous Branch |
+| GET    | `/api/account/locale`                 | Personal preference and validated active-company language |
+| PATCH  | `/api/account/locale`                 | Save/reset the signed-in user's language only |
+| PATCH  | `/api/company/locale`                 | Owner/admin language setting for the active company only |
 | GET    | `/api/members`                        | Owner/admin-only directory in the active Organization |
 | POST   | `/api/members`                        | Provision/reuse an employee with supported role and Branches |
 | PATCH  | `/api/members/:membershipId`          | Update a manageable employee's role and exact Branch scope |
+| PATCH  | `/api/members/:membershipId/status`   | Deactivate/reactivate company access, preserving identity/history |
 | POST   | `/api/members/:membershipId/setup/resend` | Resend setup for an unfinished, manageable account |
 | POST   | `/api/platform/organizations`         | Platform-only company, Owner, and Main Branch provisioning |
 | POST   | `/api/platform/account-setup/resend`  | Platform-only setup-link resend |
@@ -166,7 +173,7 @@ Client-side routing uses React Router, with three route groups:
 | ----- | ------ | ------ |
 | Public/auth | `/`, `/login`, `/verify-email`, `/forgot-password`, `/reset-password`, `/setup-account`, `/no-company` | Implemented |
 | Platform | `/platform`, `/platform/organizations/new` | Implemented; platform-admin UX guard plus server authorization |
-| Application | `/app/dashboard`, `/app/branches`, `/app/no-branch-access`, `/app/members`, `/app/settings` | Branch and Member management complete; Settings is the intentional read-only extension shell |
+| Application | `/app/dashboard`, `/app/branches`, `/app/no-branch-access`, `/app/members`, `/app/settings` | Branch/Member management, workspace summary and personal/company language settings |
 | Redirected | `/register`, `/onboarding` | No public signup or self-service company onboarding |
 
 Invitation acceptance is not exposed: its placeholder page and route were removed.
@@ -199,13 +206,18 @@ Owner           →  receives one account-setup link
 ```
 
 Owners/admins add employees at `/app/members` using name, email, role and Branches.
-Members need at least one Branch; admins have all-Branch access. New users receive
+Members and branch-scoped admins need at least one Branch; company-wide admins
+have all-Branch access. New users receive
 the same secure setup flow as Owners. Existing identities, passwords and platform
 roles are preserved. Email failure keeps valid access and exposes a safe resend.
 
 Owners can edit admins/members; admins can edit members only. Owner entries are
-read-only. Promotion grants all-Branch access; a member's saved Branch set is
-exact. Removed access is denied immediately by the server, including stale active
+read-only. Admins may create/promote admins only when the Owner grants
+`canAppointAdmins`; they still cannot edit existing admins. Only an Owner can
+delegate that permission. Restricted admins cannot grant access beyond their own
+Branches. A saved Branch set is exact; company access can be deactivated and
+reactivated without deleting the account or history. Removed access is denied
+immediately by the server, including stale active
 Teams. The shell revalidates on focus and every 30 seconds while visible.
 Direct provisioning is canonical; invitation acceptance remains deferred.
 
@@ -255,8 +267,9 @@ The template models tenancy with Better Auth's Organization plugin:
 
 Default access:
 
-- `owner` and `admin` reach every branch in their organization
-- `member` reaches only the branches they are assigned to
+- `owner` and company-wide `admin` reach every branch in their organization
+- branch-scoped `admin` and `member` reach only assigned branches
+- inactive memberships grant no company access
 
 Roles are Better Auth's defaults (`owner`, `admin`, `member`). Each SaaS built on
 this template can add its own roles and domain permissions on top.
@@ -276,14 +289,14 @@ label. Add a second branch and the switcher becomes a real control.
 | Role | Branches | Management |
 | ---- | -------- | ---------- |
 | owner | all branches in the company | Branches; provision employees; edit admin/member access |
-| admin | all branches in the company | Branches; provision employees; edit member access only |
+| admin | all or explicitly assigned branches | Rename accessible Branches; create Branches only with company-wide scope; manage members within scope |
 | member | only assigned branches | none |
 
 A member with no branch assignment sees a dedicated notice rather than any
 company or branch creation flow.
 
-Branch management is complete: owners/admins may
-add and rename Branches through Better Auth Team APIs. Branch deletion remains
+Branch management is complete: owners/company-wide admins may add Branches;
+admins may rename only accessible Branches through Better Auth Team APIs. Branch deletion remains
 deliberately unsupported.
 
 Server-side helpers live in `src/worker/tenant/`:
@@ -295,6 +308,74 @@ Server-side helpers live in `src/worker/tenant/`:
 
 The active organization and active branch come from the Better Auth session;
 identifiers sent by the client are never trusted for authorization.
+
+## Languages
+
+The platform is extensibly multilingual. English and Spanish are the initial
+complete catalogs; another language requires a translated catalog, not a new
+tenant model or a rewrite. English is the application fallback.
+
+For a Spanish company, choose **Español** in **Company language** when creating
+the company, or open **Settings → Company language** as its Owner/admin and save
+**Español**. All active company admins can change this company-wide preference,
+including branch-scoped admins. This does not grant any additional data access.
+
+The interface chooses a language in this order:
+
+1. The signed-in person's **My language** preference (`user.locale`).
+2. The active company's language (`organization.locale`).
+3. The application's `DEFAULT_LOCALE` (English).
+
+**Automatic** clears the personal override and follows the active company. A
+personal choice applies across companies and sessions; it never changes anyone
+else's account. Company changes apply immediately in the current view and on
+other sessions' next focus/visible 30-second refresh. Names, Branch names (including
+`Main`), addresses and other entered data are not translated.
+
+Before sign-in, the selector is browser-local. Public pages use a supported
+`?lang=...` hint, saved browser choice, browser language list, then the fallback.
+This does not persist a personal override on login. A supported email `lang` hint
+also preserves the activation-page language before a company has been selected.
+
+Verification, recovery and setup emails translate subject, plain text, HTML,
+actions and footer. They use the **recipient's** preference, then the company
+of the guarded workflow. Without that context, exactly one active membership
+may supply the company language; multiple memberships do not select an arbitrary
+company. Public `X-App-Locale` is only a final presentation fallback. Known and
+unknown reset requests still receive the same generic response. Invitation
+templates are translated too, but invitation acceptance remains disabled.
+
+To add a language:
+
+1. Create `src/shared/i18n/fr.ts` (for example) implementing every `Catalog` key.
+   Translate complete messages and preserve named placeholders such as `{name}`.
+2. Register its native name, Intl locale, direction and catalog in
+   `src/shared/i18n/index.ts`. Public/personal/company selectors, validation and
+   email then share the registry. Regional/script catalogs may be registered
+   too; reads fall back to a registered parent when appropriate.
+3. Run `npm run typecheck`, `npm run test:i18n` and `npm run check`, then review
+   translated layouts and emails. RTL languages additionally need layout review.
+
+No machine translation service or language dependency is required. UI copy uses
+`useT()`; dynamic feedback stores typed message keys so changing language updates
+existing messages without clearing forms. Browser-owned validation/password-
+manager messages use the browser's own language. Currency, timezone, plural-rich
+domain copy and user content translation are separate product concerns; use
+`formatDate`/`formatNumber` with explicit business options for new displays.
+
+Apply the generated migration before running this version against an existing
+database; no customer record is rewritten:
+
+```bash
+npm run db:migrate:local
+npm run dev
+npm run test:i18n
+npm run check
+```
+
+When explicitly releasing: apply `npm run db:migrate:dev`, then deploy dev and
+verify its emails/UI. Only after approval, migrate and deploy production with
+the corresponding explicit commands. This worktree has not been deployed.
 
 ## Current status
 
@@ -453,10 +534,11 @@ files are not moved or deleted automatically.
 | `npm run deploy:dev:dry-run` | Rebuild dev and simulate its deployment |
 | `npm run deploy:production:dry-run` | Rebuild production and simulate its deployment |
 | `npm run check:environments` | Build/dry-run dev, production, then local; no remote writes |
-| `npm run check` | Typecheck, lint, both test suites, all three build/dry-run targets |
+| `npm run check` | Typecheck, lint, all Node/Workers tests, all three build/dry-run targets |
 | `npm run typecheck` / `npm run lint` | TypeScript / ESLint |
-| `npm test` | Node environment-safety tests, then isolated Workers/D1 tests |
+| `npm test` | Node environment-safety and i18n checks, then isolated Workers/D1 tests |
 | `npm run test:environments` | Environment configuration and command-safety tests only |
+| `npm run test:i18n` | Catalog-use and platform-neutral shared-module checks |
 | `npm run test:watch` | Watch Workers-runtime tests locally |
 | `npm run cf-typegen` | Regenerate `worker-configuration.d.ts`, including named environments |
 | `npm run db:generate` | Generate Drizzle migrations from the schemas |

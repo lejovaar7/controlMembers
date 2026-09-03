@@ -4,10 +4,11 @@ Guidance for Claude Code when working in this repository.
 
 ## Hard rules
 
-1. **Everything in this repository must be written in English.** Documentation,
-   code, comments, identifiers, UI copy, commit messages, branch names — all of
-   it. This holds even when the conversation happens in another language. Do not
-   mirror the language of the prompt into project files.
+1. **Code and documentation must be written in English.** Comments, identifiers,
+   source message keys, commit messages and branch names stay English. Translated
+   values in `src/shared/i18n/` are the explicit exception: the product supports
+   multilingual UI and email. Do not translate user-entered data or mirror the
+   conversation language into unrelated project files.
 
 2. **Never add Claude as a co-author.** Do not append `Co-Authored-By: Claude`
    (or any similar attribution) to commit messages, and do not add
@@ -84,6 +85,7 @@ agree. Do not create parallel delivery/current-state specs for the same feature.
 
 ```
 src/react-app/     Frontend (React + Vite)
+src/shared/i18n/   Platform-neutral language registry, typed catalogs and formatting
 src/worker/        Backend (Hono on Cloudflare Workers)
   auth/            Better Auth configuration and session guards
   db/              Drizzle entry point and schemas
@@ -97,8 +99,8 @@ vite.config.ts     Vite + @cloudflare/vite-plugin
 wrangler.json      Worker config + static assets
 scripts/           Explicit environment commands and their Node safety tests
 tsconfig.json      References the three projects below
-  tsconfig.app.json      only src/react-app, DOM types
-  tsconfig.worker.json   only src/worker, Workers types
+  tsconfig.app.json      frontend + imported shared modules, DOM types
+  tsconfig.worker.json   backend + imported shared modules, Workers types
   tsconfig.node.json     only vite.config.ts
 worker-configuration.d.ts   Generated — never edit by hand
 ```
@@ -234,7 +236,36 @@ separate on purpose.
 - Never render a raw Better Auth error. Map known codes in `lib/auth-errors.ts`
   and fall back to the generic message.
 - Reuse `AuthCard` and `FormMessage` rather than adding new auth wrappers.
-- UI copy stays English until localization is implemented.
+- App-controlled UI copy goes through `useT()` / `useI18n()`. Store feedback
+  message keys, not translated strings, so changing language updates existing
+  messages without discarding forms. Never translate names or other user data.
+
+### Localization
+
+- `src/shared/i18n/` owns the registry and typed catalogs. English and Spanish
+  are initial catalogs, not a two-language architectural limit. Register another
+  complete catalog once; selectors and server validation derive their options
+  from it. Do not add language-specific branches in features.
+- Authenticated UI: `user.locale`, then validated active Organization locale,
+  then `DEFAULT_LOCALE` (English). Null means inheritance. Public selection is
+  browser-local; it never silently becomes a personal account preference.
+- GET/PATCH `/api/account/locale` operates only on the signed-in user. PATCH
+  `/api/company/locale` requires active company owner/admin, including branch-
+  scoped admins. Writes accept only `{locale}`: a registered key or null.
+- Native user locale input and native Organization updates remain disabled.
+  Never expose a broad settings endpoint to save a language.
+- Key async preferences by user + active company, abort stale requests and
+  revalidate on focus/visibility and every visible 30 seconds. Document language
+  and direction must follow the UI.
+- Email uses the recipient's preference and the guarded workflow's company,
+  never the sender's language. Without company context, a sole active membership
+  may supply it; multiple memberships must not select an arbitrary company.
+  Public request language is fallback only. Setup links carry a supported `lang`
+  hint into the pre-company activation page without persisting a preference or
+  selecting a tenant. Better Auth remains the token/session authority.
+- Use shared Intl helpers for dates/numbers; currency and timezone are separate
+  business settings, not inferred from a translation language.
+- Run `npm run test:i18n` and the Workers localization tests via `npm test`.
 
 ## Provisioning model
 
@@ -289,9 +320,9 @@ Rules:
 
 Access rules:
 
-- `owner` and `admin` reach **every** branch in their organization, with no
-  `team_member` row required.
-- `member` reaches **only** branches they have a `team_member` row for.
+- `owner` and admins with `member.allBranches` reach **every** branch in their
+  organization, with no `team_member` row required.
+- Branch-scoped admins and `member` reach **only** assigned branches.
   Organization membership alone grants no branch access.
 - A branch is never reachable from another organization.
 
@@ -322,7 +353,7 @@ Provisioning and switching:
 - Switching organization must re-evaluate branch state; a branch from the
   previous organization must never stay active.
 - Better Auth's `setActiveTeam` requires a `team_member` row even for an owner,
-  while our rules give owner/admin every branch without one. Use
+  while our rules give owners/company-wide admins every branch without one. Use
   `activateBranch()`, which adds the missing membership and retries.
 - `GET /api/branches` is the authoritative accessible-branch list. Better Auth's
   own team endpoints do not match our rules: listing an organization's teams
@@ -334,12 +365,12 @@ Branches:
   platform provisioning; never remove that model.
 - A single-location business must not be forced to think about branch selection.
   With one accessible branch the switcher is a plain label, not a control.
-- Owner/admin branch access derives from the **organization role**. Member branch
-  access derives from **team_member**.
+- Branch access derives from the **organization role plus allBranches scope**;
+  branch-scoped admins and members use **team_member** assignments.
 - `activateBranch()` may create a team_member row for an owner/admin purely
   because Better Auth's `setActiveTeam` demands one. **That row is never the
-  source of authorization for owner/admin**, and the Members UI must not
-  read it as a scoped branch permission.
+  source of authorization for owners or company-wide admins**. Restricted
+  admins do use actual assignments as their permission scope.
 - A member with zero branch assignments goes to `/app/no-branch-access` — never
   to company or branch creation, and never shown branch names they cannot reach.
 - Branch create/rename go through Better Auth's Team APIs, which already enforce
@@ -371,11 +402,14 @@ The current module contracts cover:
 - shared app-shell Branch state
 - role and cross-tenant Branch tests
 - owner/admin-only Member directory and direct employee provisioning
-- role/access editing: owner manages admin/member; admin manages member only
+- role/access editing: owner manages admin/member; admin manages members fully
+  within its scope; admin appointment additionally requires `canAppointAdmins`
+- active/inactive company memberships preserve identity and history; company
+  selection lists active memberships only
 - read-only Owners; no ownership transfer or member/Branch deletion
 - secure setup resends, safe existing-account reuse, idempotent assignments
 - native HTTP bypass protection, body/origin validation and generic errors
-- read-only Settings extension shell and removal of invitation placeholder UI
+- personal/company language settings and removal of invitation placeholder UI
 
 Use `specs/README.md` to understand the code and
 `specs/VERIFICATION.md` for dated evidence and dependency-audit results. Future domain
@@ -402,8 +436,9 @@ Preserve the unique Organization/user membership index when updating auth schema
 | `npm run preview`    | Build + local preview of the production bundle   |
 | `npm run check`      | Typecheck, lint, Node/Workers tests, all target dry runs |
 | `npm run check:environments` | Build/dry-run dev, production, then local |
-| `npm test`           | Environment-safety Node tests + Workers tests |
+| `npm test`           | Environment/i18n Node checks + Workers tests |
 | `npm run test:environments` | Node command/configuration checks only |
+| `npm run test:i18n` | Catalog-use and shared-module boundary checks |
 | `npm run db:generate`       | Generate a migration from the schema     |
 | `npm run db:migrate:local`  | Apply migrations to local D1             |
 | `npm run db:migrate:dev` / `db:migrate:production` | Apply SQL to explicit remote D1 |
@@ -441,7 +476,7 @@ contracts. Never create commits, push or deploy without an explicit request.
 
 - Keep changes minimal and scoped to what was asked.
 - Do not add new stub files, commented-out scaffolding, or unused dependencies.
-  Settings editing and invitation acceptance are deliberate post-v1 exclusions,
+  Settings beyond language and invitation acceptance are deliberate exclusions,
   not examples of placeholder routes to copy.
 - Tabs for indentation, double quotes — match the existing files.
 - `worker-configuration.d.ts` is generated and is excluded from ESLint.
