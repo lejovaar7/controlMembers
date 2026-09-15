@@ -39,9 +39,19 @@ function prepareLocalVariables() {
 	console.log(changed ? "Prepared .dev.vars with safe local defaults." : "Preserved the existing .dev.vars configuration.");
 }
 
-function run(command, args) {
-	console.log(`\n> ${command} ${args.join(" ")}`);
-	const result = spawnSync(command, args, { cwd: projectRoot, env: process.env, stdio: "inherit" });
+function runNpm(args) {
+	const npmCliPath = process.env.npm_execpath;
+	if (!npmCliPath) {
+		console.error("Could not locate the npm CLI. Run this setup with: npm run setup:local");
+		process.exit(1);
+	}
+
+	console.log(`\n> npm ${args.join(" ")}`);
+	const result = spawnSync(process.execPath, [npmCliPath, ...args], {
+		cwd: projectRoot,
+		env: process.env,
+		stdio: "inherit",
+	});
 	if (result.error) throw result.error;
 	if (result.status !== 0) process.exit(result.status ?? 1);
 }
@@ -53,8 +63,7 @@ if (nodeMajor < 20 || (nodeMajor === 20 && nodeMinor < 19)) {
 }
 
 prepareLocalVariables();
-const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-run(npmCommand, ["ci"]);
-run(npmCommand, ["run", "db:migrate:local"]);
+runNpm(["ci"]);
+runNpm(["run", "db:migrate:local"]);
 
 console.log("\nLocal setup is ready. Start the application with: npm run dev");
