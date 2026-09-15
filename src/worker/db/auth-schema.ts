@@ -170,6 +170,10 @@ export const member = sqliteTable(
     isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
     allBranches: integer("all_branches", { mode: "boolean" }).default(true).notNull(),
     canAppointAdmins: integer("can_appoint_admins", { mode: "boolean" }).default(false).notNull(),
+    canReversePayments: integer("can_reverse_payments", { mode: "boolean" }).default(false).notNull(),
+    canAdjustCharges: integer("can_adjust_charges", { mode: "boolean" }).default(false).notNull(),
+    canViewReports: integer("can_view_reports", { mode: "boolean" }).default(false).notNull(),
+    canExportFinancialData: integer("can_export_financial_data", { mode: "boolean" }).default(false).notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
   },
   (table) => [

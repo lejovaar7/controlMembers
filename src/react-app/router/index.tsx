@@ -17,6 +17,11 @@ import { SettingsPage } from "@/pages/SettingsPage";
 import { SetupAccountPage } from "@/pages/SetupAccountPage";
 import { VerifyEmailPage } from "@/pages/VerifyEmailPage";
 import { BillingSetupPage } from "@/pages/BillingSetupPage";
+import { CustomerMembersPage } from "@/pages/CustomerMembersPage";
+import { CustomerMemberDetailPage } from "@/pages/CustomerMemberDetailPage";
+import { ChargesPage } from "@/pages/ChargesPage";
+import { PaymentsPage } from "@/pages/PaymentsPage";
+import { ReportsPage } from "@/pages/ReportsPage";
 
 export const router = createBrowserRouter([
 	{
@@ -52,9 +57,15 @@ export const router = createBrowserRouter([
 			{ index: true, element: <Navigate to="/app/dashboard" replace /> },
 			{ path: "dashboard", element: <DashboardPage /> },
 			{ path: "billing-setup", element: <BillingSetupPage /> },
+			{ path: "customer-members", element: <CustomerMembersPage /> },
+			{ path: "customer-members/:id", element: <CustomerMemberDetailPage /> },
+			{ path: "charges", element: <ChargesPage /> },
+			{ path: "payments", element: <PaymentsPage /> },
+			{ path: "reports", element: <ReportsPage /> },
 			{ path: "branches", element: <BranchesPage /> },
 			{ path: "no-branch-access", element: <NoBranchAccessPage /> },
 			{ path: "members", element: <MembersPage /> },
+			{ path: "users", element: <Navigate to="/app/members" replace /> },
 			{ path: "settings", element: <SettingsPage /> },
 		],
 	},

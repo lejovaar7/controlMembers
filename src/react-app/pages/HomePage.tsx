@@ -16,9 +16,9 @@ export function HomePage() {
 				description={t("Simple recurring fee control for membership organizations.")}
 			/>
 			{isPending ? null : session ? (
-				<Button render={<Link to={authenticatedStartPath(null, (session.user as { role?: unknown }).role)} />}>{t("Open app")}</Button>
+				<Button nativeButton={false} render={<Link to={authenticatedStartPath(null, (session.user as { role?: unknown }).role)} />}>{t("Open app")}</Button>
 			) : (
-				<Button render={<Link to="/login" />}>{t("Sign in")}</Button>
+				<Button nativeButton={false} render={<Link to="/login" />}>{t("Sign in")}</Button>
 			)}
 		</PageContainer>
 	);

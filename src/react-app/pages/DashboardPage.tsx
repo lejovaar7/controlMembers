@@ -1,33 +1,20 @@
-import { useT } from "@/lib/i18n";
+import { useEffect, useState } from "react";
+import { Link, Navigate } from "react-router";
 import { PageContainer, PageHeader } from "@/components/page";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useAppShell } from "@/hooks/use-app-shell";
+import { controlMembersApi, currentPeriod } from "@/lib/controlmembers";
+import { useI18n, useT } from "@/lib/i18n";
+
+type Metrics = Awaited<ReturnType<typeof controlMembersApi.dashboard>>;
 
 export function DashboardPage() {
-	const t = useT();
-	// Shell state is resolved once by AppLayout, so this page issues no
-	// additional branch request.
-	const shell = useAppShell();
-
-	return (
-		<PageContainer>
-			<PageHeader
-				title={t("Dashboard")}
-				description={t("Your current company and branch.")}
-			/>
-			<dl className="grid gap-4 sm:grid-cols-2">
-				<div className="rounded-lg border p-4">
-					<dt className="text-muted-foreground text-sm">{t("Company")}</dt>
-					<dd className="text-lg font-medium">
-						{shell.organizationName ?? "\u2014"}
-					</dd>
-				</div>
-				<div className="rounded-lg border p-4">
-					<dt className="text-muted-foreground text-sm">{t("Branch")}</dt>
-					<dd className="text-lg font-medium">
-						{shell.activeBranch?.name ?? "\u2014"}
-					</dd>
-				</div>
-			</dl>
-		</PageContainer>
-	);
+	const t = useT(); const { locale } = useI18n(); const shell = useAppShell(); const [period, setPeriod] = useState(currentPeriod()); const [metrics, setMetrics] = useState<Metrics | null>(null); const [failed, setFailed] = useState(false);
+	useEffect(() => { if (!shell.canViewReports) return; void controlMembersApi.dashboard(shell.organizationId, period).then((result) => { setMetrics(result); setFailed(false); }).catch(() => setFailed(true)); }, [period, shell.organizationId, shell.canViewReports]);
+	if (!shell.canViewReports) return <Navigate to="/app/customer-members" replace />;
+	const money = (value: number) => new Intl.NumberFormat(locale, { style: "currency", currency: metrics?.currency ?? "COP" }).format(value / 100);
+	return <PageContainer className="space-y-6"><div className="flex flex-wrap items-end justify-between gap-4"><PageHeader title={t("Dashboard")} description={t("A clear view of monthly collections and outstanding balances.")} /><div className="grid gap-2"><Label htmlFor="dashboard-period">{t("Period")}</Label><Input id="dashboard-period" type="month" value={period} onChange={(event) => setPeriod(event.target.value)} /></div></div>{failed ? <p role="alert">{t("We could not load the dashboard.")}</p> : null}{!metrics && !failed ? <p role="status">{t("Loading dashboard…")}</p> : null}{metrics ? <><p className="text-sm text-muted-foreground">{t(metrics.scope === "all" ? "All accessible branches · updated {date}" : "Assigned branches only · updated {date}", { date: new Date(metrics.asOf).toLocaleString(locale) })}</p><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Card label={t("Expected")} value={money(metrics.expectedMinor)} to={`/app/charges?period=${period}`} /><Card label={t("Collected")} value={money(metrics.collectedMinor)} to="/app/payments" /><Card label={t("Outstanding")} value={money(metrics.outstandingMinor)} to={`/app/charges?period=${period}`} /><Card label={t("Overdue members")} value={String(metrics.overdueMembers)} to={`/app/charges?period=${period}&state=overdue`} /></div><div className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-3"><div><p className="text-sm text-muted-foreground">{t("Allocated to this period")}</p><p className="text-xl font-semibold">{money(metrics.allocatedMinor)}</p></div><div><p className="text-sm text-muted-foreground">{t("Collection rate")}</p><p className="text-xl font-semibold">{metrics.collectionRate === null ? "—" : new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 }).format(metrics.collectionRate)}</p></div><div><p className="text-sm text-muted-foreground">{t("Upcoming due in 7 days")}</p><p className="text-xl font-semibold">{money(metrics.upcomingDueMinor)}</p><p className="text-xs text-muted-foreground">{t("{count} charges", { count: metrics.upcomingDueCount })}</p></div></div>{metrics.expectedMinor === 0 ? <div className="rounded-xl border border-dashed p-6"><h2 className="font-semibold">{t("No charges in this period")}</h2><p className="text-sm text-muted-foreground">{t("Create members and enrollments, then generate monthly charges.")}</p><Link to="/app/charges" className="mt-3 inline-block font-medium underline">{t("Go to charges")}</Link></div> : null}</> : null}</PageContainer>;
 }
+
+function Card({ label, value, to }: { label: string; value: string; to: string }) { return <Link to={to} className="rounded-xl border bg-card p-4 transition-colors hover:bg-accent"><p className="text-sm text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></Link>; }

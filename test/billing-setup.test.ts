@@ -4,7 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { getAuth } from "../src/worker/auth";
 import { getDb } from "../src/worker/db";
 import { member, organization } from "../src/worker/db/auth-schema";
-import { billingPlan, program, programBranch } from "../src/worker/db/schema";
+import { plan, planBranch, planTag, tag } from "../src/worker/db/schema";
 import { callApi, createActor, type Actor } from "./helpers";
 
 let ownerA: Actor;
@@ -60,45 +60,77 @@ describe("billing settings", () => {
 	});
 });
 
-describe("Programs and Plans", () => {
-	let programId: string;
+describe("Plans and tags", () => {
+	let planId: string;
 
-	it("creates a Branch-scoped Program", async () => {
-		const response = await callApi("/api/programs", ownerA, { name: "Football", description: "Youth football", branchIds: [branchAId] });
+	it("creates one Branch-scoped monthly Plan with optional tags", async () => {
+		const response = await callApi("/api/plans", ownerA, {
+			name: "Football children",
+			description: "Training for children",
+			amountMinor: 120000,
+			defaultDueDay: 5,
+			branchIds: [branchAId],
+			tagNames: ["Football", " Children "],
+		});
 		expect(response.status).toBe(201);
-		const result = await response.json() as { id: string; branchIds: string[] };
-		programId = result.id;
-		expect(result.branchIds).toEqual([branchAId]);
-		const [stored] = await getDb(env).select().from(program).where(eq(program.id, programId));
-		expect(stored?.organizationId).toBe(orgAId);
-		const links = await getDb(env).select().from(programBranch).where(eq(programBranch.programId, programId));
-		expect(links.map((link) => link.branchId)).toEqual([branchAId]);
+		const result = await response.json() as { id: string; currency: string; frequency: string; branchIds: string[]; tags: Array<{ name: string }> };
+		planId = result.id;
+		expect(result).toMatchObject({ currency: "COP", frequency: "monthly", branchIds: [branchAId] });
+		expect(result.tags.map((item) => item.name)).toEqual(["Football", "Children"]);
+
+		const [stored] = await getDb(env).select().from(plan).where(eq(plan.id, planId));
+		expect(stored).toMatchObject({ organizationId: orgAId, name: "Football children", amountMinor: 120000, defaultDueDay: 5 });
+		const branchLinks = await getDb(env).select().from(planBranch).where(eq(planBranch.planId, planId));
+		expect(branchLinks.map((link) => link.branchId)).toEqual([branchAId]);
+		const tagLinks = await getDb(env).select().from(planTag).where(eq(planTag.planId, planId));
+		expect(tagLinks).toHaveLength(2);
 	});
 
-	it("rejects foreign Branches, duplicates, and limited setup administration", async () => {
-		const foreign = await callApi("/api/programs", ownerA, { name: "Swimming", branchIds: [branchBId] });
+	it("reuses tags case-insensitively and returns them in the catalog", async () => {
+		const response = await callApi("/api/plans", ownerA, {
+			name: "Football adults",
+			amountMinor: 150000,
+			defaultDueDay: 10,
+			branchIds: [branchAId],
+			tagNames: ["football", "Adults"],
+		});
+		expect(response.status).toBe(201);
+		const storedTags = await getDb(env).select().from(tag).where(eq(tag.organizationId, orgAId));
+		expect(storedTags).toHaveLength(3);
+
+		const responseBody = await response.json() as { tags: Array<{ name: string }> };
+		expect(responseBody.tags.map((item) => item.name)).toEqual(["Football", "Adults"]);
+		const catalog = await callApi("/api/plans", ownerA);
+		const catalogBody = await catalog.json() as { plans: unknown[]; tags: Array<{ name: string }> };
+		expect(catalogBody.plans).toHaveLength(2);
+		expect(catalogBody.tags.map((item) => item.name)).toEqual(["Adults", "Children", "Football"]);
+	});
+
+	it("updates a Plan while preserving omitted Branches and tags", async () => {
+		const response = await callApi(`/api/plans/${planId}`, ownerA, { amountMinor: 125000, defaultDueDay: 8 }, "PATCH");
+		expect(response.status).toBe(200);
+		await expect(response.json()).resolves.toMatchObject({ amountMinor: 125000, defaultDueDay: 8, branchIds: [branchAId] });
+		const branchLinks = await getDb(env).select().from(planBranch).where(eq(planBranch.planId, planId));
+		const tagLinks = await getDb(env).select().from(planTag).where(eq(planTag.planId, planId));
+		expect(branchLinks).toHaveLength(1);
+		expect(tagLinks).toHaveLength(2);
+	});
+
+	it("rejects foreign Branches, duplicate active names, old fields, and limited setup administration", async () => {
+		const foreign = await callApi("/api/plans", ownerA, { name: "Swimming", amountMinor: 90000, defaultDueDay: 5, branchIds: [branchBId], tagNames: [] });
 		expect(foreign.status).toBe(404);
-		const duplicate = await callApi("/api/programs", ownerA, { name: " football ", branchIds: [branchAId] });
+		const duplicate = await callApi("/api/plans", ownerA, { name: " football children ", amountMinor: 90000, defaultDueDay: 5, branchIds: [branchAId], tagNames: [] });
 		expect(duplicate.status).toBe(409);
-		const denied = await callApi("/api/programs", limitedAdmin, { name: "Music", branchIds: [branchAId] });
+		const legacyField = await callApi("/api/plans", ownerA, { name: "Legacy", programId: "old", amountMinor: 90000, defaultDueDay: 5, branchIds: [branchAId], tagNames: [] });
+		expect(legacyField.status).toBe(400);
+		const denied = await callApi("/api/plans", limitedAdmin, { name: "Music", amountMinor: 90000, defaultDueDay: 5, branchIds: [branchAId], tagNames: [] });
 		expect(denied.status).toBe(403);
 	});
 
-	it("creates a monthly Plan with an immutable currency snapshot", async () => {
-		const response = await callApi("/api/billing-plans", ownerA, { name: "Monthly", programId, amountMinor: 120000, defaultDueDay: 5 });
-		expect(response.status).toBe(201);
-		const result = await response.json() as { id: string; currency: string; frequency: string };
-		expect(result).toMatchObject({ currency: "COP", frequency: "monthly" });
-		const [stored] = await getDb(env).select().from(billingPlan).where(eq(billingPlan.id, result.id));
-		expect(stored).toMatchObject({ organizationId: orgAId, programId, amountMinor: 120000, defaultDueDay: 5 });
-	});
-
-	it("keeps tenant lists isolated", async () => {
-		const ownerList = await callApi("/api/programs", ownerA);
-		const foreignList = await callApi("/api/programs", ownerB);
-		expect((await ownerList.json() as { programs: unknown[] }).programs).toHaveLength(1);
-		expect((await foreignList.json() as { programs: unknown[] }).programs).toHaveLength(0);
-		const plansB = await callApi("/api/billing-plans", ownerB);
-		expect((await plansB.json() as { plans: unknown[] }).plans).toHaveLength(0);
+	it("keeps tenant catalogs isolated and removes the former routes", async () => {
+		const foreignList = await callApi("/api/plans", ownerB);
+		expect((await foreignList.json() as { plans: unknown[]; tags: unknown[] })).toEqual({ plans: [], tags: [] });
+		expect((await callApi("/api/programs", ownerA)).status).toBe(404);
+		expect((await callApi("/api/billing-plans", ownerA)).status).toBe(404);
 	});
 });

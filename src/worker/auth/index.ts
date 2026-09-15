@@ -122,6 +122,10 @@ export function getAuth(env: Env, ctx?: BackgroundScheduler, emailContext: Email
 						// validates scope before inserting a restricted admin atomically.
 						allBranches: { type: "boolean", defaultValue: true, required: false },
 						canAppointAdmins: { type: "boolean", defaultValue: false, required: false },
+						canReversePayments: { type: "boolean", defaultValue: false, required: false },
+						canAdjustCharges: { type: "boolean", defaultValue: false, required: false },
+						canViewReports: { type: "boolean", defaultValue: false, required: false },
+						canExportFinancialData: { type: "boolean", defaultValue: false, required: false },
 					} },
 				},
 				sendInvitationEmail: async (data) => {

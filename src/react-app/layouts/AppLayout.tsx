@@ -1,5 +1,5 @@
 import { useT } from "@/lib/i18n";
-import { Building2, CalendarRange, LayoutDashboard, Settings, Users } from "lucide-react";
+import { Banknote, Building2, CalendarRange, ChartNoAxesCombined, ClipboardList, LayoutDashboard, Settings, UserRoundCheck, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation } from "react-router";
 import { BranchSwitcher } from "@/components/branch-switcher";
@@ -20,10 +20,14 @@ import { LanguagePicker } from "@/components/language-picker";
 import { isPlatformAdminRole } from "@/lib/session-routing";
 
 const navigation = [
-	{ to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, manage: false },
-	{ to: "/app/billing-setup", label: "Billing setup", icon: CalendarRange, manage: true, fullScope: true },
+	{ to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, manage: false, reports: true },
+	{ to: "/app/customer-members", label: "Members", icon: UserRoundCheck, manage: false },
+	{ to: "/app/charges", label: "Charges", icon: ClipboardList, manage: false },
+	{ to: "/app/payments", label: "Payments", icon: Banknote, manage: false },
+	{ to: "/app/billing-setup", label: "Plans", icon: CalendarRange, manage: true, fullScope: true },
+	{ to: "/app/reports", label: "Reports", icon: ChartNoAxesCombined, manage: false, reports: true },
 	{ to: "/app/branches", label: "Branches", icon: Building2, manage: true, fullScope: false },
-	{ to: "/app/members", label: "Members", icon: Users, manage: true, fullScope: false },
+	{ to: "/app/members", label: "Users & permissions", icon: Users, manage: true, fullScope: false },
 	{ to: "/app/settings", label: "Settings", icon: Settings, manage: false, fullScope: false },
 ] as const;
 
@@ -31,17 +35,19 @@ function Navigation({
 	className,
 	showManagement,
 	fullScope,
+	canViewReports,
 }: {
 	className?: string;
 	showManagement: boolean;
 	fullScope: boolean;
+	canViewReports: boolean;
 }) {
 	const t = useT();
 	return (
 		<nav aria-label={t("Main")} className={className}>
 			<ul className="flex flex-wrap gap-1 md:flex-col">
 				{navigation
-					.filter((item) => (showManagement || !item.manage) && (!("fullScope" in item) || !item.fullScope || fullScope))
+					.filter((item) => (showManagement || !item.manage) && (!("fullScope" in item) || !item.fullScope || fullScope) && (!("reports" in item) || !item.reports || canViewReports))
 					.map(({ to, label, icon: Icon }) => (
 					<li key={to}>
 						<NavLink
@@ -219,6 +225,10 @@ export function AppLayout() {
 		canCreateBranches: createBranches,
 		allBranches: permissions?.allBranches === true,
 		canAppointAdmins: permissions?.canAppointAdmins === true,
+		canReversePayments: permissions?.canReversePayments === true,
+		canAdjustCharges: permissions?.canAdjustCharges === true,
+		canViewReports: permissions?.canViewReports === true,
+		canExportFinancialData: permissions?.canExportFinancialData === true,
 		refreshBranches: reload,
 	};
 
@@ -226,7 +236,7 @@ export function AppLayout() {
 		<div className="flex min-h-svh flex-col md:flex-row">
 			<aside className="border-b md:w-56 md:shrink-0 md:border-r md:border-b-0">
 				<div className="p-3">
-					<Navigation showManagement={manageBranches} fullScope={permissions?.allBranches === true} />
+					<Navigation showManagement={manageBranches} fullScope={permissions?.allBranches === true} canViewReports={permissions?.canViewReports === true} />
 				</div>
 			</aside>
 			<div className="flex min-w-0 flex-1 flex-col">

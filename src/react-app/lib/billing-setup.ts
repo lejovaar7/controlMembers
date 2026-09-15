@@ -5,23 +5,31 @@ export type BillingSettings = {
 	canEdit: boolean;
 };
 
-export type Program = {
+export type Tag = {
+	id: string;
+	name: string;
+};
+
+export type Plan = {
 	id: string;
 	name: string;
 	description: string | null;
-	isActive: boolean;
-	branchIds: string[];
-};
-
-export type BillingPlan = {
-	id: string;
-	name: string;
-	programId: string | null;
 	amountMinor: number;
 	currency: string;
 	frequency: "monthly";
 	defaultDueDay: number;
 	isActive: boolean;
+	branchIds: string[];
+	tags: Tag[];
+};
+
+export type PlanInput = {
+	name: string;
+	description?: string;
+	amountMinor: number;
+	defaultDueDay: number;
+	branchIds: string[];
+	tagNames: string[];
 };
 
 async function requestJson<T>(path: string, organizationId: string, init?: RequestInit): Promise<T> {
@@ -37,8 +45,7 @@ async function requestJson<T>(path: string, organizationId: string, init?: Reque
 export const billingSetupApi = {
 	settings: (organizationId: string) => requestJson<BillingSettings>("/api/product/settings", organizationId),
 	saveSettings: (organizationId: string, currency: string, timezone: string) => requestJson<BillingSettings>("/api/product/settings", organizationId, { method: "PATCH", body: JSON.stringify({ currency, timezone }) }),
-	programs: (organizationId: string) => requestJson<{ programs: Program[] }>("/api/programs", organizationId),
-	createProgram: (organizationId: string, input: { name: string; description?: string; branchIds: string[] }) => requestJson<Program>("/api/programs", organizationId, { method: "POST", body: JSON.stringify(input) }),
-	plans: (organizationId: string) => requestJson<{ plans: BillingPlan[] }>("/api/billing-plans", organizationId),
-	createPlan: (organizationId: string, input: { name: string; programId: string | null; amountMinor: number; defaultDueDay: number }) => requestJson<BillingPlan>("/api/billing-plans", organizationId, { method: "POST", body: JSON.stringify(input) }),
+	plans: (organizationId: string) => requestJson<{ plans: Plan[]; tags: Tag[] }>("/api/plans", organizationId),
+	createPlan: (organizationId: string, input: PlanInput) => requestJson<Plan>("/api/plans", organizationId, { method: "POST", body: JSON.stringify(input) }),
+	updatePlan: (organizationId: string, id: string, input: Partial<PlanInput> & { isActive?: boolean }) => requestJson<Plan>(`/api/plans/${encodeURIComponent(id)}`, organizationId, { method: "PATCH", body: JSON.stringify(input) }),
 };

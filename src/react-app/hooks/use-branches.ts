@@ -6,19 +6,21 @@ type Loaded = {
 	organizationId: string;
 	organization: { id: string; name: string; role: string } | null;
 	branches: Branch[];
-	permissions: { allBranches: boolean; canAppointAdmins: boolean };
+	permissions: { allBranches: boolean; canAppointAdmins: boolean; canReversePayments: boolean; canAdjustCharges: boolean; canViewReports: boolean; canExportFinancialData: boolean };
 	failed: boolean;
 };
 
 function isBranchList(value: unknown): value is { branches: Branch[]; organization: { id: string; name: string; role: string }; permissions: Loaded["permissions"] } {
-	const data = value as { branches?: unknown; organization?: { id?: unknown; name?: unknown; role?: unknown }; permissions?: { allBranches?: unknown; canAppointAdmins?: unknown } } | null;
+	const data = value as { branches?: unknown; organization?: { id?: unknown; name?: unknown; role?: unknown }; permissions?: { allBranches?: unknown; canAppointAdmins?: unknown; canReversePayments?: unknown; canAdjustCharges?: unknown; canViewReports?: unknown; canExportFinancialData?: unknown } } | null;
 	return (
 		typeof value === "object" &&
 		value !== null &&
 		Array.isArray(data?.branches) && data.branches.every((branch: unknown) =>
 			typeof branch === "object" && branch !== null && typeof (branch as Branch).id === "string" && typeof (branch as Branch).name === "string") &&
 		typeof data.organization?.id === "string" && typeof data.organization.name === "string" && typeof data.organization.role === "string" &&
-		typeof data.permissions?.allBranches === "boolean" && typeof data.permissions.canAppointAdmins === "boolean"
+		typeof data.permissions?.allBranches === "boolean" && typeof data.permissions.canAppointAdmins === "boolean" &&
+		typeof data.permissions.canReversePayments === "boolean" && typeof data.permissions.canAdjustCharges === "boolean" &&
+		typeof data.permissions.canViewReports === "boolean" && typeof data.permissions.canExportFinancialData === "boolean"
 	);
 }
 
@@ -57,12 +59,12 @@ export function useBranches(organizationId: string | null | undefined) {
 				setLoaded(
 					isBranchList(data) && data.organization.id === organizationId
 						? { organizationId, organization: data.organization, branches: data.branches, permissions: data.permissions, failed: false }
-						: { organizationId, organization: null, branches: [], permissions: { allBranches: false, canAppointAdmins: false }, failed: true },
+						: { organizationId, organization: null, branches: [], permissions: { allBranches: false, canAppointAdmins: false, canReversePayments: false, canAdjustCharges: false, canViewReports: false, canExportFinancialData: false }, failed: true },
 				);
 			})
 			.catch(() => {
 				if (!cancelled) {
-					setLoaded({ organizationId, organization: null, branches: [], permissions: { allBranches: false, canAppointAdmins: false }, failed: true });
+					setLoaded({ organizationId, organization: null, branches: [], permissions: { allBranches: false, canAppointAdmins: false, canReversePayments: false, canAdjustCharges: false, canViewReports: false, canExportFinancialData: false }, failed: true });
 				}
 			});
 

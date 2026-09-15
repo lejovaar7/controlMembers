@@ -12,6 +12,7 @@ import type { SetupEmailStatus } from "@/lib/members";
 type Result = {
 	organizationId: string;
 	organizationName: string;
+	branchName: string;
 	ownerEmail: string;
 	setupEmailStatus: SetupEmailStatus;
 };
@@ -83,7 +84,7 @@ export function PlatformNewOrganizationPage() {
 			<PageContainer>
 				<PageHeader
 					title={t("Company created")}
-					description={t("{company} is ready with its Main branch.", { company: result.organizationName })}
+					description={t("{company} is ready with {branch}.", { company: result.organizationName, branch: result.branchName })}
 				/>
 				<div className="flex flex-col gap-4">
 					<FormMessage tone="success">
@@ -112,7 +113,7 @@ export function PlatformNewOrganizationPage() {
 		<PageContainer>
 			<PageHeader
 				title={t("Create company")}
-				description={t("The company starts with one branch named Main.")}
+				description={t("The initial branch name follows the company language.")}
 			/>
 			<form onSubmit={handleSubmit} className="flex max-w-sm flex-col gap-4">
 				<div className="grid gap-2">

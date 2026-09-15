@@ -22,6 +22,7 @@ export type ProvisionOwnerResult = {
 	organizationId: string;
 	organizationName: string;
 	branchId: string;
+	branchName: string;
 	userId: string;
 	/** True only when an account-setup message was successfully requested. */
 	setupEmailSent: boolean;
@@ -43,10 +44,10 @@ async function resolveSlug(env: Env, name: string): Promise<string> {
 }
 
 /**
- * Creates a company, its owner and its Main branch.
+ * Creates a company, its owner and its localized main branch.
  *
  * Every step is written to be safe to retry: an existing user is reused rather
- * than recreated, an existing membership is left alone, and an existing Main
+ * than recreated, an existing membership is left alone, and an existing initial
  * branch is not duplicated. Email failure never rolls back valid database work.
  */
 export async function provisionOrganizationWithOwner(
@@ -69,7 +70,7 @@ export async function provisionOrganizationWithOwner(
 	// B. Reuse a company this owner already has under the same name, so a retry
 	// after a partial failure resumes instead of creating a second tenant.
 	const [alreadyOwned] = await db
-		.select({ id: organizationTable.id, name: organizationTable.name })
+		.select({ id: organizationTable.id, name: organizationTable.name, locale: organizationTable.locale })
 		.from(organizationTable)
 		.innerJoin(member, eq(member.organizationId, organizationTable.id))
 		.where(
@@ -96,10 +97,14 @@ export async function provisionOrganizationWithOwner(
 			},
 		}));
 	if (!organization) throw new Error("organization could not be created");
+	const organizationLocale = alreadyOwned
+		? readRequiredLocale(alreadyOwned.locale)
+		: locale;
+	const localizedBranchName = organizationLocale === "es" ? "Sede Principal" : "Main Branch";
 
-	// C. Main branch. Reuse it if a previous attempt already created it.
+	// C. Initial branch. Reuse it if a previous attempt already created it.
 	const [existingBranch] = await db
-		.select({ id: team.id })
+		.select({ id: team.id, name: team.name })
 		.from(team)
 		.where(eq(team.organizationId, organization.id))
 		.limit(1);
@@ -108,9 +113,10 @@ export async function provisionOrganizationWithOwner(
 		existingBranch?.id ??
 		(
 			await auth.api.createTeam({
-				body: { name: "Main", organizationId: organization.id },
+				body: { name: localizedBranchName, organizationId: organization.id },
 			})
 		).id;
+	const branchName = existingBranch?.name ?? localizedBranchName;
 
 	// Better Auth needs a team_member row before a team can become active, but
 	// its add-team-member API requires the acting user's session, which does not
@@ -124,6 +130,7 @@ export async function provisionOrganizationWithOwner(
 		organizationId: organization.id,
 		organizationName: organization.name,
 		branchId,
+		branchName,
 		userId,
 		setupEmailSent: setupEmailStatus === "sent",
 		setupEmailStatus,

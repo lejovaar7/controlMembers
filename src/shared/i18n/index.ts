@@ -47,7 +47,7 @@ export function createTranslator(locale: Locale) {
 }
 
 export function roleMessage(role: string | null | undefined): MessageKey {
-	return role === "owner" ? "Owner" : role === "admin" ? "Admin" : "Member";
+	return role === "owner" ? "Owner" : role === "admin" ? "Admin" : "User";
 }
 
 export function formatNumber(locale: Locale, value: number, options?: Intl.NumberFormatOptions) {

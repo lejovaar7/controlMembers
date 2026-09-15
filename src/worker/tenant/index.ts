@@ -20,6 +20,10 @@ export type TenantContext = {
 	membershipId: string;
 	allBranches: boolean;
 	canAppointAdmins: boolean;
+	canReversePayments: boolean;
+	canAdjustCharges: boolean;
+	canViewReports: boolean;
+	canExportFinancialData: boolean;
 	branchIds: string[];
 	locale: string;
 	timezone: string | null;
@@ -50,6 +54,10 @@ export async function getCurrentTenant(
 			role: member.role,
 			allBranches: member.allBranches,
 			canAppointAdmins: member.canAppointAdmins,
+			canReversePayments: member.canReversePayments,
+			canAdjustCharges: member.canAdjustCharges,
+			canViewReports: member.canViewReports,
+			canExportFinancialData: member.canExportFinancialData,
 			locale: organization.locale,
 			timezone: organization.timezone,
 			currency: organization.currency,
@@ -80,6 +88,10 @@ export async function getCurrentTenant(
 		membershipId: row.membershipId,
 		allBranches,
 		canAppointAdmins: row.role === "owner" || (row.role === "admin" && row.canAppointAdmins),
+		canReversePayments: row.role === "owner" || (row.role === "admin" && row.canReversePayments),
+		canAdjustCharges: row.role === "owner" || (row.role === "admin" && row.canAdjustCharges),
+		canViewReports: row.role === "owner" || row.role === "admin" || row.canViewReports,
+		canExportFinancialData: row.role === "owner" || row.canExportFinancialData,
 		branchIds: assignments.map((branch) => branch.id),
 		locale: row.locale,
 		timezone: row.timezone,

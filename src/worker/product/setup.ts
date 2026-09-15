@@ -1,7 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { AuthError } from "../auth/session";
-import { getDb } from "../db";
+import { getDb, getTenantDb } from "../db";
 import { organization } from "../db/auth-schema";
+import { charge, payment } from "../db/schema";
 import { RequestError } from "../http";
 import { requireTenant, type TenantContext } from "../tenant";
 
@@ -56,6 +57,12 @@ export async function updateBillingSettings(env: Env, request: Request, body: Re
 	const timezone = readTimezone(body.timezone);
 	const expectedCompany = request.headers.get("X-Company-Context");
 	if (expectedCompany !== null && expectedCompany !== tenant.organizationId) throw new RequestError(409, "WORKSPACE_CHANGED");
+	if (tenant.currency && currency !== tenant.currency) {
+		const db = getTenantDb(env, tenant.organizationId);
+		const [existingCharge] = await db.select({ id: charge.id }).from(charge).where(eq(charge.organizationId, tenant.organizationId)).limit(1);
+		const [existingPayment] = await db.select({ id: payment.id }).from(payment).where(eq(payment.organizationId, tenant.organizationId)).limit(1);
+		if (existingCharge || existingPayment) throw new RequestError(409, "CURRENCY_LOCKED");
+	}
 	await getDb(env).update(organization).set({ currency, timezone }).where(and(eq(organization.id, tenant.organizationId)));
 	return { organizationId: tenant.organizationId, currency, timezone, canEdit: true };
 }

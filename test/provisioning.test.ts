@@ -209,14 +209,30 @@ describe("provisioning a company", () => {
 		expect(row?.role).toBe("owner");
 	});
 
-	it("creates exactly one branch named Main in that organization", async () => {
+	it("creates exactly one English main branch in that organization", async () => {
 		const rows = await getDb(env)
 			.select({ id: team.id, name: team.name })
 			.from(team)
 			.where(eq(team.organizationId, result.organizationId));
 		expect(rows).toHaveLength(1);
-		expect(rows[0]?.name).toBe("Main");
+		expect(rows[0]?.name).toBe("Main Branch");
 		expect(rows[0]?.id).toBe(result.branchId);
+		expect(result.branchName).toBe("Main Branch");
+	});
+
+	it("creates Sede Principal for a Spanish company", async () => {
+		const spanish = await provisionOrganizationWithOwner(env, {
+			companyName: "Academia Local",
+			ownerName: "Propietaria Local",
+			ownerEmail: "propietaria-local@test.invalid",
+			locale: "es",
+		});
+		const [branch] = await getDb(env)
+			.select({ name: team.name })
+			.from(team)
+			.where(eq(team.organizationId, spanish.organizationId));
+		expect(branch?.name).toBe("Sede Principal");
+		expect(spanish.branchName).toBe("Sede Principal");
 	});
 
 	it("reports that an account setup email was sent", () => {
@@ -380,14 +396,15 @@ describe("provisioning is retry safe", () => {
 		const retried = await provisionOrganizationWithOwner(env, { companyName: name, ownerName: "Second owner", ownerEmail: "collision-second@test.invalid" });
 		expect(retried.organizationId).toBe(second.organizationId);
 	});
-	it("does not duplicate the company, user or Main branch", async () => {
+	it("does not duplicate the company, user or initial branch", async () => {
 		const input = {
 			companyName: "Retry Co",
 			ownerName: "Retry Owner",
 			ownerEmail: "retry-owner@test.invalid",
+			locale: "es" as const,
 		};
 		const first = await provisionOrganizationWithOwner(env, input);
-		const second = await provisionOrganizationWithOwner(env, input);
+		const second = await provisionOrganizationWithOwner(env, { ...input, locale: "en" });
 
 		const users = await getDb(env)
 			.select({ id: userTable.id })
@@ -413,6 +430,8 @@ describe("provisioning is retry safe", () => {
 			.where(eq(organization.name, "Retry Co"));
 		expect(orgs).toHaveLength(1);
 		expect(first.organizationId).toBe(second.organizationId);
+		expect(first.branchName).toBe("Sede Principal");
+		expect(second.branchName).toBe("Sede Principal");
 	});
 });
 

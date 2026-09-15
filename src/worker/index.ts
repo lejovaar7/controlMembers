@@ -14,7 +14,13 @@ import { listMembers, provisionMember, resendMemberSetup, updateMemberAccess, up
 import { listCompanies, selectCompany } from "./tenant/companies";
 import { getLocalePreferences, readRequiredLocale, updateCompanyLocale, updateUserLocale } from "./localization";
 import { getBillingSettings, updateBillingSettings } from "./product/setup";
-import { createBillingPlan, createProgram, listBillingPlans, listPrograms, updateBillingPlan, updateProgram } from "./product/catalog";
+import { createPlan, listPlans, updatePlan } from "./product/catalog";
+import { addMemberContact, createCustomerMember, getCustomerMember, listCustomerMembers, unlinkMemberContact, updateCustomerMember, updateCustomerMemberStatus, updateMemberContact } from "./product/members";
+import { createEnrollment, updateEnrollment } from "./product/enrollments";
+import { adjustCharge, generateCharges, listCharges, previewChargeGeneration, voidCharge } from "./product/charges";
+import { createPayment, listPayments, previewPaymentAllocation, reversePayment } from "./product/payments";
+import { exportCsv, getDashboard, getFinancialReports, getMemberBalances } from "./product/reporting";
+import { confirmMemberImport, memberImportTemplate, previewMemberImport } from "./product/imports";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -50,7 +56,14 @@ app.get("/api/branches", async (c) => {
 	const branches = await listAccessibleBranches(c.env, tenant);
 	return c.json({
 		organization: { id: tenant.organizationId, name: tenant.organizationName, role: tenant.organizationRole },
-		permissions: { allBranches: tenant.allBranches, canAppointAdmins: tenant.canAppointAdmins },
+		permissions: {
+			allBranches: tenant.allBranches,
+			canAppointAdmins: tenant.canAppointAdmins,
+			canReversePayments: tenant.canReversePayments,
+			canAdjustCharges: tenant.canAdjustCharges,
+			canViewReports: tenant.canViewReports,
+			canExportFinancialData: tenant.canExportFinancialData,
+		},
 		branches: branches.map((branch) => ({
 			id: branch.branchId,
 			name: branch.name,
@@ -68,13 +81,39 @@ app.patch("/api/company/locale", async (c) => c.json(await updateCompanyLocale(c
 app.get("/api/product/settings", async (c) => c.json(await getBillingSettings(c.env, c.req.raw)));
 app.patch("/api/product/settings", async (c) => c.json(await updateBillingSettings(c.env, c.req.raw, await readJsonObject(c.req.raw))));
 
-app.get("/api/programs", async (c) => c.json(await listPrograms(c.env, c.req.raw)));
-app.post("/api/programs", async (c) => c.json(await createProgram(c.env, c.req.raw, await readJsonObject(c.req.raw)), 201));
-app.patch("/api/programs/:id", async (c) => c.json(await updateProgram(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
+app.get("/api/plans", async (c) => c.json(await listPlans(c.env, c.req.raw)));
+app.post("/api/plans", async (c) => c.json(await createPlan(c.env, c.req.raw, await readJsonObject(c.req.raw)), 201));
+app.patch("/api/plans/:id", async (c) => c.json(await updatePlan(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
 
-app.get("/api/billing-plans", async (c) => c.json(await listBillingPlans(c.env, c.req.raw)));
-app.post("/api/billing-plans", async (c) => c.json(await createBillingPlan(c.env, c.req.raw, await readJsonObject(c.req.raw)), 201));
-app.patch("/api/billing-plans/:id", async (c) => c.json(await updateBillingPlan(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
+app.get("/api/customer-members", async (c) => c.json(await listCustomerMembers(c.env, c.req.raw)));
+app.post("/api/customer-members", async (c) => c.json(await createCustomerMember(c.env, c.req.raw, await readJsonObject(c.req.raw)), 201));
+app.get("/api/customer-members/:id", async (c) => c.json(await getCustomerMember(c.env, c.req.raw, c.req.param("id"))));
+app.patch("/api/customer-members/:id", async (c) => c.json(await updateCustomerMember(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
+app.patch("/api/customer-members/:id/status", async (c) => c.json(await updateCustomerMemberStatus(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
+app.post("/api/customer-members/:id/contacts", async (c) => c.json(await addMemberContact(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw)), 201));
+app.patch("/api/customer-members/:id/contacts/:relationshipId", async (c) => c.json(await updateMemberContact(c.env, c.req.raw, c.req.param("id"), c.req.param("relationshipId"), await readJsonObject(c.req.raw))));
+app.delete("/api/customer-members/:id/contacts/:relationshipId", async (c) => c.json(await unlinkMemberContact(c.env, c.req.raw, c.req.param("id"), c.req.param("relationshipId"))));
+app.post("/api/customer-members/:id/enrollments", async (c) => c.json(await createEnrollment(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw)), 201));
+app.patch("/api/enrollments/:id", async (c) => c.json(await updateEnrollment(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
+
+app.get("/api/charges", async (c) => c.json(await listCharges(c.env, c.req.raw)));
+app.post("/api/charges/generate/preview", async (c) => c.json(await previewChargeGeneration(c.env, c.req.raw, await readJsonObject(c.req.raw))));
+app.post("/api/charges/generate", async (c) => c.json(await generateCharges(c.env, c.req.raw, await readJsonObject(c.req.raw))));
+app.patch("/api/charges/:id/adjust", async (c) => c.json(await adjustCharge(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
+app.patch("/api/charges/:id/void", async (c) => c.json(await voidCharge(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
+
+app.get("/api/payments", async (c) => c.json(await listPayments(c.env, c.req.raw)));
+app.get("/api/customer-members/:id/payment-preview", async (c) => c.json(await previewPaymentAllocation(c.env, c.req.raw, c.req.param("id"), Number(c.req.query("amountMinor")))));
+app.post("/api/payments", async (c) => c.json(await createPayment(c.env, c.req.raw, await readJsonObject(c.req.raw)), 201));
+app.patch("/api/payments/:id/reverse", async (c) => c.json(await reversePayment(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
+
+app.get("/api/dashboard", async (c) => c.json(await getDashboard(c.env, c.req.raw)));
+app.get("/api/reports/member-balances", async (c) => c.json(await getMemberBalances(c.env, c.req.raw)));
+app.get("/api/reports/financial-summary", async (c) => c.json(await getFinancialReports(c.env, c.req.raw)));
+app.get("/api/exports/:kind", async (c) => exportCsv(c.env, c.req.raw, c.req.param("kind")));
+app.get("/api/imports/members/template", () => memberImportTemplate());
+app.post("/api/imports/members/preview", async (c) => c.json(await previewMemberImport(c.env, c.req.raw, await readJsonObject(c.req.raw))));
+app.post("/api/imports/members/confirm", async (c) => c.json(await confirmMemberImport(c.env, c.req.raw, await readJsonObject(c.req.raw))));
 
 /** Tenant-scoped administration; never exposes platform roles. */
 app.get("/api/members", async (c) => {
@@ -128,6 +167,7 @@ app.post("/api/platform/organizations", async (c) => {
 	return c.json({
 		organizationId: result.organizationId,
 		organizationName: result.organizationName,
+		branchName: result.branchName,
 		ownerEmail,
 		setupEmailSent: result.setupEmailSent,
 		setupEmailStatus: result.setupEmailStatus,

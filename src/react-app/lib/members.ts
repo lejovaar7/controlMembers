@@ -7,6 +7,10 @@ export type MemberSummary = {
 	role: string;
 	isActive: boolean;
 	canAppointAdmins: boolean;
+	canReversePayments: boolean;
+	canAdjustCharges: boolean;
+	canViewReports: boolean;
+	canExportFinancialData: boolean;
 	setupRequired: boolean;
 	canManage: boolean;
 	scopeRestricted: boolean;
@@ -15,7 +19,16 @@ export type MemberSummary = {
 
 export type MemberDirectory = { organizationId: string; members: MemberSummary[] };
 
-export type MemberAccess = { role: "admin" | "member"; branchIds: string[]; allBranches: boolean; canAppointAdmins?: boolean };
+export type MemberAccess = {
+	role: "admin" | "member";
+	branchIds: string[];
+	allBranches: boolean;
+	canAppointAdmins?: boolean;
+	canReversePayments?: boolean;
+	canAdjustCharges?: boolean;
+	canViewReports?: boolean;
+	canExportFinancialData?: boolean;
+};
 export type SetupEmailStatus = "sent" | "not-required" | "failed";
 
 export function setupMessage(status: SetupEmailStatus): MessageKey {

@@ -30,7 +30,7 @@ export function ResetPasswordPage() {
 				description={t("That link is invalid or has expired.")}
 				footer={<Link to="/login" className="underline">{t("Back to sign in")}</Link>}
 			>
-				<Button render={<Link to="/forgot-password" />} className="w-full">
+				<Button nativeButton={false} render={<Link to="/forgot-password" />} className="w-full">
 					{t("Request a new link")}</Button>
 			</AuthCard>
 		);

@@ -56,7 +56,7 @@ export function VerifyEmailPage() {
 				title={t("Email verified")}
 				description={t("Your address is confirmed. You can sign in now.")}
 			>
-				<Button render={<Link to="/login" />} className="w-full">
+				<Button nativeButton={false} render={<Link to="/login" />} className="w-full">
 					{t("Go to sign in")}</Button>
 			</AuthCard>
 		);

@@ -1,19 +1,20 @@
 import { and, asc, eq, inArray, ne } from "drizzle-orm";
 import { AuthError } from "../auth/session";
 import { getTenantDb } from "../db";
-import { program, programBranch, billingPlan } from "../db/schema";
+import { auditEvent, plan, planBranch, planTag, tag } from "../db/schema";
 import { RequestError } from "../http";
 import { getBranch } from "../tenant/branch";
 import { requireTenant, type TenantContext } from "../tenant";
 import { requireBillingSetupAdmin } from "./setup";
+import { details } from "./domain";
 
 const now = () => new Date();
 const normalizeName = (value: string) => value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en");
 
-function readName(value: unknown) {
+function readName(value: unknown, maxLength = 120) {
 	if (typeof value !== "string") throw new RequestError(400, "INVALID_INPUT");
 	const name = value.trim().replace(/\s+/g, " ");
-	if (!name || name.length > 120) throw new RequestError(400, "INVALID_INPUT");
+	if (!name || name.length > maxLength) throw new RequestError(400, "INVALID_INPUT");
 	return name;
 }
 
@@ -38,134 +39,158 @@ function readBranchIds(value: unknown) {
 	return ids;
 }
 
+function readTagNames(value: unknown) {
+	if (value === undefined) return [];
+	if (!Array.isArray(value) || value.length > 20) throw new RequestError(400, "INVALID_INPUT");
+	const unique = new Map<string, string>();
+	for (const item of value) {
+		const name = readName(item, 40);
+		unique.set(normalizeName(name), name);
+	}
+	return [...unique.values()];
+}
+
 async function validateBranches(env: Env, tenant: TenantContext, branchIds: string[]) {
 	for (const branchId of branchIds) {
 		if (!(await getBranch(env, tenant, branchId))) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 	}
 }
 
-async function ensureActiveNameAvailable(env: Env, tenant: TenantContext, table: typeof program | typeof billingPlan, normalizedName: string, exceptId?: string) {
-	const id = table === program ? program.id : billingPlan.id;
-	const organizationId = table === program ? program.organizationId : billingPlan.organizationId;
-	const normalized = table === program ? program.normalizedName : billingPlan.normalizedName;
-	const active = table === program ? program.isActive : billingPlan.isActive;
-	const conditions = [eq(organizationId, tenant.organizationId), eq(normalized, normalizedName), eq(active, true)];
-	if (exceptId) conditions.push(ne(id, exceptId));
-	const [existing] = await getTenantDb(env, tenant.organizationId).select({ id }).from(table as typeof program).where(and(...conditions)).limit(1);
+async function ensureActiveNameAvailable(env: Env, tenant: TenantContext, normalizedName: string, exceptId?: string) {
+	const conditions = [eq(plan.organizationId, tenant.organizationId), eq(plan.normalizedName, normalizedName), eq(plan.isActive, true)];
+	if (exceptId) conditions.push(ne(plan.id, exceptId));
+	const [existing] = await getTenantDb(env, tenant.organizationId).select({ id: plan.id }).from(plan).where(and(...conditions)).limit(1);
 	if (existing) throw new RequestError(409, "NAME_ALREADY_EXISTS");
 }
 
-export async function listPrograms(env: Env, request: Request) {
-	const tenant = await requireTenant(env, request);
+async function resolveTags(env: Env, tenant: TenantContext, names: string[]) {
+	if (!names.length) return [];
 	const db = getTenantDb(env, tenant.organizationId);
-	if (!tenant.allBranches && tenant.branchIds.length === 0) return { programs: [] };
-	const allowedBranches = tenant.allBranches ? undefined : tenant.branchIds;
-	const links = await db.select({ programId: programBranch.programId, branchId: programBranch.branchId })
-		.from(programBranch)
-		.where(and(eq(programBranch.organizationId, tenant.organizationId), allowedBranches ? inArray(programBranch.branchId, allowedBranches) : undefined));
-	const visibleIds = [...new Set(links.map((link) => link.programId))];
-	const rows = await db.select().from(program)
-		.where(and(eq(program.organizationId, tenant.organizationId), allowedBranches ? (visibleIds.length ? inArray(program.id, visibleIds) : eq(program.id, "")) : undefined))
-		.orderBy(asc(program.name));
-	return { programs: rows.map((row) => ({ ...row, branchIds: links.filter((link) => link.programId === row.id).map((link) => link.branchId) })) };
+	for (const name of names) {
+		await db.insert(tag).values({
+			id: crypto.randomUUID(),
+			organizationId: tenant.organizationId,
+			name,
+			normalizedName: normalizeName(name),
+			createdByUserId: tenant.userId,
+		}).onConflictDoNothing();
+	}
+	const normalizedNames = names.map(normalizeName);
+	const rows = await db.select({ id: tag.id, name: tag.name, normalizedName: tag.normalizedName })
+		.from(tag)
+		.where(and(eq(tag.organizationId, tenant.organizationId), inArray(tag.normalizedName, normalizedNames)));
+	const byName = new Map(rows.map((row) => [row.normalizedName, row]));
+	return normalizedNames.map((normalizedName) => byName.get(normalizedName)).filter((row): row is NonNullable<typeof row> => Boolean(row));
 }
 
-export async function createProgram(env: Env, request: Request, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
-	requireBillingSetupAdmin(tenant);
-	const name = readName(body.name);
-	const normalizedName = normalizeName(name);
-	const description = readDescription(body.description);
-	const branchIds = readBranchIds(body.branchIds);
-	await validateBranches(env, tenant, branchIds);
-	await ensureActiveNameAvailable(env, tenant, program, normalizedName);
-	const id = crypto.randomUUID();
-	const db = getTenantDb(env, tenant.organizationId);
-	await db.batch([
-		db.insert(program).values({ id, organizationId: tenant.organizationId, name, normalizedName, description, createdByUserId: tenant.userId }),
-		...branchIds.map((branchId) => db.insert(programBranch).values({ id: crypto.randomUUID(), organizationId: tenant.organizationId, programId: id, branchId })),
-	]);
-	return { id, name, description, isActive: true, branchIds };
-}
-
-export async function updateProgram(env: Env, request: Request, id: string, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
-	requireBillingSetupAdmin(tenant);
-	const db = getTenantDb(env, tenant.organizationId);
-	const [current] = await db.select().from(program).where(and(eq(program.id, id), eq(program.organizationId, tenant.organizationId))).limit(1);
-	if (!current) throw new AuthError(404, "RESOURCE_NOT_FOUND");
-	const name = body.name === undefined ? current.name : readName(body.name);
-	const normalizedName = normalizeName(name);
-	const description = body.description === undefined ? current.description : readDescription(body.description);
-	const isActive = readBoolean(body.isActive, current.isActive);
-	const branchIds = body.branchIds === undefined
-		? (await db.select({ id: programBranch.branchId }).from(programBranch).where(eq(programBranch.programId, id))).map((row) => row.id)
-		: readBranchIds(body.branchIds);
-	await validateBranches(env, tenant, branchIds);
-	if (isActive) await ensureActiveNameAvailable(env, tenant, program, normalizedName, id);
-	await db.batch([
-		db.update(program).set({ name, normalizedName, description, isActive, updatedAt: now() }).where(and(eq(program.id, id), eq(program.organizationId, tenant.organizationId))),
-		db.delete(programBranch).where(and(eq(programBranch.programId, id), eq(programBranch.organizationId, tenant.organizationId))),
-		...branchIds.map((branchId) => db.insert(programBranch).values({ id: crypto.randomUUID(), organizationId: tenant.organizationId, programId: id, branchId })),
-	]);
-	return { id, name, description, isActive, branchIds };
-}
-
-function readPlan(body: Record<string, unknown>, tenant: TenantContext, current?: typeof billingPlan.$inferSelect) {
+function readPlan(body: Record<string, unknown>, tenant: TenantContext, current?: typeof plan.$inferSelect, currentBranchIds: string[] = [], currentTagNames: string[] = []) {
+	if (Object.keys(body).some((key) => !["name", "description", "amountMinor", "defaultDueDay", "branchIds", "tagNames", "isActive"].includes(key))) {
+		throw new RequestError(400, "INVALID_INPUT");
+	}
 	const name = body.name === undefined && current ? current.name : readName(body.name);
+	const description = body.description === undefined && current ? current.description : readDescription(body.description);
 	const amountMinor = body.amountMinor === undefined && current ? current.amountMinor : body.amountMinor;
 	const defaultDueDay = body.defaultDueDay === undefined && current ? current.defaultDueDay : body.defaultDueDay;
-	const programIdValue = body.programId === undefined && current ? current.programId : body.programId;
 	if (!Number.isSafeInteger(amountMinor) || Number(amountMinor) <= 0 || !Number.isInteger(defaultDueDay) || Number(defaultDueDay) < 1 || Number(defaultDueDay) > 28) {
 		throw new RequestError(400, "INVALID_INPUT");
 	}
-	if (programIdValue !== null && programIdValue !== undefined && (typeof programIdValue !== "string" || !programIdValue.trim())) throw new RequestError(400, "INVALID_INPUT");
 	if (!tenant.currency) throw new RequestError(409, "BILLING_SETTINGS_REQUIRED");
 	return {
 		name,
 		normalizedName: normalizeName(name),
+		description,
 		amountMinor: Number(amountMinor),
 		defaultDueDay: Number(defaultDueDay),
-		programId: typeof programIdValue === "string" ? programIdValue.trim() : null,
+		branchIds: body.branchIds === undefined && current ? currentBranchIds : readBranchIds(body.branchIds),
+		tagNames: body.tagNames === undefined && current ? currentTagNames : readTagNames(body.tagNames),
 		isActive: readBoolean(body.isActive, current?.isActive ?? true),
 		currency: tenant.currency,
 	};
 }
 
-async function validatePlanProgram(env: Env, tenant: TenantContext, programId: string | null) {
-	if (!programId) return;
-	const [row] = await getTenantDb(env, tenant.organizationId).select({ id: program.id }).from(program)
-		.where(and(eq(program.id, programId), eq(program.organizationId, tenant.organizationId), eq(program.isActive, true))).limit(1);
-	if (!row) throw new AuthError(404, "RESOURCE_NOT_FOUND");
-}
-
-export async function listBillingPlans(env: Env, request: Request) {
+export async function listPlans(env: Env, request: Request) {
 	const tenant = await requireTenant(env, request);
-	const plans = await getTenantDb(env, tenant.organizationId).select().from(billingPlan)
-		.where(eq(billingPlan.organizationId, tenant.organizationId)).orderBy(asc(billingPlan.name));
-	return { plans };
+	const db = getTenantDb(env, tenant.organizationId);
+	if (!tenant.allBranches && tenant.branchIds.length === 0) return { plans: [], tags: [] };
+	const allowedBranches = tenant.allBranches ? undefined : tenant.branchIds;
+	const branchLinks = await db.select({ planId: planBranch.planId, branchId: planBranch.branchId })
+		.from(planBranch)
+		.where(and(eq(planBranch.organizationId, tenant.organizationId), allowedBranches ? inArray(planBranch.branchId, allowedBranches) : undefined));
+	const visibleIds = [...new Set(branchLinks.map((link) => link.planId))];
+	const rows = await db.select().from(plan)
+		.where(and(eq(plan.organizationId, tenant.organizationId), tenant.allBranches ? undefined : (visibleIds.length ? inArray(plan.id, visibleIds) : eq(plan.id, ""))))
+		.orderBy(asc(plan.name));
+	const planIds = rows.map((row) => row.id);
+	const tagLinks = planIds.length
+		? await db.select({ planId: planTag.planId, id: tag.id, name: tag.name })
+			.from(planTag)
+			.innerJoin(tag, eq(tag.id, planTag.tagId))
+			.where(and(eq(planTag.organizationId, tenant.organizationId), inArray(planTag.planId, planIds)))
+			.orderBy(asc(tag.name))
+		: [];
+	const tags = await db.select({ id: tag.id, name: tag.name }).from(tag)
+		.where(eq(tag.organizationId, tenant.organizationId)).orderBy(asc(tag.name));
+	return {
+		plans: rows.map((row) => ({
+			...row,
+			branchIds: branchLinks.filter((link) => link.planId === row.id).map((link) => link.branchId),
+			tags: tagLinks.filter((link) => link.planId === row.id).map(({ id, name }) => ({ id, name })),
+		})),
+		tags,
+	};
 }
 
-export async function createBillingPlan(env: Env, request: Request, body: Record<string, unknown>) {
+export async function createPlan(env: Env, request: Request, body: Record<string, unknown>) {
 	const tenant = await requireTenant(env, request);
 	requireBillingSetupAdmin(tenant);
 	const values = readPlan(body, tenant);
-	await validatePlanProgram(env, tenant, values.programId);
-	await ensureActiveNameAvailable(env, tenant, billingPlan, values.normalizedName);
+	await validateBranches(env, tenant, values.branchIds);
+	await ensureActiveNameAvailable(env, tenant, values.normalizedName);
+	const tags = await resolveTags(env, tenant, values.tagNames);
 	const id = crypto.randomUUID();
-	await getTenantDb(env, tenant.organizationId).insert(billingPlan).values({ id, organizationId: tenant.organizationId, ...values, frequency: "monthly", createdByUserId: tenant.userId });
-	return { id, ...values, frequency: "monthly" };
+	const db = getTenantDb(env, tenant.organizationId);
+	await db.batch([
+		db.insert(plan).values({
+			id,
+			organizationId: tenant.organizationId,
+			name: values.name,
+			normalizedName: values.normalizedName,
+			description: values.description,
+			amountMinor: values.amountMinor,
+			currency: values.currency,
+			frequency: "monthly",
+			defaultDueDay: values.defaultDueDay,
+			isActive: values.isActive,
+			createdByUserId: tenant.userId,
+		}),
+		...values.branchIds.map((branchId) => db.insert(planBranch).values({ id: crypto.randomUUID(), organizationId: tenant.organizationId, planId: id, branchId })),
+		...tags.map((resolvedTag) => db.insert(planTag).values({ id: crypto.randomUUID(), organizationId: tenant.organizationId, planId: id, tagId: resolvedTag.id })),
+		db.insert(auditEvent).values({ id: crypto.randomUUID(), organizationId: tenant.organizationId, eventType: "plan.created", actorUserId: tenant.userId, subjectType: "plan", subjectId: id, detailsJson: details({ name: values.name, amountMinor: values.amountMinor, dueDay: values.defaultDueDay, branchIds: values.branchIds, tagNames: values.tagNames }) }),
+	]);
+	return { id, name: values.name, description: values.description, amountMinor: values.amountMinor, currency: values.currency, frequency: "monthly" as const, defaultDueDay: values.defaultDueDay, isActive: values.isActive, branchIds: values.branchIds, tags: tags.map(({ id: tagId, name }) => ({ id: tagId, name })) };
 }
 
-export async function updateBillingPlan(env: Env, request: Request, id: string, body: Record<string, unknown>) {
+export async function updatePlan(env: Env, request: Request, id: string, body: Record<string, unknown>) {
 	const tenant = await requireTenant(env, request);
 	requireBillingSetupAdmin(tenant);
 	const db = getTenantDb(env, tenant.organizationId);
-	const [current] = await db.select().from(billingPlan).where(and(eq(billingPlan.id, id), eq(billingPlan.organizationId, tenant.organizationId))).limit(1);
+	const [current] = await db.select().from(plan).where(and(eq(plan.id, id), eq(plan.organizationId, tenant.organizationId))).limit(1);
 	if (!current) throw new AuthError(404, "RESOURCE_NOT_FOUND");
-	const values = readPlan(body, tenant, current);
-	await validatePlanProgram(env, tenant, values.programId);
-	if (values.isActive) await ensureActiveNameAvailable(env, tenant, billingPlan, values.normalizedName, id);
-	await db.update(billingPlan).set({ ...values, updatedAt: now() }).where(and(eq(billingPlan.id, id), eq(billingPlan.organizationId, tenant.organizationId)));
-	return { id, ...values, frequency: "monthly" };
+	const currentTags = await db.select({ name: tag.name }).from(planTag).innerJoin(tag, eq(tag.id, planTag.tagId))
+		.where(and(eq(planTag.organizationId, tenant.organizationId), eq(planTag.planId, id)));
+	const currentBranches = await db.select({ id: planBranch.branchId }).from(planBranch)
+		.where(and(eq(planBranch.organizationId, tenant.organizationId), eq(planBranch.planId, id)));
+	const values = readPlan(body, tenant, current, currentBranches.map((row) => row.id), currentTags.map((row) => row.name));
+	await validateBranches(env, tenant, values.branchIds);
+	if (values.isActive) await ensureActiveNameAvailable(env, tenant, values.normalizedName, id);
+	const tags = await resolveTags(env, tenant, values.tagNames);
+	await db.batch([
+		db.update(plan).set({ name: values.name, normalizedName: values.normalizedName, description: values.description, amountMinor: values.amountMinor, currency: values.currency, defaultDueDay: values.defaultDueDay, isActive: values.isActive, updatedAt: now() }).where(and(eq(plan.id, id), eq(plan.organizationId, tenant.organizationId))),
+		db.delete(planBranch).where(and(eq(planBranch.planId, id), eq(planBranch.organizationId, tenant.organizationId))),
+		db.delete(planTag).where(and(eq(planTag.planId, id), eq(planTag.organizationId, tenant.organizationId))),
+		...values.branchIds.map((branchId) => db.insert(planBranch).values({ id: crypto.randomUUID(), organizationId: tenant.organizationId, planId: id, branchId })),
+		...tags.map((resolvedTag) => db.insert(planTag).values({ id: crypto.randomUUID(), organizationId: tenant.organizationId, planId: id, tagId: resolvedTag.id })),
+		db.insert(auditEvent).values({ id: crypto.randomUUID(), organizationId: tenant.organizationId, eventType: current.isActive !== values.isActive ? "plan.activation_changed" : "plan.updated", actorUserId: tenant.userId, subjectType: "plan", subjectId: id, detailsJson: details({ before: { name: current.name, amountMinor: current.amountMinor, dueDay: current.defaultDueDay, isActive: current.isActive, branchIds: currentBranches.map((row) => row.id), tagNames: currentTags.map((row) => row.name) }, after: { name: values.name, amountMinor: values.amountMinor, dueDay: values.defaultDueDay, isActive: values.isActive, branchIds: values.branchIds, tagNames: values.tagNames } }) }),
+	]);
+	return { id, name: values.name, description: values.description, amountMinor: values.amountMinor, currency: values.currency, frequency: "monthly" as const, defaultDueDay: values.defaultDueDay, isActive: values.isActive, branchIds: values.branchIds, tags: tags.map(({ id: tagId, name }) => ({ id: tagId, name })) };
 }

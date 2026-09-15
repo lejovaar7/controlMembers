@@ -173,7 +173,7 @@ describe("recipient-based transactional email", () => {
 			expect(result.html).toContain("a=1&amp;b=2");
 		}
 		const invitation = organizationInvitationEmail("<img src=x>", "<script>bad()</script>", "https://example.invalid/", "es");
-		expect(invitation.subject).toBe("Invitación para unirte a <img src=x>");
+		expect(invitation.subject).toBe("Acceso a <img src=x>");
 		expect(invitation.html).not.toContain("<script>");
 		expect(invitation.html).not.toContain("<img");
 		expect(invitation.html).toContain("&lt;script&gt;");

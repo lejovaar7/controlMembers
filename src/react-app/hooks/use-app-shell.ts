@@ -17,6 +17,10 @@ export type AppShellContext = {
 	canCreateBranches: boolean;
 	allBranches: boolean;
 	canAppointAdmins: boolean;
+	canReversePayments: boolean;
+	canAdjustCharges: boolean;
+	canViewReports: boolean;
+	canExportFinancialData: boolean;
 	refreshBranches: () => void;
 };
 

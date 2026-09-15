@@ -22,6 +22,12 @@ export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdm
 	const [selected, setSelected] = useState<string[]>(member?.branchAccess.kind === "assigned-branches" ? member.branchAccess.branchIds : []);
 	const [allBranches, setAllBranches] = useState(member ? member.branchAccess.kind === "all-branches" : allBranchesAllowed);
 	const [appointmentPermission, setAppointmentPermission] = useState(member?.canAppointAdmins ?? false);
+	const [financialPermissions, setFinancialPermissions] = useState({
+		canReversePayments: member?.canReversePayments ?? false,
+		canAdjustCharges: member?.canAdjustCharges ?? false,
+		canViewReports: member?.canViewReports ?? false,
+		canExportFinancialData: member?.canExportFinancialData ?? false,
+	});
 	const [pending, setPending] = useState(false);
 	const [error, setError] = useState<MessageKey | null>(null);
 
@@ -34,6 +40,7 @@ export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdm
 		const access: MemberAccess = {
 			role, branchIds: grantsAllBranches ? [] : selected, allBranches: grantsAllBranches,
 			...(isOwner ? { canAppointAdmins: role === "admin" && appointmentPermission } : {}),
+			...(isOwner ? financialPermissions : {}),
 		};
 		setPending(true);
 		setError(null);
@@ -46,12 +53,12 @@ export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdm
 			if (!response.ok) throw new Error("Could not save access");
 			const result = await response.json() as { setupEmailStatus?: SetupEmailStatus; };
 			onSaved(result.setupEmailStatus);
-		} catch { setError("We could not save this member. Check their role and branches, then try again. Retrying will not create a duplicate member."); }
+		} catch { setError("We could not save this user. Check their role and branches, then try again. Retrying will not create a duplicate user."); }
 		finally { setPending(false); }
 	}
 
-	return <form onSubmit={submit} className="grid gap-4 rounded-lg border p-4" aria-label={member ? t("Edit access for {name}", { name: member.user.name }) : t("Add member")}>
-		<h2 className="break-words font-medium">{member ? t("Edit access: {name}", { name: member.user.name }) : t("Add member")}</h2>
+	return <form onSubmit={submit} className="grid gap-4 rounded-lg border p-4" aria-label={member ? t("Edit access for {name}", { name: member.user.name }) : t("Add user")}>
+		<h2 className="break-words font-medium">{member ? t("Edit access: {name}", { name: member.user.name }) : t("Add user")}</h2>
 		<fieldset disabled={pending} className="grid gap-4">
 			{!member && <>
 				<div className="grid gap-2"><Label htmlFor={`${id}-name`}>{t("Name")}</Label><Input id={`${id}-name`} name="name" autoComplete="name" maxLength={200} autoFocus required /></div>
@@ -60,7 +67,7 @@ export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdm
 			<div className="grid gap-2">
 				<Label htmlFor={`${id}-role`}>{t("Company role")}</Label>
 				<select id={`${id}-role`} autoFocus={Boolean(member)} className="h-10 rounded-md border bg-background px-3 focus-visible:outline-2 focus-visible:outline-ring" value={role} onChange={(event) => setRole(event.target.value as "member" | "admin")}>
-					<option value="member">{t("Member")}</option>{canAppointAdmins && <option value="admin">{t("Admin")}</option>}
+					<option value="member">{t("User")}</option>{canAppointAdmins && <option value="admin">{t("Admin")}</option>}
 				</select>
 			</div>
 			{role === "admin" && allBranchesAllowed && <div className="grid gap-2">
@@ -80,9 +87,21 @@ export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdm
 				<input type="checkbox" className="mt-1 size-4 shrink-0 accent-primary" checked={appointmentPermission} onChange={(event) => setAppointmentPermission(event.target.checked)} />
 				<span>{t("Can appoint administrators")}<span className="mt-1 block text-muted-foreground">{t("Allows creating or promoting admins within their branch scope. Only the owner can grant this permission. It does not allow editing other admins.")}</span></span>
 			</label>}
+			{isOwner && <fieldset className="grid gap-3 rounded-lg border p-3">
+				<legend className="px-1 text-sm font-medium">{t("Financial permissions")}</legend>
+				<p className="text-sm text-muted-foreground">{t("These permissions do not expand the user's branch access.")}</p>
+				<PermissionCheckbox label={t("Can reverse payments")} checked={financialPermissions.canReversePayments} onChange={(checked) => setFinancialPermissions((current) => ({ ...current, canReversePayments: checked }))} />
+				<PermissionCheckbox label={t("Can adjust or void charges")} checked={financialPermissions.canAdjustCharges} onChange={(checked) => setFinancialPermissions((current) => ({ ...current, canAdjustCharges: checked }))} />
+				<PermissionCheckbox label={t("Can view financial reports")} checked={financialPermissions.canViewReports} onChange={(checked) => setFinancialPermissions((current) => ({ ...current, canViewReports: checked }))} />
+				<PermissionCheckbox label={t("Can export financial data")} checked={financialPermissions.canExportFinancialData} onChange={(checked) => setFinancialPermissions((current) => ({ ...current, canExportFinancialData: checked }))} />
+			</fieldset>}
 			{!member && <p className="text-sm text-muted-foreground">{t("New users receive a secure link to choose their own password. Existing accounts keep their sign-in details.")}</p>}
 		</fieldset>
 		{error && <p role="alert" className="text-sm text-destructive">{error ? t(error) : null}</p>}
-		<div className="flex flex-wrap gap-2"><Button type="submit" disabled={pending}>{pending ? t("Saving…") : member ? t("Save access") : t("Add member")}</Button><Button type="button" variant="outline" disabled={pending} onClick={onCancel}>{t("Cancel")}</Button></div>
+		<div className="flex flex-wrap gap-2"><Button type="submit" disabled={pending}>{pending ? t("Saving…") : member ? t("Save access") : t("Add user")}</Button><Button type="button" variant="outline" disabled={pending} onClick={onCancel}>{t("Cancel")}</Button></div>
 	</form>;
+}
+
+function PermissionCheckbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+	return <label className="flex min-h-10 items-center gap-3 text-sm"><input type="checkbox" className="size-4 shrink-0 accent-primary" checked={checked} onChange={(event) => onChange(event.target.checked)} /><span>{label}</span></label>;
 }

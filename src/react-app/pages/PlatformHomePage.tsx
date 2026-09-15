@@ -11,7 +11,7 @@ export function PlatformHomePage() {
 				title={t("Companies")}
 				description={t("Provision a company and its first owner.")}
 			/>
-			<Button render={<Link to="/platform/organizations/new" />}>
+			<Button nativeButton={false} render={<Link to="/platform/organizations/new" />}>
 				{t("Create company")}</Button>
 		</PageContainer>
 	);

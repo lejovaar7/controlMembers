@@ -48,9 +48,9 @@ export function organizationInvitationEmail(
 ): EmailContent {
 	const t = createTranslator(locale);
 	return {
-		...message(locale, t("You have been invited to join a team"), t("{inviter} invited you to join {company}.", { inviter: inviterName, company: organizationName }),
+		...message(locale, t("You have been invited to access {company}", { company: organizationName }), t("{inviter} gave you access to {company}.", { inviter: inviterName, company: organizationName }),
 			"Accept invitation", "If you were not expecting this invitation, you can ignore this email.", url),
-		subject: t("Invitation to join {company}", { company: organizationName }),
+		subject: t("Access to {company}", { company: organizationName }),
 	};
 }
 
