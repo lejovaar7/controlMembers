@@ -86,6 +86,17 @@ plain-text `404` instead.
 
 ## Development
 
+For a fresh clone, the one-command setup creates or safely completes
+`.dev.vars`, installs the locked dependencies and applies all local D1
+migrations. Existing variable values are preserved.
+
+```bash
+npm run setup:local
+npm run dev
+```
+
+The equivalent manual setup is:
+
 ```bash
 npm ci
 cp -n .dev.vars.example .dev.vars   # do not overwrite existing local values

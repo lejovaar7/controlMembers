@@ -5,6 +5,7 @@
 	"type": "module",
 	"packageManager": "npm@11.12.1",
 	"scripts": {
+		"setup:local": "node scripts/setup-local.mjs",
 		"dev": "node scripts/environments.mjs local dev",
 		"build": "node scripts/environments.mjs local build",
 		"build:dev": "node scripts/environments.mjs dev build",
