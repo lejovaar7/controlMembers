@@ -90,7 +90,7 @@ Tests prove:
 
 Branch deletion requires a separate policy for active sessions, assignments
 and future Branch-owned business data. Business operations for a location are
-defined by each cloned SaaS, not this generic management module.
+defined by the ControlMembers domain specifications, not this Branch module.
 
 Single/multiple Branch, create/rename, company switching, member restrictions
 and no-access states were exercised in a local Worker. Failure and retry are

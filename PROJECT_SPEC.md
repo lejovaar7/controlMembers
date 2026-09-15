@@ -1,47 +1,55 @@
-# SaaS Starter: Project Overview
+# ControlMembers: Project Overview
 
-This repository is a reusable foundation for closed B2B SaaS products, not a
-business application. Its goal is to provide working identity, companies,
-Branches, access management, email, database access and a neutral UI before a
-cloned product adds its own business features.
+ControlMembers is a closed B2B SaaS for organizations that manage recurring
+member fees. It targets sports, music, martial arts, swimming, dance, language
+and similar academies while keeping its core domain independent from any one
+discipline.
 
-## One specification structure
+The project was cloned from the SaaS foundation and preserves its implemented
+identity, Organization, Branch, Team access, email, localization, database and
+environment boundaries. The ControlMembers business modules are specified but
+only partially implemented: billing settings, Programs, Program-Branch
+availability and monthly Plans are the first verified product slice.
 
-[specs/README.md](specs/README.md) is the single index and entry point for all
-module specifications. Each module describes its current behavior, rules,
-implementation references, limitations and acceptance checks.
+## Product model
 
-This overview does not duplicate those contracts. Module numbers indicate
-reading order, not separate implementation phases or pending work.
+- An Organization is one customer/tenant and a Branch is one location.
+- Authenticated owners, administrators and employees are the **Team**.
+- A customer-facing **Member** receives the service and is not an authenticated
+  Better Auth member by default.
+- Programs describe activities; Plans describe monthly price/due-day defaults.
+- Enrollments connect a Member, Program, Branch and Plan.
+- Charges are immutable monthly receivable snapshots.
+- Payments are posted to a ledger and allocated to one or more Charges.
+- Dashboard and reports derive from the same ledger formulas.
+- WhatsApp reminders and online payments are post-MVP extensions.
 
-## Product at a glance
+## Documentation map
 
-- The SaaS operator creates companies, their first Owner and a `Main` Branch.
-- Owners/admins add employees; users choose their own passwords.
-- Accounts can belong to several companies, with separate memberships and access.
-- Owners access all Branches; admins can have all or selected Branches; members
-  use assignments. Only the Owner can delegate permission to appoint admins.
-- Company access can be deactivated/reactivated without deleting identity or
-  history. One active company auto-enters; multiple require a choice when needed.
-- Platform roles and company roles are separate; server guards enforce access.
-- Public signup, billing and business-specific features are outside the starter.
-- Local, remote dev and production have isolated configurations, databases and
-  explicit commands; cloud resource/domain setup is a separate operation.
-- Language follows personal preference, active company, then application default.
-  UI/email catalogs begin with English and Spanish and can be extended with other
-  languages. Language settings do not translate entered business data.
+- [Product brief](PRODUCT_BRIEF.md): concise product identity.
+- [Specifications](specs/README.md): canonical behavior, rules and acceptance
+  checks. Modules 00–09 are the implemented foundation; 10–19 define the target
+  ControlMembers MVP and future notification boundary.
+- [Delivery planning](planning/README.md): prioritized user stories, milestones
+  and product decisions. Planning never overrides a specification.
+- [Operator guide](README.md): setup, commands and environment operation.
+- [Agent guidance](CLAUDE.md): repository rules for implementation.
+- [Verification record](specs/VERIFICATION.md): dated evidence, not planned claims.
 
-The detailed boundaries and deferred extension constraints are in
-[Product and Architecture](specs/00-product-and-architecture.md). Current
-membership authority, including administrator creation/promotion rules, is in
-[Member Management](specs/07-member-management.md).
+## MVP release outcome
 
-## Supporting documents
+An authorized Team member can configure Programs and Plans, register Members and
+responsible Contacts, create Enrollments, generate monthly Charges, record and
+reverse Payments, and identify overdue balances within their Branch scope. An
+Owner can reconcile expected, collected and outstanding values for a period.
 
-- [README.md](README.md): installation, bootstrap, configuration and operation.
-- [CLAUDE.md](CLAUDE.md): repository conventions for coding agents.
-- [Verification record](specs/VERIFICATION.md): dated checks and release limits.
+The MVP excludes public signup, Member portals, online gateways, automated
+messages, attendance, scheduling, tax invoicing and general accounting.
 
-Starter v1 is implemented. The committed access, language and guide changes are
-integrated into `main`. Specification documents remain untracked until their own
-commit is requested. No push or production deployment has been performed.
+## Current status
+
+The inherited SaaS foundation is implemented and verified. Product documentation
+and delivery planning are established in this clone. Billing setup is implemented
+across persistence, guarded APIs, bilingual UI and tests. Customer-facing Members,
+Enrollments, Charges, Payments and reporting remain planned and must not be
+described as implemented until verification evidence exists.

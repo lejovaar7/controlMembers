@@ -15,8 +15,9 @@ Reusable UI includes:
 - Organization and Branch switchers
 - Language picker for public, personal and company preferences
 
-The starter is intentionally unbranded and contains no product-specific
-navigation or colors.
+The inherited shell begins neutral. ControlMembers product navigation, semantic
+financial states and restrained branding extend it under specification 17 using
+the same Tailwind/shadcn/Base UI system.
 
 Source message keys are English; typed catalogs translate UI and email. Reuse Base UI
 patterns rather than assuming Radix-specific examples are compatible. Do not

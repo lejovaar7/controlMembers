@@ -109,16 +109,16 @@ Language choice is not an authentication or Branch-authorization mechanism.
 - An owner or unrestricted admin with an exceptional zero-Branch Organization can create a
   Branch from the management screen.
 
-## Rules for cloned SaaS features
+## Rules for ControlMembers domain features
 
 Every tenant-owned entity must carry `organizationId`. Branch-scoped entities
 must additionally carry `branchId`. Resolve them through validated session,
 membership and Branch context; identifiers from React are never proof of access.
 The database helper provides a connection, not automatic query authorization.
 
-The starter provides only generic `owner`, `admin` and `member` roles. Business
-roles and permissions, such as cashier access or inventory adjustment, belong
-to the cloned product and must not replace the Organization/Branch boundary.
+The inherited foundation provides `owner`, `admin` and `member` Organization
+roles. ControlMembers layers only the explicit business grants in specification
+16 over those roles; they never replace or widen the Organization/Branch boundary.
 
 ## Acceptance checks
 

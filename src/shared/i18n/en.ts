@@ -1,6 +1,6 @@
 /** English source messages are also stable, typed catalog keys. No user data here. */
 export const messages = [
-	"Home", "SaaS Template", "React, Vite, Hono and Cloudflare Workers.", "Open app",
+	"Home", "ControlMembers", "Simple recurring fee control for membership organizations.", "Open app",
 	"Sign in", "Sign out", "Signing in…", "Use your email and password.", "Email", "Password", "Forgot?",
 	"Your password was changed. Sign in with your new password.", "Resend the verification email",
 	"Forgot password", "We will email you a link to choose a new password.", "Back to sign in", "Send reset link", "Sending…",
@@ -51,6 +51,13 @@ export const messages = [
 	"Only a company owner or administrator can change the company language.", "Save company language", "Company language saved.",
 	"We could not save the language. Please try again.", "We could not load language preferences.", "Loading language preferences…",
 	"Timezone, currency and product-specific settings are not editable in this starter.",
+	"Billing setup", "Configure company billing, Programs and monthly Plans.", "We could not load billing setup.", "Loading billing setup…",
+	"Company billing settings", "Currency and timezone apply to future billing records.", "Currency", "Timezone", "Save billing settings",
+	"Billing settings saved.", "We could not save billing settings.", "Programs", "Activities offered by this organization.", "No description",
+	"No Programs yet.", "Add Program", "Program name", "Description", "Offered at Branches", "We could not save the Program.",
+	"Monthly Plans", "Prices and due-day defaults for new Enrollments.", "No monthly Plans yet.", "Add monthly Plan", "Plan name",
+	"Program restriction", "Available to any Program", "Monthly amount ({currency})", "Due day", "Save company billing settings before adding a Plan.",
+	"We could not save the Plan.",
 	"Verify your email", "Confirm your email address to finish setting up your account.", "Verify email",
 	"If you did not create an account, you can ignore this email.", "Reset your password", "Use the link below to choose a new password.",
 	"If you did not request a password reset, you can ignore this email.", "You have been invited to join a team",

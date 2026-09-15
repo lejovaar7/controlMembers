@@ -11,8 +11,8 @@ export function HomePage() {
 	return (
 		<PageContainer>
 			<PageHeader
-				title={t("SaaS Template")}
-				description={t("React, Vite, Hono and Cloudflare Workers.")}
+				title={t("ControlMembers")}
+				description={t("Simple recurring fee control for membership organizations.")}
 			/>
 			{isPending ? null : session ? (
 				<Button render={<Link to="/app/dashboard" />}>{t("Open app")}</Button>

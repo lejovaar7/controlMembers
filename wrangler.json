@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "saas-template",
+	"name": "controlmembers",
 	"main": "./src/worker/index.ts",
 	"compatibility_date": "2026-08-27",
 	"workers_dev": false,
@@ -28,7 +28,7 @@
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "saas-template-db",
+			"database_name": "controlmembers-db",
 			"database_id": "REPLACE_WITH_REAL_D1_DATABASE_ID",
 			"migrations_dir": "./drizzle",
 			"remote": false
@@ -36,7 +36,7 @@
 	],
 	"env": {
 		"dev": {
-			"name": "saas-template-dev",
+			"name": "controlmembers-dev",
 			"workers_dev": false,
 			"preview_urls": false,
 			"routes": [{ "pattern": "dev.example.invalid", "custom_domain": true }],
@@ -50,14 +50,14 @@
 			}],
 			"d1_databases": [{
 				"binding": "DB",
-				"database_name": "saas-template-dev-db",
+				"database_name": "controlmembers-dev-db",
 				"database_id": "REPLACE_WITH_DEV_D1_DATABASE_ID",
 				"migrations_dir": "./drizzle",
 				"remote": false
 			}]
 		},
 		"production": {
-			"name": "saas-template-production",
+			"name": "controlmembers-production",
 			"workers_dev": false,
 			"preview_urls": false,
 			"routes": [{ "pattern": "app.example.invalid", "custom_domain": true }],
@@ -67,7 +67,7 @@
 			"send_email": [{ "name": "EMAIL", "remote": false }],
 			"d1_databases": [{
 				"binding": "DB",
-				"database_name": "saas-template-production-db",
+				"database_name": "controlmembers-production-db",
 				"database_id": "REPLACE_WITH_PRODUCTION_D1_DATABASE_ID",
 				"migrations_dir": "./drizzle",
 				"remote": false

@@ -4,8 +4,9 @@
 
 ## Purpose
 
-The repository builds one Cloudflare application containing a React SPA and a
-Hono Worker API. It is a reusable starter, not a domain-specific product.
+The repository builds the ControlMembers Cloudflare application: a React SPA and
+a Hono Worker API for recurring member-fee management. It was cloned from the
+reusable SaaS foundation and preserves that foundation's security boundaries.
 
 ## Product contract
 
@@ -28,6 +29,10 @@ Hono Worker API. It is a reusable starter, not a domain-specific product.
   fallback applies. English/Spanish are initial catalogs, not a language limit.
 - Every company starts with an internal Branch, including single-location
   businesses. Opening another location does not require a different tenant model.
+- Authenticated owners/admins/employees are the Team. Customer-facing Members
+  are separate business records and do not receive auth identities by default.
+- ControlMembers adds Programs, Plans, Enrollments, monthly Charges, Payments,
+  Allocations, receivables and reports under specifications 10–19.
 
 Detailed role and access policies belong to [tenant security](04-tenant-and-branch-security.md)
 and [member management](07-member-management.md).
@@ -146,19 +151,21 @@ and responses are not cached. See [HTTP boundaries](08-http-and-release-boundari
 Commands, environment guards and release boundaries are specified in
 [Testing and Operations](09-testing-and-operations.md#environment-contract).
 
-## Starter versus cloned product
+## Foundation and product ownership
 
-The starter owns identity, Organizations, memberships, Branches, access rules,
-email, database access, layouts, generic UI and tests. Each cloned SaaS owns its
-customers, orders, inventory, payments, reports, domain permissions and branding.
-Do not add speculative infrastructure, a second ORM/auth system, generic business
-roles or domain tables to this template. Prefer small explicit typed modules over
-unneeded repositories, adapters, base classes or dependency-injection layers.
+The inherited foundation owns identity, Organizations, Team memberships,
+Branches, access rules, email, database access, layouts and environment safety.
+ControlMembers owns customer Members, Contacts, Programs, Plans, Enrollments,
+Charges, Payments, Allocations, reports, domain permissions and branding.
 
-Public signup, self-service company onboarding, administrator-chosen passwords,
-invitation acceptance, member/Branch deletion, ownership transfer, Settings
-editing beyond language and billing are not part of v1. Adding them needs an explicit product
-decision and an update to the responsible module's contract.
+Do not add a second ORM/auth system, alternate tenant/Branch model, speculative
+infrastructure, generic permission engine or domain abstraction without a
+demonstrated product requirement. Prefer small explicit typed modules.
+
+Public signup, self-service Organization onboarding, Member login, online
+payments, WhatsApp, attendance, scheduling, tax invoicing, Team/Branch deletion
+and ownership transfer are not part of the MVP unless their responsible
+specification is explicitly changed.
 
 ## Deferred extension constraints
 
@@ -179,8 +186,9 @@ implemented feature or a task to execute automatically.
   and role-scoped access without any public signup or company-creation screen.
 - SPA navigation stays with Static Assets; unknown `/api/*` routes return JSON.
 - Frontend code cannot import Worker bindings or secret values.
-- The generic repository contains no customer fixtures, production database ID,
-  business-domain tables or product branding.
+- Domain behavior follows specifications 10–19 without weakening inherited
+  tenant, authentication or release boundaries.
+- No real customer fixtures or production resource identifiers are committed.
 - The [quality gate](09-testing-and-operations.md#release-checklist) passes.
 
 Source: `wrangler.json`, `package.json`, `vite.config.ts`, `tsconfig*.json`,

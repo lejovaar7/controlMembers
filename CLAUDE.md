@@ -50,13 +50,15 @@ Guidance for Claude Code when working in this repository.
 
 ## What this project is
 
-A reusable base template for building SaaS products. It is not a product itself —
-it is the starting point that future SaaS projects get cloned from. Every
-decision should favour clarity and reusability over cleverness.
+ControlMembers is a product repository cloned from the reusable SaaS foundation.
+It manages recurring Member fees for academies and membership organizations.
+The inherited foundation is implemented; the target business modules are
+specified in `specs/10` through `specs/19` and sequenced in `planning/`.
 
-Starter v1 is implemented. Add only explicitly requested capabilities, verify
-them end to end, and leave the repository working. Deferred infrastructure and
-business-domain features are not implicit tasks.
+Add only capabilities authorized by the responsible specification and selected
+delivery milestone. Verify them end to end and leave the repository working.
+Deferred infrastructure, WhatsApp, online payments, attendance and scheduling
+are not implicit tasks.
 
 Documentation roles:
 
@@ -66,6 +68,8 @@ Documentation roles:
 - `PROJECT_SPEC.md` is a short project overview pointing to that same structure.
 - `README.md` is the developer/operator guide and current status summary.
 - `specs/VERIFICATION.md` records dated checks and release limitations.
+- `planning/` owns delivery order, user stories and product decisions; it never
+  overrides a numbered specification.
 
 When behavior changes, update the responsible module and affected guides so they
 agree. Do not create parallel delivery/current-state specs for the same feature.
@@ -133,7 +137,7 @@ The `ASSETS` binding is declared and typed but currently unused.
 ## Database
 
 Cloudflare D1 accessed through Drizzle ORM. Binding `DB` in all three
-environments. The top-level configuration preserves local `saas-template-db`;
+environments. The top-level configuration uses local `controlmembers-db`;
 `env.dev` and `env.production` have distinct cloud databases, Workers and domains.
 
 ```
@@ -202,6 +206,10 @@ resolves to a patched release without it. Dependency maintenance must verify
 Drizzle generation/checking, the full quality gate and both npm audits; see
 `specs/09-testing-and-operations.md`.
 
+The temporary top-level `js-yaml` 4.3.2 override keeps ESLint/shadcn transitive
+resolution outside GHSA-2883-xcg3-v3hh. Remove it only after both upstream
+dependency paths resolve to a fixed version and the full dependency gate passes.
+
 ## Frontend
 
 The React app lives in `src/react-app`; the Hono backend lives in `src/worker`.
@@ -217,10 +225,11 @@ separate on purpose.
   an equivalent. Those files are generated — re-running `shadcn add` overwrites
   local edits, so wrap rather than modify them.
 - Reuse `PageContainer` / `PageHeader` instead of re-implementing page chrome.
-- The starter is intentionally unbranded. Do not add project colors, logos or
-  marketing design.
+- ControlMembers may add its product identity through the existing Tailwind,
+  shadcn/ui, Base UI, Lucide and Geist system. Keep tokens accessible and avoid a
+  competing component library.
 - Do not add a global state library (Redux, Zustand, TanStack Query, …) without a
-  demonstrated need, and do not add business features to the starter.
+  demonstrated need. Domain work must follow specs 10–19 and the active milestone.
 
 ### Authentication UI
 
@@ -391,15 +400,16 @@ Branches:
 - Branch deletion is deliberately unimplemented: it needs a data-migration
   policy for activeTeamId, assignments and future branch-owned data.
 
-Rules for SaaS features built on this template:
+Rules for ControlMembers domain features:
 
 - A tenant-owned table must carry `organizationId`.
 - A branch-scoped table must carry both `organizationId` and `branchId`.
 - Every tenant-owned feature needs its own automated cross-tenant isolation
   tests. `test/tenant-isolation.test.ts` is the pattern to follow.
 
-Roles are the Better Auth defaults (`owner`, `admin`, `member`). Do not add
-business roles or dynamic access control here — those belong to each SaaS.
+Roles are the Better Auth defaults (`owner`, `admin`, `member`). Add only the
+explicit domain grants from specification 16; do not build a generic dynamic
+access-control engine or let a grant widen tenant/Branch scope.
 
 Member administration:
 
@@ -504,9 +514,9 @@ contracts. Never create commits, push or deploy without an explicit request.
 
 - Keep changes minimal and scoped to what was asked.
 - Do not add new stub files, commented-out scaffolding, or unused dependencies.
-  Settings beyond language and invitation acceptance are deliberate exclusions,
-  not examples of placeholder routes to copy.
+  Implement product modules as selected vertical milestones; invitation
+  acceptance remains excluded unless its specification changes.
 - Tabs for indentation, double quotes — match the existing files.
 - `worker-configuration.d.ts` is generated and is excluded from ESLint.
-- The Worker name lives in `wrangler.json` (`name`) and should be changed per
-  project derived from this template.
+- The Worker names live in `wrangler.json`; preserve distinct ControlMembers
+  local, dev and production resources.

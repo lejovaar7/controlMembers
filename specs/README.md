@@ -1,70 +1,65 @@
-# SaaS Starter Specifications
+# ControlMembers Specifications
 
-This is the single specification structure for the project: one document per
-module, combining behavior, rules, source references and acceptance checks.
-Numbers are a reading order, not delivery phases or a list of unfinished tasks.
+This is the single canonical specification structure for ControlMembers. Each
+numbered module owns its behavior, rules, boundaries and acceptance checks.
+Numbers are reading order, not delivery phases. Implementation status is stated
+inside each product module; actual evidence belongs in
+[`VERIFICATION.md`](VERIFICATION.md).
 
-Starter v1 is implemented. The [verification record](VERIFICATION.md) contains
-dated test results and release limitations; it is evidence, not another feature
-specification. Production deployment remains a separate operation.
+## Implemented SaaS foundation
 
-## Modules
-
-| Module | What it explains | Main source area |
+| Module | Responsibility | Main source area |
 | --- | --- | --- |
-| [00 — Product and Architecture](00-product-and-architecture.md) | Product model, stack, application boundaries and what belongs to a cloned SaaS. | `package.json`, `wrangler.json`, `vite.config.ts`, `tsconfig*.json` |
-| [01 — Database and Migrations](01-database-and-migrations.md) | Shared D1, Drizzle schemas, generated migrations and membership uniqueness. | `src/worker/db/`, `drizzle/`, `drizzle.config.ts` |
-| [02 — Authentication and Email](02-authentication-and-email.md) | Sign-in, verification, password recovery, first-account setup and email delivery. | `src/worker/auth/`, `src/worker/email/`, auth pages |
-| [03 — Platform Provisioning](03-platform-provisioning.md) | Operator bootstrap and creation of a company, Owner and Main Branch. | `src/worker/platform/`, platform and setup routes/pages |
-| [04 — Tenant and Branch Security](04-tenant-and-branch-security.md) | Company membership, active context, Branch access and isolation rules. | `src/worker/tenant/index.ts`, `src/worker/tenant/branch.ts` |
-| [05 — Frontend Application](05-frontend-application.md) | Routes, layouts, switching, language settings, extensible catalogs and accessibility. | `src/react-app/`, `src/shared/i18n/` |
-| [06 — Branch Management](06-branch-management.md) | Branch visibility, creation, renaming, selection and no-access states. | Branch pages/switcher, `use-branches.ts`, `test/branches.test.ts` |
-| [07 — Member Management](07-member-management.md) | Directory, identity reuse, setup, Owner delegation, all/selected Branches and company-only deactivation/reactivation. | `src/worker/tenant/members.ts`, Member UI, `test/members.test.ts`, `test/access-controls.test.ts` |
-| [08 — HTTP and Release Boundaries](08-http-and-release-boundaries.md) | Request validation, disabled bypass routes, safe errors and template protections. | `src/worker/http.ts`, `src/worker/auth/http-policy.ts`, `test/hardening.test.ts` |
-| [09 — Testing and Operations](09-testing-and-operations.md) | Local/dev/production, guarded commands, test coverage, dependency maintenance and releases. | `wrangler.json`, `scripts/`, `vitest.config.ts`, `test/`, package scripts, generated binding types |
+| [00 — Product and Architecture](00-product-and-architecture.md) | Product topology, stack and platform boundaries. | config and application entry points |
+| [01 — Database and Migrations](01-database-and-migrations.md) | D1, Drizzle schemas and generated migrations. | `src/worker/db/`, `drizzle/` |
+| [02 — Authentication and Email](02-authentication-and-email.md) | Sign-in, verification, recovery, setup and email. | auth/email modules and pages |
+| [03 — Platform Provisioning](03-platform-provisioning.md) | Platform bootstrap and Organization/Owner/Main creation. | platform/setup modules |
+| [04 — Tenant and Branch Security](04-tenant-and-branch-security.md) | Active tenant, Branch scope and isolation. | tenant modules |
+| [05 — Frontend Application](05-frontend-application.md) | Routes, layouts, localization and accessibility foundation. | React app and shared i18n |
+| [06 — Branch Management](06-branch-management.md) | Branch visibility and administration. | Branch UI/API tests |
+| [07 — Team Access Management](07-member-management.md) | Authenticated employee provisioning, roles and Branch scope. | existing Member/Team access modules |
+| [08 — HTTP and Release Boundaries](08-http-and-release-boundaries.md) | Safe request/response and release boundaries. | HTTP/auth policy |
+| [09 — Testing and Operations](09-testing-and-operations.md) | Environments, quality gate and release operation. | scripts, tests and config |
 
-## How to review the product
+Specification 07 retains its historical filename and Better Auth persistence
+terminology. In ControlMembers product copy, those authenticated people are the
+**Team**; “Member” refers to the customer record in specification 11.
 
-Start with module 00 for the overall model. Review modules 03, 04, 06 and 07
-for who can create companies, manage people and access Branches. Review module
-05 for the screens and module 09 for validation and production preparation.
+## ControlMembers MVP contracts
 
-Inside each module, acceptance checks describe what must remain true after a
-change. They are not claims that every possible test was performed: actual
-observations, counts and limitations belong to [VERIFICATION.md](VERIFICATION.md).
+| Module | Responsibility | Status |
+| --- | --- | --- |
+| [10 — Product and MVP](10-controlmembers-product.md) | Outcomes, scope, terminology and primary journeys. | Target MVP |
+| [11 — Members and Contacts](11-customer-members-and-contacts.md) | Customer records, responsible payers and lifecycle. | Target MVP |
+| [12 — Programs, Plans and Enrollments](12-programs-plans-and-enrollments.md) | Offered activities and commercial terms. | Target MVP |
+| [13 — Charges and Billing Cycles](13-charges-and-billing-cycles.md) | Monthly generation, due dates, states and adjustments. | Target MVP |
+| [14 — Payments and Ledger](14-payments-and-ledger.md) | Payments, allocations, credit and reversals. | Target MVP |
+| [15 — Dashboard and Reports](15-dashboard-and-reports.md) | Reconciled metrics, aging and exports. | Target MVP |
+| [16 — Domain Permissions and Audit](16-domain-permissions-and-audit.md) | Business capabilities and append-only evidence. | Target MVP |
+| [17 — Product Frontend and Design](17-product-frontend-and-design.md) | Navigation, shadcn-based design and responsive UX. | Target MVP |
+| [18 — Notification Boundary](18-notifications-boundary.md) | Safe future WhatsApp/message architecture. | Post-MVP boundary |
+| [19 — Import, Export and Privacy](19-import-export-and-privacy.md) | Member onboarding, operational exports and data care. | Target MVP |
 
-## Scope boundaries
+## Reading paths
 
-The starter is closed B2B, with generic `owner`, `admin` and `member` roles.
-It does not implement public signup, self-service company onboarding, invitation
-acceptance, deletion/ownership transfer, Settings beyond language, billing or domain
-features. Deferred infrastructure constraints are kept in
-[module 00](00-product-and-architecture.md#deferred-extension-constraints);
-they do not authorize implementation.
+- Product and design: 10, 17.
+- Data and financial behavior: 11–15.
+- Security and isolation: 04, 08, 16.
+- Implementation/release: 01, 05, 09 and
+  [`../planning/DELIVERY_PLAN.md`](../planning/DELIVERY_PLAN.md).
+- Future WhatsApp work: 18 only after the MVP ledger is stable.
 
 ## Documentation responsibilities
 
-- This index and the numbered modules are the canonical feature contracts.
-- [Project overview](../PROJECT_SPEC.md) is a short introduction pointing here.
-- [Operator guide](../README.md) owns setup and day-to-day commands.
-- [Agent guidance](../CLAUDE.md) owns coding and repository conventions.
-- [Verification record](VERIFICATION.md) owns dated execution evidence.
+- These numbered modules are authoritative product contracts.
+- [`../PROJECT_SPEC.md`](../PROJECT_SPEC.md) is the concise overview.
+- [`../planning/`](../planning/README.md) owns stories, order and open decisions;
+  it cannot redefine product behavior.
+- [`../README.md`](../README.md) owns operator setup and commands.
+- [`../CLAUDE.md`](../CLAUDE.md) owns repository implementation conventions.
+- [`VERIFICATION.md`](VERIFICATION.md) records only executed evidence and limits.
 
-When behavior changes, update the responsible module and its acceptance checks,
-then the operator guide or verification record when affected. Extend this
-structure for a genuinely new module; do not create a second set of specs for
-the same functionality. Keep source keys and documentation in English; localized
-catalog values are the explicit exception. Language behavior belongs to module
-05, email resolution to 02, persistence to 01 and provisioning to 03.
-
-## Next work
-
-The language implementation, company/access work, final access-boundary fixes
-and supporting guides are integrated into `main`; see the
-[verification record](VERIFICATION.md) for commit IDs and checks. No push or
-deployment was performed. Specifications and
-`PROJECT_SPEC.md` intentionally remain uncommitted; a Git clone will not include
-these untracked files.
-
-To build the first real SaaS, define its business domain and follow
-[Creating a real SaaS](09-testing-and-operations.md#creating-a-real-saas).
+When behavior changes, update the responsible module before or with code. Do not
+repeat one rule in multiple modules: reference the owner. Cross-cutting domain
+features inherit tenant isolation (04), frontend context/localization (05), HTTP
+hardening (08) and testing/release requirements (09).

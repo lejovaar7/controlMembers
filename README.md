@@ -1,16 +1,23 @@
-# SaaS Template
+# ControlMembers
 
-Reusable base template for future SaaS projects.
+Closed B2B SaaS for recurring member fees, payments and receivables in sports,
+music, martial arts, swimming, dance, language and similar academies.
 
 **Stack:** React + Vite + TypeScript + Hono on Cloudflare Workers.
 Generated from Cloudflare's official `cloudflare/templates/vite-react-template`.
 
 ## Project documentation
 
-- [Specifications](specs/README.md) — the single module-by-module reference for behavior, rules and acceptance checks
-- [Project overview](PROJECT_SPEC.md) — a short introduction to the starter
+- [Product brief](PRODUCT_BRIEF.md) — concise identity and purpose
+- [Specifications](specs/README.md) — canonical foundation and MVP contracts
+- [Project overview](PROJECT_SPEC.md) — current product and implementation status
+- [Delivery planning](planning/README.md) — user stories, milestones and decisions
 - [Agent guidance](CLAUDE.md) — repository rules for coding agents
 - [Verification record](specs/VERIFICATION.md) — dated checks and release limitations
+
+This clone keeps a fetch-only `template` remote and intentionally has no product
+`origin` yet. After creating the real ControlMembers repository, add it with
+`git remote add origin <url>`; do not re-enable pushes to `template`.
 
 ## Structure
 
@@ -48,6 +55,9 @@ served by Vite. In production, `wrangler.json` points the Worker at
 | GET    | `/api/account/locale`                 | Personal preference and validated active-company language |
 | PATCH  | `/api/account/locale`                 | Save/reset the signed-in user's language only |
 | PATCH  | `/api/company/locale`                 | Owner/admin language setting for the active company only |
+| GET/PATCH | `/api/product/settings`            | Read or manage Organization billing currency and timezone |
+| GET/POST/PATCH | `/api/programs`                | List and manage tenant Programs and offered Branches |
+| GET/POST/PATCH | `/api/billing-plans`           | List and manage monthly billing Plans |
 | GET    | `/api/members`                        | Owner/admin-only directory in the active Organization |
 | POST   | `/api/members`                        | Provision/reuse an employee with supported role and Branches |
 | PATCH  | `/api/members/:membershipId`          | Update a manageable employee's role and exact Branch scope |
@@ -96,13 +106,13 @@ is local; `env.dev` and `env.production` are the two deployed environments.
 
 | Environment | URL | Worker | Database | Email |
 | --- | --- | --- | --- | --- |
-| Local | `http://localhost:5173` | Local runtime, not deployed | Local D1 state, original `saas-template-db` identity | Simulated |
-| Dev | Your `https://dev.<domain>` | `saas-template-dev` | Separate `saas-template-dev-db` in Cloudflare | Real sending, explicit test-recipient allowlist |
-| Production | Your `https://app.<domain>` | `saas-template-production` | Separate `saas-template-production-db` in Cloudflare | Real sending |
+| Local | `http://localhost:5173` | Local runtime, not deployed | Local `controlmembers-db` state | Simulated |
+| Dev | Your `https://dev.<domain>` | `controlmembers-dev` | Separate `controlmembers-dev-db` in Cloudflare | Real sending, explicit test-recipient allowlist |
+| Production | Your `https://app.<domain>` | `controlmembers-production` | Separate `controlmembers-production-db` in Cloudflare | Real sending |
 
-The remote names are defaults to rename in each cloned SaaS. Tracked remote D1
-IDs, custom domains and dev recipients are intentionally non-working examples.
-See [Starting a new project](#starting-a-new-project-from-this-template) to
+The ControlMembers remote names are product defaults. Tracked remote D1 IDs,
+custom domains and dev recipients are intentionally non-working examples.
+See [Configuring ControlMembers environments](#configuring-controlmembers-environments) to
 replace them. No Cloudflare resource or DNS setup is created by a local build.
 
 `scripts/environments.mjs` selects the Cloudflare environment **before** Vite
@@ -177,7 +187,7 @@ Client-side routing uses React Router, with three route groups:
 | ----- | ------ | ------ |
 | Public/auth | `/`, `/login`, `/verify-email`, `/forgot-password`, `/reset-password`, `/setup-account`, `/no-company` | Implemented |
 | Platform | `/platform`, `/platform/organizations/new` | Implemented; platform-admin UX guard plus server authorization |
-| Application | `/app/dashboard`, `/app/branches`, `/app/no-branch-access`, `/app/members`, `/app/settings` | Branch/Member management, workspace summary and personal/company language settings |
+| Application | `/app/dashboard`, `/app/branches`, `/app/no-branch-access`, `/app/members`, `/app/billing-setup`, `/app/settings` | Branch/Team management, billing setup, workspace summary and language settings |
 | Redirected | `/register`, `/onboarding` | No public signup or self-service company onboarding |
 
 Invitation acceptance is not exposed: its placeholder page and route were removed.
@@ -192,8 +202,9 @@ login. Local email is always simulated by the supported scripts, so messages app
 `.wrangler/tmp/email/` instead of being delivered.
 
 Styling is Tailwind CSS v4 with shadcn/ui components in
-`src/react-app/components/ui`. The starter ships deliberately unbranded so each
-SaaS can apply its own identity.
+`src/react-app/components/ui`. ControlMembers extends this existing design
+system; product UI rules are specified in
+[`specs/17-product-frontend-and-design.md`](specs/17-product-frontend-and-design.md).
 
 ## Provisioning
 
@@ -276,8 +287,8 @@ curl -X POST https://dev.example.com/api/auth/sign-in/magic-link \
 ```
 
 Opening the link proves mailbox ownership, verifies the account and takes you to
-`/setup-account` to choose a password. Each cloned SaaS must bootstrap its own
-platform admin this way. Run this bootstrap once per database; do not insert
+`/setup-account` to choose a password. Each isolated ControlMembers environment
+must bootstrap its own platform admin this way. Run this bootstrap once per database; do not insert
 the same email again if its user already exists. A failed email can be retried
 without reinserting the user.
 
@@ -290,7 +301,7 @@ credentials or test identities in production.
 
 ## Multi-tenancy
 
-The template models tenancy with Better Auth's Organization plugin:
+ControlMembers models tenancy with Better Auth's Organization plugin:
 
 | Application term | Better Auth model            |
 | ---------------- | ---------------------------- |
@@ -306,8 +317,8 @@ Default access:
 - `member` reaches only assigned Branches
 - inactive company memberships authorize no tenant access
 
-Roles are Better Auth's defaults (`owner`, `admin`, `member`). Each SaaS built on
-this template can add its own roles and domain permissions on top.
+Roles are Better Auth's defaults (`owner`, `admin`, `member`). ControlMembers
+adds only the domain grants defined in specification 16.
 
 Each organization carries optional settings: `locale`, `timezone` and
 `currency`.
@@ -418,7 +429,12 @@ deployed to either remote environment.
 
 ## Current status
 
-Starter v1 is implemented. The quality gate includes typecheck, lint, Node and
+The inherited SaaS foundation is implemented. ControlMembers product contracts,
+user stories and milestones are documented. The first product slice now includes
+Organization billing settings, Programs, Program-Branch availability and monthly
+Plans across schema, guarded APIs, a responsive bilingual setup screen and
+isolation tests. Member registry, Enrollments, Charges, Payments and reporting
+remain planned work. The quality gate includes typecheck, lint, Node and
 Workers/D1 tests, and all three environment builds/deployment dry runs.
 See [the dated verification record](specs/VERIFICATION.md) for results, manual
 checks and dependency-audit results. The 2026-09-02 dependency remediation leaves
@@ -426,8 +442,8 @@ both the full and production-only audits at zero reported vulnerabilities.
 No production deployment is part of this completion.
 
 Start at [specs/README.md](specs/README.md) for the single specification index.
-Each numbered file covers one module, including its implemented behavior,
-acceptance checks and limitations; the numbers are not delivery phases.
+Each numbered file owns one module's contract and status. Delivery order lives in
+[`planning/DELIVERY_PLAN.md`](planning/DELIVERY_PLAN.md).
 
 ## Configuration
 
@@ -491,7 +507,7 @@ complete and does not merge with `.dev.vars`. The examples are tracked; actual
 `.dev.vars*` files are ignored. Do not copy production secrets into them.
 Remote Workers obtain their real values from Cloudflare, not these files.
 
-Vite can copy local values into ignored `dist/saas_template/.dev.vars` (the folder
+Vite can copy local values into ignored `dist/controlmembers/.dev.vars` (the folder
 name follows the base Worker name). Never publish/share the full `dist` directory
 as static files. Only `dist/client` is served. Do not create public `VITE_*`
 variables containing Worker secrets.
@@ -517,9 +533,9 @@ report failed setup email. Update the allowlist, redeploy dev and resend.
 Production has no test-recipient restriction. Never import customer recipients
 into dev to test sending. The allowlist controls email, not website access;
 restrict dev access separately (for example with Cloudflare Access) before wider
-testing. Access policies are not provisioned by this template.
+testing. Access policies are not provisioned by this application.
 
-## Starting a new project from this template
+## Configuring ControlMembers environments
 
 Local setup needs no remote database or domain. The following steps create real
 Cloudflare resources and belong to an explicitly authorized release/setup:
@@ -533,8 +549,8 @@ Cloudflare resources and belong to an explicitly authorized release/setup:
    them, use your new names instead:
 
    ```bash
-   npx wrangler d1 create saas-template-dev-db
-   npx wrangler d1 create saas-template-production-db
+   npx wrangler d1 create controlmembers-dev-db
+   npx wrangler d1 create controlmembers-production-db
    ```
 
 4. Copy each returned UUID into the corresponding environment's `database_id`.

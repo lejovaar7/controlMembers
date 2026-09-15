@@ -1,9 +1,79 @@
-# Starter v1 Verification Record
+# ControlMembers Verification Record
 
 This is dated execution evidence, not a permanent test-count target or proof of
 production deployment. The latest repository checkpoint is recorded first; earlier
-localization, environment, Starter v1 and dependency-remediation evidence is
-preserved below.
+localization, environment, Starter v1 and dependency-remediation evidence from
+the inherited foundation is preserved below.
+
+## 2026-09-15: Billing setup vertical slice
+
+Implemented the first ControlMembers domain slice without changing any remote
+environment. Generated and applied local migration `0007_organic_lucky_pierre`
+for Organization Programs, explicit Program-Branch availability and monthly
+Billing Plans. Added guarded Organization billing settings and Program/Plan APIs,
+including tenant/Branch validation, active-name uniqueness, role restrictions,
+integer minor-unit pricing and currency snapshots.
+
+Added `/app/billing-setup`, a responsive bilingual create/list experience for
+currency, timezone, Programs, offered Branches and Plans. The navigation exposes
+it only to Owners and unrestricted admins as a UX guard; the Worker remains the
+authorization boundary. Six new Workers tests cover configuration permissions,
+validation, cross-tenant/cross-Branch rejection, duplicate names and Plan
+currency snapshots.
+
+`npm exec -- drizzle-kit check` and `npm run check` passed. The complete gate
+included typecheck, lint, 18 environment tests, two i18n checks, 155 Workers/D1
+tests and local/dev/production builds plus deployment dry-runs (175 automated
+tests total). Both `npm audit` and `npm audit --omit=dev` reported zero known
+vulnerabilities. A local HTTP smoke check returned database health OK and served
+the ControlMembers SPA at `/app/billing-setup`. No remote migration, cloud
+resource, commit, push, email delivery or deployment was performed. Enrollments
+and the downstream financial modules remain unimplemented; Program/Plan edit and
+deactivation APIs exist, while their UI controls remain follow-up work.
+
+## 2026-09-14: ControlMembers product-clone baseline
+
+Created the separate `/Users/admin/Personal/controlmembers` repository from
+foundation commit `7280ab2`. The source template remained unchanged. The clone's
+`template` remote fetches the original GitHub repository and has a disabled push
+URL; a product `origin` remains intentionally unset until its real repository URL
+is provided.
+
+Established the ControlMembers identity, product overview, canonical modules
+10–19, prioritized user stories, product decision log and seven-milestone MVP
+delivery plan. The documents distinguish customer-facing Members from the
+authenticated Team and specify Programs, Plans, Enrollments, Charges, Payments,
+Allocations, reporting, permissions, audit, responsive shadcn-based UX, import/
+export/privacy and a post-MVP WhatsApp boundary. No domain table, route or screen
+is claimed as implemented.
+
+Renamed local/dev/production Worker and D1 placeholders to ControlMembers and
+regenerated binding/runtime types. Updated the landing title and bilingual
+catalog copy. Installed the locked dependencies and then applied only compatible
+security updates offered by the audit: `@cloudflare/vite-plugin` 1.54.9,
+`@cloudflare/vitest-plugin` 1.1.9 and Wrangler 4.131.2. A temporary `js-yaml`
+4.3.2 override covers the remaining ESLint/shadcn transitive advisory and is
+documented in agent guidance.
+
+Verification on this working tree:
+
+| Check | Result |
+| --- | --- |
+| `npm run cf-typegen` | Passed; `worker-configuration.d.ts` regenerated for the renamed configuration |
+| `npm run check` | Passed typecheck, lint, 149 Workers tests, 18 environment tests, two i18n checks and local/dev/production build/dry-runs (169 tests total) |
+| `npm audit` | Zero reported vulnerabilities |
+| `npm audit --omit=dev` | Zero reported vulnerabilities |
+| `npm exec -- drizzle-kit check` | Passed; inherited migration metadata remains consistent |
+| `npm run db:migrate:local` | Applied inherited migrations 0000–0006 to the new ignored ControlMembers local D1 state |
+| Local HTTP smoke | `GET /api/health` returned `{status:"ok",database:"ok"}` from the new local D1; the server was then stopped |
+| `git diff --check` | Passed after generated whitespace normalization |
+
+The first full check ran before the ignored local `.dev.vars` was created, so
+Wrangler warned that local required secrets were absent while tests used their
+isolated bindings; all checks still passed. A local-only ignored development
+file now provides non-production values for future `npm run dev`. No cloud
+resource, remote database, real email recipient, product Git remote, commit,
+push, remote migration or deployment was created.
 
 ## 2026-09-03: Current main and documentation synchronization
 

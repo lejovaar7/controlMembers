@@ -163,10 +163,10 @@ apply it in dev and verify language UI and real dev-recipient mail before the
 separate production migration/deployment. No migration copies preferences or
 accounts between environments. A new catalog alone requires no schema migration.
 
-A cloned project chooses its remote Worker/database names and two domains,
-creates two D1 databases, replaces the remote placeholder IDs, configures dev
+A ControlMembers installation uses its distinct remote Worker/database names and
+two domains, creates two D1 databases, replaces the remote placeholder IDs, configures dev
 test recipients, generates binding types, and installs each environment's
-secrets. See the [operator setup guide](../README.md#starting-a-new-project-from-this-template)
+secrets. See the [operator setup guide](../README.md#configuring-controlmembers-environments)
 for exact commands, domain/email setup and first-admin bootstrap.
 
 Local runtime state, `.dev.vars`, generated `dist`, and `.wrangler` data are
@@ -217,6 +217,12 @@ esbuild without it and the same compatibility/audit checks pass. Do not replace
 it with a global override, an automatic forced downgrade or an audit suppression.
 A zero-finding audit is dated evidence of known advisories, not a permanent
 guarantee that all dependencies are vulnerability-free.
+
+The ControlMembers clone additionally pins the compatible Cloudflare tooling
+versions recorded in `package.json` and temporarily overrides transitive
+`js-yaml` to 4.3.2 for GHSA-2883-xcg3-v3hh. Reassess and remove that override
+when both ESLint and shadcn dependency paths resolve a fixed version themselves;
+the same Drizzle, shadcn, application and audit checks remain required.
 
 ## Release checklist
 
@@ -274,17 +280,16 @@ upgrade unrelated packages or force an audit fix.
   checks/dry runs are part of implementation verification; remote provisioning,
   migrations, DNS, secret installation and delivery remain external operations.
 
-## Creating a real SaaS
+## Developing ControlMembers
 
-- Preserve the starter and create a product-specific repository. Ensure desired
-  documentation is committed before cloning: untracked files are not cloned.
-- Follow the [operator guide](../README.md#starting-a-new-project-from-this-template)
+- Preserve the source template separately; this repository is the product clone.
+- Follow the [operator guide](../README.md#configuring-controlmembers-environments)
   for separate dev/production Workers, databases, domains, secrets and sending
   configuration. Migration commands already resolve the selected `DB` binding.
-- Bootstrap that product's own platform administrator and verify real email
+- Bootstrap ControlMembers' own platform administrator and verify real email
   delivery and production configuration in a separately authorized release.
-- Add business tables and permissions only in the cloned product, with the
-  Organization/Branch keys and isolation tests required by
+- Implement product milestones from `planning/` under specifications 10–19,
+  preserving the Organization/Branch keys and isolation tests required by
   [tenant security](04-tenant-and-branch-security.md).
 - No commit, push, remote migration or production deployment is implied by
   completing a module or running local tests.

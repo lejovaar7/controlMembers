@@ -63,7 +63,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 	useEffect(() => {
 		document.documentElement.lang = locale;
 		document.documentElement.dir = languages[locale].dir;
-		document.title = t("SaaS Template");
+		document.title = t("ControlMembers");
 	}, [locale, t]);
 
 	function setPublicLocale(next: Locale) {

@@ -13,6 +13,8 @@ import { listAccessibleBranches } from "./tenant/branch";
 import { listMembers, provisionMember, resendMemberSetup, updateMemberAccess, updateMemberStatus } from "./tenant/members";
 import { listCompanies, selectCompany } from "./tenant/companies";
 import { getLocalePreferences, readLocale, updateCompanyLocale, updateUserLocale } from "./localization";
+import { getBillingSettings, updateBillingSettings } from "./product/setup";
+import { createBillingPlan, createProgram, listBillingPlans, listPrograms, updateBillingPlan, updateProgram } from "./product/catalog";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -62,6 +64,17 @@ app.post("/api/companies/active", async (c) => c.json(await selectCompany(c.env,
 app.get("/api/account/locale", async (c) => c.json(await getLocalePreferences(c.env, c.req.raw)));
 app.patch("/api/account/locale", async (c) => c.json(await updateUserLocale(c.env, c.req.raw, await readJsonObject(c.req.raw))));
 app.patch("/api/company/locale", async (c) => c.json(await updateCompanyLocale(c.env, c.req.raw, await readJsonObject(c.req.raw))));
+
+app.get("/api/product/settings", async (c) => c.json(await getBillingSettings(c.env, c.req.raw)));
+app.patch("/api/product/settings", async (c) => c.json(await updateBillingSettings(c.env, c.req.raw, await readJsonObject(c.req.raw))));
+
+app.get("/api/programs", async (c) => c.json(await listPrograms(c.env, c.req.raw)));
+app.post("/api/programs", async (c) => c.json(await createProgram(c.env, c.req.raw, await readJsonObject(c.req.raw)), 201));
+app.patch("/api/programs/:id", async (c) => c.json(await updateProgram(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
+
+app.get("/api/billing-plans", async (c) => c.json(await listBillingPlans(c.env, c.req.raw)));
+app.post("/api/billing-plans", async (c) => c.json(await createBillingPlan(c.env, c.req.raw, await readJsonObject(c.req.raw)), 201));
+app.patch("/api/billing-plans/:id", async (c) => c.json(await updateBillingPlan(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
 
 /** Tenant-scoped administration; never exposes platform roles. */
 app.get("/api/members", async (c) => {

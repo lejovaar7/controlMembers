@@ -120,9 +120,10 @@ access without a separate security/recovery plan.
 
 ## Deliberately absent
 
-There are no customers, orders, payments, products, vehicles, inventory,
-students, services, or other business-domain tables. Cloned SaaS products add
-those tables with required Organization and, where applicable, Branch keys.
+The inherited baseline currently has no ControlMembers domain tables. Modules
+11–16 specify Member, Contact, Program, Plan, Enrollment, Charge, Payment,
+Allocation and audit persistence to add through generated migrations. Every
+tenant-owned table requires Organization and, where applicable, Branch keys.
 
 ## Acceptance checks
 

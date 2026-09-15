@@ -1,5 +1,5 @@
 import { useT } from "@/lib/i18n";
-import { Building2, LayoutDashboard, Settings, Users } from "lucide-react";
+import { Building2, CalendarRange, LayoutDashboard, Settings, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation } from "react-router";
 import { BranchSwitcher } from "@/components/branch-switcher";
@@ -20,24 +20,27 @@ import { LanguagePicker } from "@/components/language-picker";
 
 const navigation = [
 	{ to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, manage: false },
-	{ to: "/app/branches", label: "Branches", icon: Building2, manage: true },
-	{ to: "/app/members", label: "Members", icon: Users, manage: true },
-	{ to: "/app/settings", label: "Settings", icon: Settings, manage: false },
+	{ to: "/app/billing-setup", label: "Billing setup", icon: CalendarRange, manage: true, fullScope: true },
+	{ to: "/app/branches", label: "Branches", icon: Building2, manage: true, fullScope: false },
+	{ to: "/app/members", label: "Members", icon: Users, manage: true, fullScope: false },
+	{ to: "/app/settings", label: "Settings", icon: Settings, manage: false, fullScope: false },
 ] as const;
 
 function Navigation({
 	className,
 	showManagement,
+	fullScope,
 }: {
 	className?: string;
 	showManagement: boolean;
+	fullScope: boolean;
 }) {
 	const t = useT();
 	return (
 		<nav aria-label={t("Main")} className={className}>
 			<ul className="flex flex-wrap gap-1 md:flex-col">
 				{navigation
-					.filter((item) => showManagement || !item.manage)
+					.filter((item) => (showManagement || !item.manage) && (!("fullScope" in item) || !item.fullScope || fullScope))
 					.map(({ to, label, icon: Icon }) => (
 					<li key={to}>
 						<NavLink
@@ -221,7 +224,7 @@ export function AppLayout() {
 		<div className="flex min-h-svh flex-col md:flex-row">
 			<aside className="border-b md:w-56 md:shrink-0 md:border-r md:border-b-0">
 				<div className="p-3">
-					<Navigation showManagement={manageBranches} />
+					<Navigation showManagement={manageBranches} fullScope={permissions?.allBranches === true} />
 				</div>
 			</aside>
 			<div className="flex min-w-0 flex-1 flex-col">

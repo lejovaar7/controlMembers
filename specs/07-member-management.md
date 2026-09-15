@@ -2,6 +2,11 @@
 
 [All specifications](README.md)
 
+> **ControlMembers terminology:** this inherited module manages authenticated
+> employees and is presented as **Team/Equipo** in the product. Customer-facing
+> Members are separate `customer_member` records specified in module 11. Better
+> Auth's existing `member` table and API terminology remain unchanged.
+
 ## Purpose and entry points
 
 `/app/members` lets a company owner/admin provision people, manage supported
