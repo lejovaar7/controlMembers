@@ -12,7 +12,7 @@ canonical specification before implementation.
 | --- | --- | --- |
 | D-001 | ControlMembers is a closed B2B SaaS. | Organizations are provisioned; there is no public organization signup. |
 | D-002 | The customer-facing subject is called a **Member**. | Product copy uses Member; it never uses Better Auth's `member` table for customer records. |
-| D-003 | Authenticated employees are called the **Team** in product copy. | The inherited `/app/members` area will be renamed in the UI without renaming Better Auth tables. |
+| D-003 | Authenticated employees are called **Users** in product copy. | The inherited `/app/members` route and Better Auth persistence remain stable while the UI uses Users & permissions. |
 | D-004 | MVP payments are recorded manually. | Payment gateways, reconciliation and provider webhooks are deferred. |
 | D-005 | MVP billing frequency is monthly. | The schema may preserve a frequency field, but only `monthly` is accepted until another frequency is specified. |
 | D-006 | Financial history is immutable by default. | Posted payments are reversed, charges are voided, and neither is hard-deleted. |
@@ -20,6 +20,7 @@ canonical specification before implementation.
 | D-008 | WhatsApp is post-MVP. | MVP stores normalized contact/consent data and notification boundaries but sends no messages. |
 | D-009 | The inherited tenant and Branch authorization remains authoritative. | Every domain query is scoped from a validated tenant and, when applicable, accessible Branches. |
 | D-010 | Design extends the inherited Tailwind/shadcn system. | Product features reuse existing primitives and do not introduce a competing component library. |
+| D-011 | The MVP uses Plans without a separate Program entity. | A Plan combines the offer, monthly amount, usual due day and Branch availability; optional tags organize/filter only. |
 
 ## Product defaults to validate
 
@@ -28,7 +29,7 @@ their milestone begins.
 
 | ID | Default | Status | Affected spec |
 | --- | --- | --- | --- |
-| D-101 | A Member may have multiple active enrollments, but only one active enrollment per Program. | Proposed | 12 |
+| D-101 | A Member may have multiple active enrollments, but only one active enrollment per Plan and Branch. | Proposed | 12 |
 | D-102 | Joining mid-month does not automatically prorate; staff may adjust or void the first charge. | Proposed | 13 |
 | D-103 | A charge becomes overdue immediately after its due date in the Organization timezone; there is no grace period. | Proposed | 13 |
 | D-104 | Unallocated payment value becomes account credit for that Member. | Proposed | 14 |

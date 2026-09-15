@@ -15,9 +15,8 @@ Generated from Cloudflare's official `cloudflare/templates/vite-react-template`.
 - [Agent guidance](CLAUDE.md) — repository rules for coding agents
 - [Verification record](specs/VERIFICATION.md) — dated checks and release limitations
 
-This clone keeps a fetch-only `template` remote and intentionally has no product
-`origin` yet. After creating the real ControlMembers repository, add it with
-`git remote add origin <url>`; do not re-enable pushes to `template`.
+This repository uses `origin` for ControlMembers and keeps a fetch-only
+`template` remote for its SaaS foundation. Never re-enable pushes to `template`.
 
 ## Structure
 
@@ -56,14 +55,22 @@ served by Vite. In production, `wrangler.json` points the Worker at
 | PATCH  | `/api/account/locale`                 | Save/reset the signed-in user's language only |
 | PATCH  | `/api/company/locale`                 | Owner/admin language setting for the active company only |
 | GET/PATCH | `/api/product/settings`            | Read or manage Organization billing currency and timezone |
-| GET/POST/PATCH | `/api/programs`                | List and manage tenant Programs and offered Branches |
-| GET/POST/PATCH | `/api/billing-plans`           | List and manage monthly billing Plans |
+| GET/POST | `/api/plans`                         | List and create tenant Plans, Branch availability and optional tags |
+| PATCH  | `/api/plans/:id`                       | Edit or activate/deactivate a tenant Plan |
+| GET/POST/PATCH | `/api/customer-members` and nested routes | Search, create and maintain customer Members, Contacts, status and Enrollments |
+| GET/POST | `/api/charges`, `/api/charges/generate[...]` | Filter Charges and preview/run idempotent monthly generation |
+| PATCH  | `/api/charges/:id/adjust`, `/api/charges/:id/void` | Authorized audited Charge corrections |
+| GET/POST | `/api/payments`                       | Filter history or post a Payment with allocations and Member credit |
+| PATCH  | `/api/payments/:id/reverse`             | Authorized audited Payment reversal |
+| GET    | `/api/dashboard`, `/api/reports/*`      | Scoped reconciled metrics, aging and balances |
+| GET    | `/api/exports/:kind`                    | Authorized audited CSV exports |
+| GET/POST | `/api/imports/members/*`              | Versioned template, no-write preview and idempotent Member import |
 | GET    | `/api/members`                        | Owner/admin-only directory in the active Organization |
 | POST   | `/api/members`                        | Provision/reuse an employee with supported role and Branches |
 | PATCH  | `/api/members/:membershipId`          | Update a manageable employee's role and exact Branch scope |
 | PATCH  | `/api/members/:membershipId/status`   | Deactivate/reactivate this company's access, preserving identity/history |
 | POST   | `/api/members/:membershipId/setup/resend` | Resend setup for an unfinished, manageable account |
-| POST   | `/api/platform/organizations`         | Platform-only company, Owner, and Main Branch provisioning |
+| POST   | `/api/platform/organizations`         | Platform-only company, Owner, and localized initial Branch provisioning |
 | POST   | `/api/platform/account-setup/resend`  | Platform-only setup-link resend |
 | POST   | `/api/account/setup-password`         | First-time password setup for the authenticated user |
 
@@ -178,7 +185,8 @@ migration authority.
 - Configuration: `src/worker/auth/index.ts` (`getAuth(env)`)
 - Schema: `src/worker/db/auth-schema.ts` — derived from Better Auth 1.7.2 with
   an application-level unique `(organizationId, userId)` membership index and
-  the `isActive`, `allBranches`, `canAppointAdmins` membership fields.
+  the `isActive`, `allBranches`, `canAppointAdmins`, `canReversePayments`,
+  `canAdjustCharges`, `canViewReports` and `canExportFinancialData` membership fields.
   Preserve these extensions and matching Better Auth additionalFields when
   regenerating auth models, inspect the diff, then use
   `npm run db:generate` for migrations. Do not use a newer auth CLI blindly.
@@ -198,7 +206,7 @@ Client-side routing uses React Router, with three route groups:
 | ----- | ------ | ------ |
 | Public/auth | `/`, `/login`, `/verify-email`, `/forgot-password`, `/reset-password`, `/setup-account`, `/no-company` | Implemented |
 | Platform | `/platform`, `/platform/organizations/new` | Implemented; platform-admin UX guard plus server authorization |
-| Application | `/app/dashboard`, `/app/branches`, `/app/no-branch-access`, `/app/members`, `/app/billing-setup`, `/app/settings` | Branch/Team management, billing setup, workspace summary and language settings |
+| Application | `/app/dashboard`, `/app/customer-members`, `/app/charges`, `/app/payments`, `/app/billing-setup`, `/app/reports`, `/app/members`, `/app/branches`, `/app/settings` | Complete ControlMembers operational MVP plus company administration |
 | Redirected | `/register`, `/onboarding` | No public signup or self-service company onboarding |
 
 Invitation acceptance is not exposed: its placeholder page and route were removed.
@@ -225,7 +233,7 @@ authorized administrators.
 ```
 Platform admin  →  creates company
                 →  provisions the owner
-                →  creates the company's Main branch
+                →  creates its localized initial branch
 Owner           →  receives one account-setup link
                 →  confirms their email, chooses a password
                 →  enters the company
@@ -243,6 +251,10 @@ read-only, and nobody edits their own access here. Only the Owner may enable
 allows creating/promoting admins, not editing peer admins or passing the
 permission on. Limited admins cannot grant wider scope, create new Branches, or
 manage an employee shared with locations outside their scope.
+
+Only the Owner can grant the optional financial capabilities to reverse
+Payments, adjust/void Charges, view reports or export financial data. These
+grants never widen Branch scope and every permission change is audited.
 
 The directory also offers **Deactivate access** / **Reactivate access** with a
 confirmation. This changes only the person's access to this company, not their
@@ -266,14 +278,14 @@ npm run dev
 
 Existing memberships stay active and existing admins retain all-Branch access.
 Their permission to appoint admins now requires an explicit Owner grant at
-**Members → Edit access → Can appoint administrators**. No one gains that
+**Users & permissions → Edit access → Can appoint administrators**. No one gains that
 delegation automatically.
 
 For a separately authorized release, apply `npm run db:migrate:dev` before
 `npm run deploy:dev`, validate the flows, then repeat with the explicit production
 commands when approved. Deploy never runs migrations implicitly. Do not roll back
 to authorization code that ignores inactive memberships or scoped admins after
-relying on those controls. See [Member Management](specs/07-member-management.md)
+relying on those controls. See [Users and Permissions](specs/07-member-management.md)
 for policies and the limits of ordered, non-transactional access edits.
 
 ### Bootstrapping the first platform admin
@@ -346,17 +358,18 @@ adds only the domain grants defined in specification 16.
 Each organization carries a required `locale` plus optional `timezone` and
 `currency`.
 
-An owner signs in to a company that already exists, with its `Main` Branch
-already created. One active company is entered automatically and appears as a
-label, not a selector. With multiple active companies, an existing valid selection
-is kept; otherwise the user explicitly chooses one. Switching company clears the
-old Branch and reloads the app to discard previous-company state. With no active
-memberships, the user sees a no-active-company-access notice. There is still one
-identity and one login; memberships are company access records, not subscriptions.
+An owner signs in to a company that already exists, with its initial Branch
+already created as `Sede Principal` in Spanish or `Main Branch` in English. One
+active company is entered automatically and appears as a label, not a selector.
+With multiple active companies, an existing valid selection is kept; otherwise
+the user explicitly chooses one. Switching company clears the old Branch and
+reloads the app to discard previous-company state. With no active memberships,
+the user sees a no-active-company-access notice. There is still one identity and
+one login; memberships are company access records, not subscriptions.
 
-Every company has at least one internal branch. A single-location business keeps
-just `Main` and the branch selector stays out of the way — it appears as a plain
-label. Add a second branch and the switcher becomes a real control.
+Every company has at least one internal branch. In a single-location business,
+the initial Branch is shown as context without making the user choose it. Add a
+second Branch and the switcher becomes a real control.
 
 | Role | Branches | Management |
 | ---- | -------- | ---------- |
@@ -408,8 +421,9 @@ company. It appears only when the account has an active company; platform-only
 accounts choose English or Spanish directly. A personal choice applies across
 companies and sessions; it never changes anyone else's account. Company changes
 apply immediately in the current view and on other sessions' next focus/visible
-30-second refresh. Names, Branch names (including `Main`), addresses and other
-entered data are not translated.
+30-second refresh. Names, custom Branch names, addresses and other entered data
+are not translated. Only the initial Branch receives a locale-appropriate name
+when the company is provisioned.
 
 Before sign-in, the selector is browser-local. Public pages use a supported
 `?lang=...` hint, saved browser choice, browser language list, then the fallback.
@@ -459,12 +473,12 @@ deployed to either remote environment.
 
 ## Current status
 
-The inherited SaaS foundation is implemented. ControlMembers product contracts,
-user stories and milestones are documented. The first product slice now includes
-Organization billing settings, Programs, Program-Branch availability and monthly
-Plans across schema, guarded APIs, a responsive bilingual setup screen and
-isolation tests. Member registry, Enrollments, Charges, Payments and reporting
-remain planned work. The quality gate includes typecheck, lint, Node and
+The inherited SaaS foundation and the complete ControlMembers MVP are implemented
+and verified locally. The product includes unified Plans and tags, Members and
+shared Contacts, Enrollments, monthly Charge generation, the Payment/allocation
+ledger, reversals and adjustments, dashboard/reporting, bounded CSV onboarding,
+scoped exports, financial permissions and append-only audit evidence. There is
+no separate Program concept. The quality gate includes typecheck, lint, Node and
 Workers/D1 tests, and all three environment builds/deployment dry runs.
 See [the dated verification record](specs/VERIFICATION.md) for results, manual
 checks and dependency-audit results. The 2026-09-02 dependency remediation leaves

@@ -2,17 +2,17 @@
 
 [All specifications](README.md)
 
-**Status:** Target MVP contract; implementation has not started.
+**Status:** Implemented and verified locally; remote pilot release remains pending.
 
 ## Purpose
 
-Give owners and authorized Team members a fast, reconcilable view of recurring
+Give owners and authorized Users a fast, reconcilable view of recurring
 revenue and receivables without creating a separate analytics truth.
 
 ## Shared filters
 
 Dashboard and reports accept an Organization-local period plus authorized
-Branches and optional Programs. The server constrains requested Branches to the
+Branches, Plans and optional tags. The server constrains requested Branches to the
 actor's accessible scope. Changing active Organization discards filters and
 results from the previous tenant.
 
@@ -36,7 +36,7 @@ that distinguish collected cash from allocations.
 1. Receivables aging: current, 1–30, 31–60, 61–90 and 90+ days overdue.
 2. Member balances: gross outstanding, credit and net position.
 3. Payments received: date, receipt, Member, Branch, method, amount and state.
-4. Period charges: Program/Plan, expected, allocated and outstanding.
+4. Period charges: Plan, expected, allocated and outstanding.
 5. Branch summary: the same formulas grouped by authorized Branch.
 
 CSV export uses the active filters, stable column names and Organization locale
@@ -54,7 +54,7 @@ decimal values without currency symbols in data columns.
 
 ## Empty and exceptional states
 
-- No configured Programs/Plans directs authorized users to setup.
+- No configured Plans directs authorized users to setup.
 - No Charges in the selected period explains how to generate them.
 - Zero overdue Members is a successful state, not an empty/error state.
 - Failed metrics never render cached values as if current; retry is available.

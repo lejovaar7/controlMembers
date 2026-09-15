@@ -2,13 +2,13 @@
 
 [All specifications](README.md)
 
-**Status:** Target MVP contract; implementation has not started.
+**Status:** Implemented and verified locally; remote pilot release remains pending.
 
 ## Purpose
 
 Manage people who receive an Organization's service and the contacts who may be
 responsible for payment or communication. A customer Member is not an
-authenticated Team member.
+authenticated User.
 
 ## Data model
 
@@ -112,7 +112,7 @@ the ledger query specified in 14 rather than duplicating balance logic.
   accidental record selection.
 - Contact relationships support siblings without duplicating the Contact.
 - Pausing/inactivating preserves Charges, Payments and audit history.
-- Scoped Team users cannot infer foreign Branch or Organization data through
+- Scoped Users cannot infer foreign Branch or Organization data through
   list totals, filters, detail errors or Contact relationships.
-- English and Spanish copy uses “Member/Miembro” for customers and “Team/Equipo”
+- English and Spanish copy uses “Member/Miembro” for customers and “User/Usuario”
   for authenticated staff.

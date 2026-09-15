@@ -76,6 +76,9 @@ Wrangler applies that same directory in development, tests, and deployment.
 | `0006_lively_starbolt.sql` | Nullable `user.locale` for personal language preference |
 | `0007_organic_lucky_pierre.sql` | Programs, Program/Branch availability and monthly Billing Plans |
 | `0008_third_may_parker.sql` | Normalize existing company languages and require an explicit Organization locale |
+| `0009_localize_default_branch.sql` | Localize a legacy single default `Main` Branch without changing custom or multi-Branch data |
+| `0010_tranquil_war_machine.sql` | Consolidate Billing Plans and Programs into unified Plans, Branch availability and optional tags while preserving existing catalog data |
+| `0011_true_plazm.sql` | Customer Members, Contacts, Enrollments, Charges, Payments, Allocations, imports, audit events and financial membership grants |
 
 Migrations are generated artifacts and the single migration source of truth.
 There is no test-only schema and no custom migration runner.
@@ -123,10 +126,11 @@ access without a separate security/recovery plan.
 
 ## Deliberately absent
 
-The inherited baseline currently has no ControlMembers domain tables. Modules
-11–16 specify Member, Contact, Program, Plan, Enrollment, Charge, Payment,
-Allocation and audit persistence to add through generated migrations. Every
-tenant-owned table requires Organization and, where applicable, Branch keys.
+The implemented product slice contains Plan, Plan/Branch, tag and Plan/tag
+tables. Modules 11–16 still specify customer Member, Contact, Enrollment, Charge,
+Payment, Allocation and audit persistence to add through generated migrations.
+Every tenant-owned table requires Organization and, where applicable, Branch
+keys.
 
 ## Acceptance checks
 

@@ -2,9 +2,8 @@
 
 [All specifications](README.md)
 
-**Status:** Partially implemented. Billing-setup endpoints enforce Owner or
-unrestricted-admin access and tenant/Branch isolation. Fine-grained permissions
-and the audit model for later financial modules remain target MVP work.
+**Status:** Implemented and verified locally, including fine-grained financial
+grants and append-only domain audit events. Remote pilot release remains pending.
 
 ## Purpose
 
@@ -18,7 +17,7 @@ engine.
 | --- | --- | --- | --- |
 | View in-scope Members and Charges | Yes | Yes | Yes |
 | Create/edit in-scope Members | Yes | Yes | Yes |
-| Manage Programs and Plans | Yes | Yes if all-Branch | No |
+| Manage Plans and tags | Yes | Yes if all-Branch | No |
 | Manage Enrollments | Yes | In scope | In scope |
 | Generate Charges | Yes | In scope | No |
 | Record Payments | Yes | In scope | In scope |
@@ -26,7 +25,7 @@ engine.
 | Void/adjust Charges | Yes | Optional grant | No |
 | View financial reports | Yes | In scope | Optional grant |
 | Export financial data | Yes | Optional grant | No |
-| Manage Team access | Inherited spec 07 | Inherited spec 07 | No |
+| Manage Users & permissions | Inherited spec 07 | Inherited spec 07 | No |
 
 “In scope” always means the actor also passes Branch access checks. Platform
 administrator status alone grants no tenant data access.
@@ -56,7 +55,7 @@ The domain audit log records high-impact events:
 - Enrollment creation, pause, resume, term changes and end;
 - Charge generation batch, adjustment and void;
 - Payment posting and reversal;
-- Program/Plan activation changes;
+- Plan/tag activation changes;
 - CSV import and export;
 - business permission grants/revocations.
 
@@ -82,7 +81,7 @@ users may be a safe projection of the audit record.
 
 - Every mutating endpoint has explicit role, grant and Branch tests.
 - Platform admins without membership cannot access domain records.
-- Optional grants never permit peer Team management or wider Branch access.
+- Optional grants never permit peer User management or wider Branch access.
 - Financial mutation and export events appear in the audit log.
 - Audit writes cannot cause a successful financial write to be reported when
   required audit evidence was not persisted.

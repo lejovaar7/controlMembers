@@ -12,7 +12,8 @@ reusable SaaS foundation and preserves that foundation's security boundaries.
 
 - Closed B2B: users cannot publicly register or create their own company.
 - The platform administrator provisions each company, its first Owner and a
-  Branch named `Main`. The Owner then chooses their own password.
+  initial Branch named `Sede Principal` in Spanish or `Main Branch` in English.
+  The Owner then chooses their own password.
 - Owners/admins provision employees; established accounts can belong to several
   companies without duplicate identities or replaced credentials.
 - The Owner controls which admins may appoint other admins. Admins may cover
@@ -29,10 +30,11 @@ reusable SaaS foundation and preserves that foundation's security boundaries.
   fallback applies. English/Spanish are initial catalogs, not a language limit.
 - Every company starts with an internal Branch, including single-location
   businesses. Opening another location does not require a different tenant model.
-- Authenticated owners/admins/employees are the Team. Customer-facing Members
-  are separate business records and do not receive auth identities by default.
-- ControlMembers adds Programs, Plans, Enrollments, monthly Charges, Payments,
-  Allocations, receivables and reports under specifications 10–19.
+- Authenticated owners/admins/employees are Users managed under **Users &
+  permissions/Usuarios y permisos**. Customer-facing Members are separate
+  business records and do not receive auth identities by default.
+- ControlMembers adds Plans with optional tags, Enrollments, monthly Charges,
+  Payments, Allocations, receivables and reports under specifications 10–19.
 
 Detailed role and access policies belong to [tenant security](04-tenant-and-branch-security.md)
 and [member management](07-member-management.md).
@@ -155,8 +157,8 @@ Commands, environment guards and release boundaries are specified in
 
 The inherited foundation owns identity, Organizations, Team memberships,
 Branches, access rules, email, database access, layouts and environment safety.
-ControlMembers owns customer Members, Contacts, Programs, Plans, Enrollments,
-Charges, Payments, Allocations, reports, domain permissions and branding.
+ControlMembers owns customer Members, Contacts, Plans, tags, Enrollments, Charges,
+Payments, Allocations, reports, domain permissions and branding.
 
 Do not add a second ORM/auth system, alternate tenant/Branch model, speculative
 infrastructure, generic permission engine or domain abstraction without a

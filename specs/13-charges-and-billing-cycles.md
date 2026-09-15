@@ -2,7 +2,7 @@
 
 [All specifications](README.md)
 
-**Status:** Target MVP contract; implementation has not started.
+**Status:** Implemented and verified locally; remote pilot release remains pending.
 
 ## Purpose
 
@@ -20,7 +20,7 @@ the Organization timezone. APIs return ISO values; the UI localizes presentation
 A Charge stores:
 
 - opaque ID and immutable `organizationId`;
-- Enrollment, Member, Program and Branch references;
+- Enrollment, Member, Plan and Branch references;
 - canonical billing period and due date;
 - `subtotalMinor`, `discountMinor`, `adjustmentMinor`, `totalMinor`;
 - currency;
@@ -85,14 +85,14 @@ and reason.
 
 - Period summary and generation preview.
 - Idempotent generation command with explicit confirmation.
-- Charge list filtered by period, Branch, Program, state and Member search.
+- Charge list filtered by period, Branch, Plan, tag, state and Member search.
 - Charge detail showing the formula, allocations and audit events.
 - Authorized adjust/void actions with reasons and impact warnings.
 
 ## Acceptance checks
 
 - Repeated and concurrent generation produce no duplicate Charges.
-- Plan or Enrollment edits cannot alter an existing Charge snapshot.
+- Plan, tag or Enrollment edits cannot alter an existing Charge snapshot.
 - Overdue status respects Organization timezone and due date.
 - Filters and totals use the same state/balance definitions as payment reports.
 - Pausing, ending or moving records does not erase historical receivables.

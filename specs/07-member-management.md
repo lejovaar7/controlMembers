@@ -1,15 +1,16 @@
-# Specification 07: Member Management
+# Specification 07: Users and Permissions
 
 [All specifications](README.md)
 
 > **ControlMembers terminology:** this inherited module manages authenticated
-> employees and is presented as **Team/Equipo** in the product. Customer-facing
-> Members are separate `customer_member` records specified in module 11. Better
-> Auth's existing `member` table and API terminology remain unchanged.
+> users and is presented as **Users & permissions/Usuarios y permisos** in the
+> product. Customer-facing Members/Miembros are separate `customer_member`
+> records specified in module 11. Better Auth's existing `member` table, route
+> and API terminology remain unchanged.
 
 ## Purpose and entry points
 
-`/app/members` lets a company owner/admin provision people, manage supported
+`/app/members` is labeled **Users & permissions/Usuarios y permisos** and lets a company owner/admin provision people, manage supported
 access and deactivate/reactivate access to that company. A membership is the
 existing Better Auth `member` relation between a user and a company, not a paid
 subscription or a second login. Identity, credentials and other companies remain
@@ -22,7 +23,7 @@ independent of changes to this relation.
 | `src/worker/tenant/branch.ts` | Authoritative Branch access |
 | `src/worker/auth/provisioning.ts` | Identity reuse and secure account setup |
 | `src/worker/auth/http-policy.ts` | Blocks native Team bypasses |
-| `src/worker/index.ts` | Five guarded Member routes |
+| `src/worker/index.ts` | Five guarded user-access routes |
 | `src/react-app/pages/MembersPage.tsx` | Directory, forms, status confirmation and feedback |
 | `src/react-app/components/member-form.tsx` | Shared identity/role/Branch/delegation form, never a password form |
 | `src/react-app/lib/members.ts` | Browser transport types |
@@ -52,9 +53,9 @@ access, but appointment authority now requires an explicit Owner grant.
 | Actor | Create member | Create/promote admin | Edit access, deactivate/reactivate, resend setup |
 | --- | --- | --- | --- |
 | Owner | Yes | Yes | Admin or member, never self/Owner |
-| Admin, appointment disabled | Yes, within scope | No | Members fully within scope only |
-| Admin, appointment enabled | Yes, within scope | Yes, within scope | Members fully within scope only |
-| Member or platform-only user | No | No | No |
+| Admin, appointment disabled | Yes, within scope | No | Users fully within scope only |
+| Admin, appointment enabled | Yes, within scope | Yes, within scope | Users fully within scope only |
+| Standard User (`member` role) or platform-only user | No | No | No |
 
 Only the Owner can grant/revoke `canAppointAdmins`, including on creation.
 Delegation is off for a new admin unless the Owner explicitly enables it. An
@@ -94,7 +95,7 @@ company membership is exposed.
 Unknown fields are rejected. Role is exactly `admin` or `member`; email is
 trimmed/lowercased and a new identity needs a name. Branch IDs are deduplicated.
 
-- Members require at least one valid assigned Branch and cannot request either
+- Standard Users require at least one valid assigned Branch and cannot request either
   administrative flag as `true`.
 - Admins may have all Branches (empty array) or a nonempty selected array.
   Omitting `allBranches` retains the original admin default of all Branches;

@@ -2,7 +2,8 @@
 
 [All specifications](README.md)
 
-**Status:** Target MVP operational contract; implementation has not started.
+**Status:** Implemented and verified locally with bounded synchronous imports,
+scoped exports and audit evidence. Remote pilot release remains pending.
 
 ## Purpose
 
@@ -27,7 +28,7 @@ relationship and billing-contact marker. Formulas are treated as text and are
 never executed. Unknown columns are rejected or explicitly ignored with a
 warning according to template version.
 
-Programs, Enrollments, Charges, Payments and opening balances are not imported
+Plans, tags, Enrollments, Charges, Payments and opening balances are not imported
 in MVP. Financial migration requires a separately reconciled specification.
 
 ## Exports

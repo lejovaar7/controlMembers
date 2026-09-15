@@ -2,10 +2,9 @@
 
 [All specifications](README.md)
 
-**Status:** Partially implemented. The bilingual responsive billing-setup page
-reuses the inherited design system and covers loading, error, empty and success
-states. The Member, receivable, payment and reporting experiences remain target
-MVP work.
+**Status:** Implemented locally across the bilingual responsive application.
+Automated catalog checks pass; final device/browser pilot acceptance remains a
+release activity.
 
 ## Experience goal
 
@@ -31,19 +30,21 @@ logo and semantic status tokens while preserving accessible contrast.
 
 ## Terminology and navigation
 
-Customer records are **Members/Miembros**. Authenticated organization users are
-the **Team/Equipo**. The target application navigation is:
+Customer records are **Members/Miembros**. The section for authenticated
+organization users is **Users & permissions/Usuarios y permisos**. Its primary
+action is **Add user/Agregar usuario** and its description is “Manage who can
+sign in to the system and what actions they can perform.” The target application
+navigation is:
 
 1. Dashboard
 2. Members
 3. Charges
 4. Payments
-5. Programs
-6. Plans
-7. Reports
-8. Team
-9. Branches
-10. Settings
+5. Plans
+6. Reports
+7. Users & permissions
+8. Branches
+9. Settings
 
 Navigation hides unauthorized modules for usability; direct routes remain
 server-protected. On narrow screens it becomes an accessible menu rather than a
@@ -88,11 +89,14 @@ The composer shows Member, amount, method, date and allocation preview. It
 requires a final review before posting. A successful result shows receipt number
 and allocation, not only a toast.
 
-### Programs and Plans
+### Plans
 
-Simple management lists prioritize active records. Historical inactive records
-remain discoverable. Forms preview billing implications and avoid exposing
-unsupported scheduling features.
+A Plan combines the offering and its monthly terms. The primary form asks for
+name, optional description, monthly price, usual due day and available Branches.
+When only one Branch exists it is assigned without showing a selector. Optional
+tags use an inline chip/autocomplete control and never determine price, access or
+billing behavior. Simple management lists prioritize active records; historical
+inactive records remain discoverable.
 
 ## Interaction rules
 
@@ -123,7 +127,7 @@ unsupported scheduling features.
 
 - A staff user can find a Member and post a straightforward Payment in under one
   minute during moderated acceptance testing.
-- Terminology never labels a customer Member as a Team employee or vice versa.
+- “Member/Miembro” is used only for customers, never for authenticated users.
 - Critical financial consequences remain visible on mobile.
 - Status meaning is understandable without color.
 - New features reuse the inherited component/token system.

@@ -73,7 +73,8 @@ Tests prove:
 
 ## Manual acceptance checks
 
-- A company begins with `Main`. Adding a second Branch reveals the selector
+- A Spanish company begins with `Sede Principal`; an English company begins with
+  `Main Branch`. Adding a second Branch reveals the selector
   without requiring a full reload; renaming refreshes its list and label.
 - Empty/whitespace-only names fail both client and server validation.
 - An ordinary member cannot create or rename a Branch, including by navigating

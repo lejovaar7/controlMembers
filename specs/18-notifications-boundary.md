@@ -35,7 +35,7 @@ Candidate components:
 - Retry transient failures with bounds; permanent failures require action rather
   than infinite retry.
 - Delivery status is operational evidence, not proof that a person read a message.
-- Limited Team users see notification history only for Members in scope.
+- Limited Users see notification history only for Members in scope.
 
 ## MVP preparation
 

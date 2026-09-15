@@ -6,6 +6,9 @@ Priority uses `P0` for the smallest releasable receivables workflow, `P1` for th
 complete MVP and `Later` for explicitly deferred work. Acceptance criteria here
 identify delivery slices; canonical rules remain in the linked specification.
 
+**Delivery status:** CM-001 through CM-061 are implemented and verified locally.
+CM-062 remains the separately authorized remote dev pilot/release activity.
+
 ## Epic A — Product conversion and foundation
 
 ### CM-001 — Establish ControlMembers identity (`P0`)
@@ -20,13 +23,13 @@ template.
 - Foundation specs remain applicable and product specs are indexed.
 - The full inherited quality gate passes.
 
-### CM-002 — Distinguish Members from Team (`P0`)
+### CM-002 — Distinguish Members from system users (`P0`)
 
 As an operator, I want customer records called Members and authenticated staff
-called Team so the interface is unambiguous.
+managed under Users & permissions so the interface is unambiguous.
 
 - Navigation and copy use Member/Miembro only for customer records.
-- Better Auth `member` persistence remains unchanged.
+- Better Auth `member` persistence remains unchanged internally.
 - English and Spanish catalogs remain complete.
 
 ## Epic B — Organization billing setup
@@ -41,24 +44,25 @@ are interpreted consistently.
 - Currency becomes immutable after financial data exists.
 - Settings are tenant-scoped and bilingual.
 
-### CM-011 — Manage Programs (`P0`)
+### CM-011 — Manage Plans (`P0`)
 
-As an authorized administrator, I want Programs that describe activities without
-requiring scheduling features.
+As an authorized administrator, I want Plans that combine what is offered with
+its recurring monthly terms.
 
-- Create, rename, activate/deactivate and assign offered Branches.
+- Create, rename, activate/deactivate and assign available Branches.
+- Store description, monthly amount and usual due day.
 - Duplicate active names are rejected within the tenant.
-- Inactive Programs remain visible in history.
+- Inactive Plans remain visible in history.
 
-### CM-012 — Manage monthly Plans (`P0`)
+### CM-012 — Organize Plans with tags (`P0`)
 
-As an authorized administrator, I want reusable monthly Plans so enrollment
-terms are consistent.
+As an authorized administrator, I want optional tags so Plans can be grouped and
+filtered across different kinds of academies.
 
-- Amount uses minor units and Organization currency.
-- Due day accepts 1–28.
-- Plan may be Organization-wide or Program-specific.
-- Editing a Plan does not alter history.
+- Tags are created inline by name and reused case-insensitively.
+- Tags never change price, Branch availability, permissions or billing.
+- A Plan may have no tags or several tags.
+- Renaming a tag updates organization views without rewriting Charge snapshots.
 
 ## Epic C — Members and Contacts
 
@@ -104,13 +108,13 @@ I can resolve questions quickly.
 
 ### CM-030 — Enroll a Member (`P0`)
 
-As authorized staff, I want to enroll a Member in a Program and Plan so monthly
+As authorized staff, I want to enroll a Member in a Plan so monthly
 Charges can be generated.
 
-- Program is offered at the selected accessible Branch.
+- Plan is available at the selected accessible Branch.
 - Plan defaults are previewed and snapshotted.
 - Duplicate overlapping Enrollment is rejected.
-- Multiple different Programs are supported.
+- Multiple different Plans are supported.
 
 ### CM-031 — Change or end an Enrollment (`P1`)
 
@@ -136,7 +140,7 @@ so receivables exist predictably.
 As Team staff, I want to see pending, partial, paid and overdue Charges so I know
 where collection work is needed.
 
-- Filters include period, Branch, Program, state and Member search.
+- Filters include period, Branch, Plan, tag, state and Member search.
 - State and balance come from server ledger calculations.
 - Empty, zero, failure and loading states are distinct.
 

@@ -5,7 +5,7 @@
 ## Purpose
 
 The platform administrator creates SaaS customers. End users never create their
-own company, first Owner, or Main Branch.
+own company, first Owner, or localized initial Branch.
 
 ## Platform scope
 
@@ -59,7 +59,8 @@ or Branch configuration.
 3. Preserve existing password, verification state, providers, and platform role.
 4. Reuse a same-named Organization already owned by that user after a partial
    retry, or create the Organization through Better Auth.
-5. Reuse the first existing Branch or create `Main` through Better Auth Teams.
+5. Reuse the first existing Branch or create `Sede Principal` for Spanish
+   companies and `Main Branch` for English companies through Better Auth Teams.
 6. Send account setup for a new or interrupted account (not an established password account).
 
 The required `locale` is validated before identity creation and stored on a new
@@ -67,7 +68,8 @@ Organization before sending email. Omitted, null and unsupported values are reje
 Retrying an existing company never overwrites its language. Setup and platform
 resend carry that company's ID internally; resend checks active recipient
 membership when a company ID is supplied. The recipient's personal language
-still wins. Company names and the stored `Main` name are not translated.
+still wins. Company names are not translated; the initial Branch name is chosen
+from the company language when it is first created.
 
 `slugify()` produces a safe Organization slug. Provisioning checks availability
 and adds a bounded suffix before using a random fallback. Occupied slugs are
@@ -81,7 +83,7 @@ normal collisions, not fatal errors.
 - Existing users can become Owner of another Organization without duplicate
   identity or credential changes.
 - The Organization Owner does not gain platform role.
-- Retry does not duplicate the user, Organization, or Main Branch.
+- Retry does not duplicate the user, Organization, or initial Branch.
 - Email failure does not invalidate already-created database state.
 
 ## Account setup endpoint
@@ -110,7 +112,8 @@ company. Both forms recover from network errors. Shared primitives are in
   [README](../README.md#bootstrapping-the-first-platform-admin).
 - Only a platform administrator can provision a company. Organization owner
   and admin roles alone receive a denial from the backend.
-- A successful request creates/reuses one company, its Owner and `Main`, then
+- A successful request creates/reuses one company, its Owner and localized
+  initial Branch, then
   reports setup email as sent, unnecessary or failed without exposing secrets.
 - Existing accounts retain credentials and platform role; a new company Owner
   does not become a platform administrator.

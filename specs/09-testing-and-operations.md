@@ -237,13 +237,13 @@ source references, consistency, `git diff --check` and the scope of the diff.
 Cross-module flows to verify:
 
 1. Bootstrap a platform administrator without a predefined password, activate
-   through a controlled link, then create a company, Owner and `Main` Branch.
+   through a controlled link, then create a company, Owner and localized initial Branch.
 2. Activate the new Owner, revoke the provisional credential, choose a password
    and enter the already-created company without company-creation onboarding.
 3. Add an established user to another company, preserve credentials and global
    role, then switch companies without carrying over unauthorized Branch state.
 4. Provision a new employee, complete setup and verify assigned-only Branch
-   access with no Members/Branches management authority.
+   access with no Users & permissions/Branches management authority.
 5. Change member/admin scope and roles, test Owner delegation and revoke it,
    reject wider-scope/self/peer edits and stale active Branches. Confirm all-Branch
    admins include future locations and limited admins do not.

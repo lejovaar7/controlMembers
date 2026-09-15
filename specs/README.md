@@ -13,32 +13,33 @@ inside each product module; actual evidence belongs in
 | [00 — Product and Architecture](00-product-and-architecture.md) | Product topology, stack and platform boundaries. | config and application entry points |
 | [01 — Database and Migrations](01-database-and-migrations.md) | D1, Drizzle schemas and generated migrations. | `src/worker/db/`, `drizzle/` |
 | [02 — Authentication and Email](02-authentication-and-email.md) | Sign-in, verification, recovery, setup and email. | auth/email modules and pages |
-| [03 — Platform Provisioning](03-platform-provisioning.md) | Platform bootstrap and Organization/Owner/Main creation. | platform/setup modules |
+| [03 — Platform Provisioning](03-platform-provisioning.md) | Platform bootstrap and Organization/Owner/initial Branch creation. | platform/setup modules |
 | [04 — Tenant and Branch Security](04-tenant-and-branch-security.md) | Active tenant, Branch scope and isolation. | tenant modules |
 | [05 — Frontend Application](05-frontend-application.md) | Routes, layouts, localization and accessibility foundation. | React app and shared i18n |
 | [06 — Branch Management](06-branch-management.md) | Branch visibility and administration. | Branch UI/API tests |
-| [07 — Team Access Management](07-member-management.md) | Authenticated employee provisioning, roles and Branch scope. | existing Member/Team access modules |
+| [07 — Users and Permissions](07-member-management.md) | Authenticated user provisioning, roles and Branch scope. | existing membership/Team access modules |
 | [08 — HTTP and Release Boundaries](08-http-and-release-boundaries.md) | Safe request/response and release boundaries. | HTTP/auth policy |
 | [09 — Testing and Operations](09-testing-and-operations.md) | Environments, quality gate and release operation. | scripts, tests and config |
 
 Specification 07 retains its historical filename and Better Auth persistence
-terminology. In ControlMembers product copy, those authenticated people are the
-**Team**; “Member” refers to the customer record in specification 11.
+terminology. In ControlMembers product copy, the section is **Users & permissions /
+Usuarios y permisos**; “Member/Miembro” refers exclusively to the customer record
+in specification 11.
 
 ## ControlMembers MVP contracts
 
 | Module | Responsibility | Status |
 | --- | --- | --- |
-| [10 — Product and MVP](10-controlmembers-product.md) | Outcomes, scope, terminology and primary journeys. | Target MVP |
-| [11 — Members and Contacts](11-customer-members-and-contacts.md) | Customer records, responsible payers and lifecycle. | Target MVP |
-| [12 — Programs, Plans and Enrollments](12-programs-plans-and-enrollments.md) | Offered activities and commercial terms. | Target MVP |
-| [13 — Charges and Billing Cycles](13-charges-and-billing-cycles.md) | Monthly generation, due dates, states and adjustments. | Target MVP |
-| [14 — Payments and Ledger](14-payments-and-ledger.md) | Payments, allocations, credit and reversals. | Target MVP |
-| [15 — Dashboard and Reports](15-dashboard-and-reports.md) | Reconciled metrics, aging and exports. | Target MVP |
-| [16 — Domain Permissions and Audit](16-domain-permissions-and-audit.md) | Business capabilities and append-only evidence. | Target MVP |
-| [17 — Product Frontend and Design](17-product-frontend-and-design.md) | Navigation, shadcn-based design and responsive UX. | Target MVP |
+| [10 — Product and MVP](10-controlmembers-product.md) | Outcomes, scope, terminology and primary journeys. | Implemented locally |
+| [11 — Members and Contacts](11-customer-members-and-contacts.md) | Customer records, responsible payers and lifecycle. | Implemented locally |
+| [12 — Plans, Tags and Enrollments](12-plans-tags-and-enrollments.md) | Recurring offers, optional organization labels and agreed terms. | Implemented locally |
+| [13 — Charges and Billing Cycles](13-charges-and-billing-cycles.md) | Monthly generation, due dates, states and adjustments. | Implemented locally |
+| [14 — Payments and Ledger](14-payments-and-ledger.md) | Payments, allocations, credit and reversals. | Implemented locally |
+| [15 — Dashboard and Reports](15-dashboard-and-reports.md) | Reconciled metrics, aging and exports. | Implemented locally |
+| [16 — Domain Permissions and Audit](16-domain-permissions-and-audit.md) | Business capabilities and append-only evidence. | Implemented locally |
+| [17 — Product Frontend and Design](17-product-frontend-and-design.md) | Navigation, shadcn-based design and responsive UX. | Implemented locally |
 | [18 — Notification Boundary](18-notifications-boundary.md) | Safe future WhatsApp/message architecture. | Post-MVP boundary |
-| [19 — Import, Export and Privacy](19-import-export-and-privacy.md) | Member onboarding, operational exports and data care. | Target MVP |
+| [19 — Import, Export and Privacy](19-import-export-and-privacy.md) | Member onboarding, operational exports and data care. | Implemented locally |
 
 ## Reading paths
 

@@ -44,24 +44,25 @@ instructions, and the source template remains untouched.
 
 ## Milestone 1 — Organization billing setup
 
-**Status:** In progress. Settings, Programs, Program-Branch availability and
-monthly Plans are implemented across persistence, API, UI and automated tests.
-Editing/deactivation UX and the final responsive usability pass remain before
-the milestone exit is claimed.
+**Status:** Implemented and awaiting release. Billing settings and the unified
+Plan catalog with optional tags are covered across persistence, API, UI and tests.
 
 Stories: CM-010, CM-011, CM-012.
 
 Deliverables:
 
 - currency/timezone settings;
-- Program and Program-Branch persistence;
-- monthly Plans;
+- Plan, Plan-Branch, tag and Plan-tag persistence;
+- monthly amount and usual due day on each Plan;
 - scoped management APIs and pages;
 - migrations and isolation tests.
 
-Exit: an Owner can configure one Branch, Program and Plan entirely through UI.
+Exit: met locally. An Owner can configure one Plan with optional tags entirely
+through the UI; no Program concept or choice remains.
 
 ## Milestone 2 — Member registry
+
+**Status:** Implemented and verified locally.
 
 Stories: CM-020, CM-021, CM-022, CM-023.
 
@@ -78,6 +79,8 @@ mobile viewport without creating an auth account.
 
 ## Milestone 3 — Enrollment and monthly Charges
 
+**Status:** Implemented and verified locally.
+
 Stories: CM-030, CM-031, CM-032, CM-033, CM-034.
 
 Deliverables:
@@ -92,6 +95,8 @@ Exit: an Organization can generate one month twice without duplicates and see
 accurate pending/overdue states.
 
 ## Milestone 4 — Payment ledger
+
+**Status:** Implemented and verified locally.
 
 Stories: CM-040, CM-041, CM-042, CM-043.
 
@@ -108,6 +113,8 @@ posting and reversal scenarios.
 
 ## Milestone 5 — Decision dashboard
 
+**Status:** Implemented and verified locally.
+
 Stories: CM-050, CM-051.
 
 Deliverables:
@@ -123,6 +130,8 @@ to operational records.
 
 ## Milestone 6 — Onboarding and export
 
+**Status:** Implemented and verified locally.
+
 Stories: CM-052, CM-060.
 
 Deliverables:
@@ -136,6 +145,9 @@ Exit: a pilot can onboard existing Members without direct database edits and
 export receivables without leaking another Branch.
 
 ## Milestone 7 — MVP release candidate
+
+**Status:** Local release candidate complete; remote dev pilot and real-email
+verification require separate environment configuration and approval.
 
 Stories: CM-061, CM-062.
 

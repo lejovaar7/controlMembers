@@ -2,7 +2,7 @@
 
 [All specifications](README.md)
 
-**Status:** Target MVP contract; implementation has not started.
+**Status:** Implemented and verified locally; remote pilot release remains pending.
 
 ## Purpose
 

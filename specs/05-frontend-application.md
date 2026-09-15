@@ -77,7 +77,7 @@ repeat the authoritative guard.
 - sign-out
 
 It exposes typed `AppShellContext` to nested routes through React Router outlet
-context. Dashboard, Branch and Member pages consume that shared state instead of issuing
+context. Dashboard, Branch and Users & permissions pages consume that shared state instead of issuing
 duplicate Branch requests.
 
 `useBranches()` distinguishes:
@@ -120,7 +120,7 @@ an arbitrary company fallback.
 requires a missing Team-member row for an Owner/unrestricted admin, it adds that row through
 the supported API and retries. Backend Branch authorization remains role-aware.
 
-## Member form lifecycle
+## User-access form lifecycle
 
 `MembersPage` owns a company/role/scope-keyed workspace with abortable directory
 loads, add/edit forms, resend/status state and accessible feedback. `MemberForm`
@@ -131,7 +131,7 @@ that deactivation affects only this company; reactivation restores saved access.
 Inactive members cannot resend setup. Shared out-of-scope employees are explicitly
 read-only. The form never asks an administrator
 to choose a user's password. The server-returned `canManage` flag controls edit
-visibility; server policy is authoritative. See [Member Management](07-member-management.md).
+visibility; server policy is authoritative. See [Users and Permissions](07-member-management.md).
 
 Settings beyond language and invitation acceptance remain deliberate exclusions.
 
