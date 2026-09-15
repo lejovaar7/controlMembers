@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient, useSession } from "@/lib/auth-client";
 import { authErrorMessage, isEmailNotVerified } from "@/lib/auth-errors";
-import { safeReturnPath } from "@/lib/return-path";
+import { authenticatedStartPath } from "@/lib/session-routing";
 
 export function LoginPage() {
 	const t = useT();
@@ -21,11 +21,11 @@ export function LoginPage() {
 	const [error, setError] = useState<MessageKey | null>(null);
 	const [needsVerification, setNeedsVerification] = useState(false);
 
-	const returnTo = safeReturnPath(searchParams.get("returnTo"));
+	const requestedReturnTo = searchParams.get("returnTo");
 	const justReset = searchParams.get("reset") === "success";
 
 	if (sessionPending) return null;
-	if (session) return <Navigate to={returnTo} replace />;
+	if (session) return <Navigate to={authenticatedStartPath(requestedReturnTo, (session.user as { role?: unknown }).role)} replace />;
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -37,10 +37,10 @@ export function LoginPage() {
 		setError(null);
 		setNeedsVerification(false);
 
-		const { error: signInError } = await authClient.signIn.email({
+		const { data: signInData, error: signInError } = await authClient.signIn.email({
 			email,
 			password: String(password ?? ""),
-		}).catch(() => ({ error: { code: "NETWORK_ERROR" } }));
+		}).catch(() => ({ data: null, error: { code: "NETWORK_ERROR" } }));
 
 		if (signInError) {
 			setNeedsVerification(isEmailNotVerified(signInError));
@@ -50,7 +50,8 @@ export function LoginPage() {
 			return;
 		}
 
-		navigate(returnTo, { replace: true });
+		const role = (signInData as { user?: { role?: unknown } } | null)?.user?.role;
+		navigate(authenticatedStartPath(requestedReturnTo, role), { replace: true });
 	}
 
 	return (

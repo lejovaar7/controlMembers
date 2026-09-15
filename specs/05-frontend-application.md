@@ -35,7 +35,8 @@ Implemented pages:
 - `/forgot-password` — generic reset request
 - `/reset-password` — Better Auth reset completion
 - `/setup-account` — authenticated first-time password choice
-- `/no-company` — no active company access, including deactivated memberships
+- `/no-company` — signed-in non-platform account with no active company access,
+  including deactivated memberships
 
 Redirects:
 
@@ -50,7 +51,9 @@ The unsupported `/accept-invitation` route/page was removed.
 - `/platform/organizations/new` — customer provisioning form/result
 
 The layout redirects unauthenticated users to login and non-platform users into
-the tenant application. Server endpoints repeat the authoritative guard.
+the tenant application. Default sign-in, setup completion, home entry and
+no-company recovery all send platform administrators here. Server endpoints
+repeat the authoritative guard.
 
 ### Application layout
 
@@ -105,7 +108,8 @@ route consumer; Organization slug creation is authoritative in the Worker.
 second request to Better Auth's unrestricted Organization directory. One company
 is a plain label. A valid active company is kept; otherwise one available company
 is activated automatically, several show an explicit chooser inside the app
-layout, and none shows `/no-company`. The chooser preserves the intended app path.
+layout, and none shows `/no-company` for tenant users. Platform-only accounts go
+to `/platform` instead. The chooser preserves the intended app path.
 
 `activateCompany()` uses the guarded `/api/companies/active` endpoint. The server
 clears the old active Team; the UI reloads after success to discard company A's
@@ -141,8 +145,9 @@ direction enables it in every selector and server validator. Do not add a second
 language list or per-feature language conditionals.
 
 Authenticated priority is personal `user.locale` → validated active Organization
-locale → `DEFAULT_LOCALE` (English). Null means Automatic/inherit. Unsupported
-legacy values safely fall back; registered regional/script codes are matched
+locale → `DEFAULT_LOCALE` (English). A null personal value means inherit from an
+active company; platform-only accounts display the resolved language explicitly.
+Unsupported legacy values safely fall back; registered regional/script codes are matched
 case-insensitively on reads, with parent fallback. Writes require an exact
 registered key or null. Currency and timezone are independent, not inferred.
 
@@ -191,9 +196,12 @@ content. React escapes text; email has its own HTML escaping. Document title,
 and password-manager UI use the browser's own language.
 
 `LanguagePicker` is visible in public/platform/application shells and Settings.
-After login it saves only the current person's preference. Settings also exposes
-the active company's language, editable only by its Owner/admin (including
-branch-scoped admins); ordinary members see a disabled selector and explanation.
+After login it saves only the current person's preference. Platform-only users
+choose an explicit registered language; the company-inheritance option appears
+only with an active company and names the resolved company language. Settings
+also exposes the active company's language, editable only by its Owner/admin
+(including branch-scoped admins); ordinary members see a disabled selector and
+explanation.
 This is a language permission, not additional Branch/data access. Timezone,
 currency and other product settings remain uneditable.
 

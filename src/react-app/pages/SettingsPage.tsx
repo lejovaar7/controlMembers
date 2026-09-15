@@ -20,7 +20,7 @@ export function SettingsPage() {
 			</dl>
 			<section className="grid max-w-xl gap-3 rounded-lg border p-4">
 				<h2 className="font-medium">{t("My language")}</h2>
-				<p className="text-sm text-muted-foreground">{t("Your preference applies to your account across companies. Automatic follows the active company's language.")}</p>
+				<p className="text-sm text-muted-foreground">{t("Choose a language for your account, or use the language configured by the company.")}</p>
 				<LanguagePicker />
 			</section>
 			{company?.id === shell.organizationId && <CompanyLanguageForm key={company.id} company={company} />}
@@ -46,7 +46,7 @@ function CompanyLanguageForm({ company }: { company: NonNullable<LocalePreferenc
 	}
 	return <form onSubmit={submit} className="grid max-w-xl gap-3 rounded-lg border p-4">
 		<label htmlFor="company-language" className="font-medium">{t("Company language")}</label>
-		<p className="text-sm text-muted-foreground">{t("People using Automatic follow this language. Personal preferences are preserved. Names and other entered data are not translated.")}</p>
+		<p className="text-sm text-muted-foreground">{t("This language is used by people who have not chosen a personal language. Names and other entered data are not translated.")}</p>
 		<select id="company-language" value={selection ?? ""} className="h-10 min-w-0 rounded-md border bg-background px-3" disabled={pending || !company.canEdit}
 			onChange={(event) => { setDraft(isLocale(event.target.value) ? event.target.value : null); setFeedback(null); }}>
 			<option value="">{t("Application default ({language})", { language: languages[DEFAULT_LOCALE].name })}</option>

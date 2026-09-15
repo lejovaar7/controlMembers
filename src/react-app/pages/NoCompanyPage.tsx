@@ -1,7 +1,9 @@
 import { useT } from "@/lib/i18n";
 import { AuthCard } from "@/components/auth-card";
 import { Button } from "@/components/ui/button";
-import { authClient } from "@/lib/auth-client";
+import { authClient, useSession } from "@/lib/auth-client";
+import { isPlatformAdminRole } from "@/lib/session-routing";
+import { Navigate } from "react-router";
 
 /**
  * No active company membership, either unassigned or deactivated. Access is
@@ -9,6 +11,9 @@ import { authClient } from "@/lib/auth-client";
  */
 export function NoCompanyPage() {
 	const t = useT();
+	const { data: session, isPending } = useSession();
+	if (isPending) return null;
+	if (session && isPlatformAdminRole((session.user as { role?: unknown }).role)) return <Navigate to="/platform" replace />;
 	return (
 		<AuthCard
 			title={t("No active company access")}

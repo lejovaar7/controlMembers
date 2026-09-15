@@ -398,11 +398,13 @@ The interface chooses a language in this order:
 2. The active company's language (`organization.locale`).
 3. The application's `DEFAULT_LOCALE` (English).
 
-**Automatic** clears the personal override and follows the active company. A
-personal choice applies across companies and sessions; it never changes anyone
-else's account. Company changes apply immediately in the current view and on
-other sessions' next focus/visible 30-second refresh. Names, Branch names (including
-`Main`), addresses and other entered data are not translated.
+**Use company language** clears the personal override and follows the active
+company. It appears only when the account has an active company; platform-only
+accounts choose English or Spanish directly. A personal choice applies across
+companies and sessions; it never changes anyone else's account. Company changes
+apply immediately in the current view and on other sessions' next focus/visible
+30-second refresh. Names, Branch names (including `Main`), addresses and other
+entered data are not translated.
 
 Before sign-in, the selector is browser-local. Public pages use a supported
 `?lang=...` hint, saved browser choice, browser language list, then the fallback.

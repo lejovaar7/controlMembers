@@ -3,10 +3,7 @@ import { Link, Navigate, Outlet } from "react-router";
 import { Button } from "@/components/ui/button";
 import { authClient, useSession } from "@/lib/auth-client";
 import { LanguagePicker } from "@/components/language-picker";
-
-function isPlatformAdmin(role: unknown): boolean {
-	return typeof role === "string" && role.split(",").includes("admin");
-}
+import { isPlatformAdminRole } from "@/lib/session-routing";
 
 /**
  * Platform administration shell.
@@ -21,7 +18,7 @@ export function PlatformLayout() {
 
 	if (isPending) return null;
 	if (!session) return <Navigate to="/login?returnTo=%2Fplatform" replace />;
-	if (!isPlatformAdmin((session.user as { role?: unknown }).role)) {
+	if (!isPlatformAdminRole((session.user as { role?: unknown }).role)) {
 		return <Navigate to="/app/dashboard" replace />;
 	}
 

@@ -5,6 +5,26 @@ production deployment. The latest repository checkpoint is recorded first; earli
 localization, environment, Starter v1 and dependency-remediation evidence from
 the inherited foundation is preserved below.
 
+## 2026-09-15: Platform routing and contextual language selection
+
+Centralized authenticated start-path selection so platform administrators land
+on `/platform` after sign-in or account setup. The landing page, application
+layout and `/no-company` guard use the same role rule, so an administrator
+without tenant membership is no longer shown the inactive-company dead end.
+Valid explicit internal return paths remain supported.
+
+The language picker now offers only English and Spanish to platform-only
+accounts. Within an active company it presents the clearer **Use company
+language** choice and names the resolved company language instead of showing the
+ambiguous former Automatic option. README and frontend specifications document
+the same behavior. Two new routing tests cover role parsing, default destinations,
+safe explicit paths and hostile return-path fallback.
+
+`npm run check` passed typecheck, lint, 24 environment/bootstrap tests, two i18n
+checks, 157 Workers/D1 tests and all local/dev/production builds and deployment
+dry-runs (183 automated tests total). `git diff --check` also passed. No database
+data, migration, email, cloud resource or deployment was changed.
+
 ## 2026-09-15: Guarded platform-admin bootstrap command
 
 Replaced the operator-facing raw SQL bootstrap procedure with

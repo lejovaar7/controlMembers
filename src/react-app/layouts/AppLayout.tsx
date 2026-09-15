@@ -17,6 +17,7 @@ import {
 } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import { LanguagePicker } from "@/components/language-picker";
+import { isPlatformAdminRole } from "@/lib/session-routing";
 
 const navigation = [
 	{ to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, manage: false },
@@ -168,6 +169,7 @@ export function AppLayout() {
 		return <Centered>{t("We could not load your workspace.")}<Button variant="outline" onClick={() => window.location.reload()}>{t("Try again")}</Button></Centered>;
 	}
 	if (selection?.kind === "none") {
+		if (isPlatformAdminRole((session.user as { role?: unknown }).role)) return <Navigate to="/platform" replace />;
 		return <Navigate to="/no-company" replace />;
 	}
 	if (selection?.kind === "choose") {

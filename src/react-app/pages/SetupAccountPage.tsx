@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSession } from "@/lib/auth-client";
 import { GENERIC_ERROR } from "@/lib/auth-errors";
+import { authenticatedStartPath } from "@/lib/session-routing";
 
 /**
  * First-time credential setup. The magic link has already authenticated the
@@ -68,9 +69,7 @@ export function SetupAccountPage() {
 			// A full load picks up the refreshed session. Platform admins have no
 			// company of their own, so they go to platform administration instead.
 			const role = (session?.user as { role?: unknown; } | undefined)?.role;
-			const isPlatformAdmin =
-				typeof role === "string" && role.split(",").includes("admin");
-			window.location.assign(isPlatformAdmin ? "/platform" : "/app/dashboard");
+			window.location.assign(authenticatedStartPath(null, role));
 		} catch { setError(GENERIC_ERROR); }
 		finally { form.reset(); setSubmitting(false); }
 	}

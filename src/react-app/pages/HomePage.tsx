@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
+import { authenticatedStartPath } from "@/lib/session-routing";
 
 export function HomePage() {
 	const t = useT();
@@ -15,7 +16,7 @@ export function HomePage() {
 				description={t("Simple recurring fee control for membership organizations.")}
 			/>
 			{isPending ? null : session ? (
-				<Button render={<Link to="/app/dashboard" />}>{t("Open app")}</Button>
+				<Button render={<Link to={authenticatedStartPath(null, (session.user as { role?: unknown }).role)} />}>{t("Open app")}</Button>
 			) : (
 				<Button render={<Link to="/login" />}>{t("Sign in")}</Button>
 			)}
