@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { LanguagePicker } from "@/components/language-picker";
-import { DEFAULT_LOCALE, isLocale, languages, localeOptions, roleMessage, type Locale, type LocalePreferences } from "../../shared/i18n";
+import { isLocale, localeOptions, roleMessage, type Locale, type LocalePreferences } from "../../shared/i18n";
 
 export function SettingsPage() {
 	const shell = useAppShell();
@@ -31,10 +31,10 @@ export function SettingsPage() {
 
 function CompanyLanguageForm({ company }: { company: NonNullable<LocalePreferences["organization"]> }) {
 	const { t, saveCompanyLocale } = useI18n();
-	const [draft, setDraft] = useState<Locale | null | undefined>(undefined);
+	const [draft, setDraft] = useState<Locale | undefined>(undefined);
 	const [pending, setPending] = useState(false);
 	const [feedback, setFeedback] = useState<"saved" | "failed" | null>(null);
-	const selection = draft === undefined ? company.locale : draft;
+	const selection = draft ?? company.locale;
 	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		if (pending || !company.canEdit) return;
@@ -47,9 +47,8 @@ function CompanyLanguageForm({ company }: { company: NonNullable<LocalePreferenc
 	return <form onSubmit={submit} className="grid max-w-xl gap-3 rounded-lg border p-4">
 		<label htmlFor="company-language" className="font-medium">{t("Company language")}</label>
 		<p className="text-sm text-muted-foreground">{t("This language is used by people who have not chosen a personal language. Names and other entered data are not translated.")}</p>
-		<select id="company-language" value={selection ?? ""} className="h-10 min-w-0 rounded-md border bg-background px-3" disabled={pending || !company.canEdit}
-			onChange={(event) => { setDraft(isLocale(event.target.value) ? event.target.value : null); setFeedback(null); }}>
-			<option value="">{t("Application default ({language})", { language: languages[DEFAULT_LOCALE].name })}</option>
+		<select id="company-language" value={selection} required className="h-10 min-w-0 rounded-md border bg-background px-3" disabled={pending || !company.canEdit}
+			onChange={(event) => { if (isLocale(event.target.value)) setDraft(event.target.value); setFeedback(null); }}>
 			{localeOptions.map((option) => <option key={option.value} value={option.value} lang={option.value}>{option.name}</option>)}
 		</select>
 		{company.canEdit ? <Button type="submit" disabled={pending}>{t(pending ? "Saving…" : "Save company language")}</Button>

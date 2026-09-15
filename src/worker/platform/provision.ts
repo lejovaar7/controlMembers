@@ -8,14 +8,14 @@ import {
 	team,
 } from "../db/auth-schema";
 import { slugify } from "./slug";
-import { readLocale } from "../localization";
-import type { Locale } from "../../shared/i18n";
+import { readRequiredLocale } from "../localization";
+import { DEFAULT_LOCALE, type Locale } from "../../shared/i18n";
 
 export type ProvisionOwnerInput = {
 	companyName: string;
 	ownerName: string;
 	ownerEmail: string;
-	locale?: Locale | null;
+	locale?: Locale;
 };
 
 export type ProvisionOwnerResult = {
@@ -55,7 +55,7 @@ export async function provisionOrganizationWithOwner(
 ): Promise<ProvisionOwnerResult> {
 	const auth = getAuth(env);
 	const db = getDb(env);
-	const locale = readLocale(input.locale ?? null);
+	const locale = readRequiredLocale(input.locale ?? DEFAULT_LOCALE);
 
 	const companyName = input.companyName.trim();
 	const ownerName = input.ownerName.trim();
@@ -89,7 +89,7 @@ export async function provisionOrganizationWithOwner(
 		(await auth.api.createOrganization({
 			body: {
 				name: companyName,
-				...(locale ? { locale } : {}),
+				locale,
 				slug: await resolveSlug(env, companyName),
 				userId,
 				keepCurrentActiveOrganization: true,

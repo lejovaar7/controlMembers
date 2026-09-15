@@ -167,7 +167,6 @@ export const es = {
 	"My language": "Mi idioma",
 	"Company language": "Idioma de la empresa",
 	"Use company language ({language})": "Usar idioma de la empresa ({language})",
-	"Application default ({language})": "Idioma general ({language})",
 	"Choose a language for your account, or use the language configured by the company.": "Elige un idioma para tu cuenta o usa el configurado por la empresa.",
 	"This language is used by people who have not chosen a personal language. Names and other entered data are not translated.": "Este idioma se usa para las personas que no han elegido un idioma personal. Los nombres y demás datos ingresados no se traducen.",
 	"Only a company owner or administrator can change the company language.": "Solo un propietario o administrador de la empresa puede cambiar su idioma.",

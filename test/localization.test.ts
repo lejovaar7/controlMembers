@@ -24,7 +24,7 @@ describe("extensible catalogs and language resolution", () => {
 			}
 		}
 	});
-	it("uses preference, company and application default in that order", () => {
+	it("uses personal and company preferences before the defensive fallback", () => {
 		expect(resolveLocale("en", "es")).toBe("en");
 		expect(resolveLocale(null, "es")).toBe("es");
 		expect(resolveLocale("unknown", "es")).toBe("es");
@@ -115,6 +115,7 @@ describe("guarded language preferences", () => {
 				expect((await callApi(route, owner, body, "PATCH")).status).toBe(400);
 			}
 		}
+		expect((await callApi("/api/company/locale", owner, { locale: null }, "PATCH")).status).toBe(400);
 		expect((await preferences(owner)).organization?.locale).toBe("es");
 		expect((await preferences(other)).organization?.locale).toBe("en");
 	});
@@ -150,13 +151,13 @@ describe("guarded language preferences", () => {
 		const spanish = await preferences(employee);
 		expect(resolveLocale(spanish.userLocale, spanish.organization?.locale)).toBe("es");
 	});
-	it("tolerates legacy or unsupported database values and allows clearing a company override", async () => {
+	it("normalizes legacy company values and safely resolves unsupported stored values", async () => {
 		await getDb(env).update(organization).set({ locale: "es-CO" }).where(eq(organization.id, spanishId));
 		expect((await preferences(owner)).organization?.locale).toBe("es");
 		await getDb(env).update(organization).set({ locale: "unsupported" }).where(eq(organization.id, spanishId));
-		expect((await preferences(owner)).organization?.locale).toBeNull();
-		await callApi("/api/company/locale", owner, { locale: null }, "PATCH");
-		expect((await preferences(owner)).organization?.locale).toBeNull();
+		expect((await preferences(owner)).organization?.locale).toBe(DEFAULT_LOCALE);
+		expect((await callApi("/api/company/locale", owner, { locale: null }, "PATCH")).status).toBe(400);
+		expect((await preferences(owner)).organization?.locale).toBe(DEFAULT_LOCALE);
 		await callApi("/api/company/locale", owner, { locale: "es" }, "PATCH");
 	});
 });
@@ -210,7 +211,9 @@ describe("recipient-based transactional email", () => {
 		expect(company.locale).toBe("es");
 	});
 	it("rejects unsupported provisioning languages before creating any account", async () => {
+		expect((await callApi("/api/platform/organizations", platform, { companyName: "Missing", ownerName: "Missing", ownerEmail: "missing-locale@test.invalid" })).status).toBe(400);
 		expect((await callApi("/api/platform/organizations", platform, { companyName: "Rejected", ownerName: "Rejected", ownerEmail: "invalid-locale@test.invalid", locale: "unavailable" })).status).toBe(400);
+		expect(await getDb(env).select().from(user).where(eq(user.email, "missing-locale@test.invalid"))).toHaveLength(0);
 		expect(await getDb(env).select().from(user).where(eq(user.email, "invalid-locale@test.invalid"))).toHaveLength(0);
 	});
 	it("uses company context for member setup and resend without accepting foreign context", async () => {

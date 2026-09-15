@@ -343,7 +343,7 @@ Default access:
 Roles are Better Auth's defaults (`owner`, `admin`, `member`). ControlMembers
 adds only the domain grants defined in specification 16.
 
-Each organization carries optional settings: `locale`, `timezone` and
+Each organization carries a required `locale` plus optional `timezone` and
 `currency`.
 
 An owner signs in to a company that already exists, with its `Main` Branch
@@ -391,12 +391,17 @@ For a Spanish company, choose **Español** in **Company language** when creating
 the company, or open **Settings → Company language** as its Owner/admin and save
 **Español**. All active company admins can change this company-wide preference,
 including branch-scoped admins. This does not grant any additional data access.
+Every company stores an explicit registered language. The creation form initially
+selects the platform administrator's current language; it has no application-default
+option.
 
 The interface chooses a language in this order:
 
 1. The signed-in person's **My language** preference (`user.locale`).
 2. The active company's language (`organization.locale`).
-3. The application's `DEFAULT_LOCALE` (English).
+
+The application's `DEFAULT_LOCALE` (English) remains only as a defensive fallback
+outside a company or while normalizing unsupported legacy data.
 
 **Use company language** clears the personal override and follows the active
 company. It appears only when the account has an active company; platform-only

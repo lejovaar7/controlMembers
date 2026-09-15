@@ -17,7 +17,7 @@ Enabled capabilities:
 - Magic Link plugin for controlled account activation
 - Organization plugin
 - Teams inside Organizations
-- optional Organization locale, timezone, and currency fields
+- required Organization locale plus optional timezone and currency fields
 - nullable user locale, not writable through native user-input fields
 - fixed membership active/scope/delegation fields, enforced by guarded application routes
 

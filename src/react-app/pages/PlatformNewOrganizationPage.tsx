@@ -1,5 +1,5 @@
-import { DEFAULT_LOCALE, languages, localeOptions, type MessageKey } from "../../shared/i18n";
-import { useT } from "@/lib/i18n";
+import { localeOptions, type MessageKey } from "../../shared/i18n";
+import { useI18n } from "@/lib/i18n";
 import { type FormEvent, useState } from "react";
 import { FormMessage } from "@/components/auth-card";
 import { PageContainer, PageHeader } from "@/components/page";
@@ -17,7 +17,7 @@ type Result = {
 };
 
 export function PlatformNewOrganizationPage() {
-	const t = useT();
+	const { t, locale } = useI18n();
 	const [submitting, setSubmitting] = useState(false);
 	const [error, setError] = useState<MessageKey | null>(null);
 	const [result, setResult] = useState<Result | null>(null);
@@ -41,7 +41,7 @@ export function PlatformNewOrganizationPage() {
 					companyName: String(data.get("companyName") ?? ""),
 					ownerName: String(data.get("ownerName") ?? ""),
 					ownerEmail: String(data.get("ownerEmail") ?? ""),
-					locale: String(data.get("locale") ?? "") || null,
+					locale: String(data.get("locale") ?? ""),
 				}),
 			});
 
@@ -117,8 +117,7 @@ export function PlatformNewOrganizationPage() {
 			<form onSubmit={handleSubmit} className="flex max-w-sm flex-col gap-4">
 				<div className="grid gap-2">
 					<Label htmlFor="locale">{t("Company language")}</Label>
-					<select id="locale" name="locale" defaultValue="" className="h-10 min-w-0 rounded-md border bg-background px-3">
-						<option value="">{t("Application default ({language})", { language: languages[DEFAULT_LOCALE].name })}</option>
+					<select id="locale" name="locale" defaultValue={locale} required className="h-10 min-w-0 rounded-md border bg-background px-3">
 						{localeOptions.map((option) => <option key={option.value} value={option.value} lang={option.value}>{option.name}</option>)}
 					</select>
 				</div>

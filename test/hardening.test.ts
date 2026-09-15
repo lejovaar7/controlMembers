@@ -51,7 +51,7 @@ describe("platform bootstrap without a password", () => {
 		const actor = { userId: id, email, headers: new Headers({ cookie: response.headers.get("set-cookie")! }) };
 		expect((await callApi("/api/account/setup-password", actor, { newPassword: "BootstrapChosen123!" })).status).toBe(200);
 		expect(await getDb(env).select().from(account).where(eq(account.userId, id))).toHaveLength(1);
-		expect((await callApi("/api/platform/organizations", actor, { companyName: "Bootstrap company", ownerName: "Bootstrap owner", ownerEmail: "bootstrap-owner@test.invalid" })).status).toBe(200);
+		expect((await callApi("/api/platform/organizations", actor, { companyName: "Bootstrap company", ownerName: "Bootstrap owner", ownerEmail: "bootstrap-owner@test.invalid", locale: "en" })).status).toBe(200);
 	});
 });
 

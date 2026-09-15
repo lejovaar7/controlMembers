@@ -14,15 +14,16 @@ import {
 	verificationEmail,
 } from "../email/messages";
 import { localizedAuthUrl, resolveEmailLocale, resolveInvitationLocale, type EmailLocaleContext } from "../email/locale";
+import { DEFAULT_LOCALE } from "../../shared/i18n";
 
 /** Only the part of the Worker ExecutionContext this module needs. */
 type BackgroundScheduler = {
 	waitUntil(promise: Promise<unknown>): void;
 };
 
-/** Optional settings every tenant may configure. */
+/** Organization settings stored through Better Auth's tenant model. */
 const organizationSettingsFields = {
-	locale: { type: "string", required: false },
+	locale: { type: "string", required: false, defaultValue: DEFAULT_LOCALE },
 	timezone: { type: "string", required: false },
 	currency: { type: "string", required: false },
 } as const;

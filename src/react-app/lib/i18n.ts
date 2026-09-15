@@ -8,7 +8,7 @@ export type I18nContextValue = {
 	preferences: LocalePreferences | null;
 	setPublicLocale: (locale: Locale) => void;
 	saveUserLocale: (locale: Locale | null) => Promise<void>;
-	saveCompanyLocale: (locale: Locale | null) => Promise<void>;
+	saveCompanyLocale: (locale: Locale) => Promise<void>;
 };
 
 export const I18nContext = createContext<I18nContextValue | null>(null);

@@ -61,7 +61,7 @@ export function formatDate(locale: Locale, value: Date | number, options?: Intl.
 /** Shared transport only: no frontend/Worker platform imports in this directory. */
 export type LocalePreferences = {
 	userLocale: Locale | null;
-	organization: { id: string; locale: Locale | null; canEdit: boolean } | null;
+	organization: { id: string; locale: Locale; canEdit: boolean } | null;
 };
 
 /** A response from another user/company must never be used while a new request loads. */

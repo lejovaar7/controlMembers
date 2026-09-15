@@ -21,7 +21,7 @@ export type TenantContext = {
 	allBranches: boolean;
 	canAppointAdmins: boolean;
 	branchIds: string[];
-	locale: string | null;
+	locale: string;
 	timezone: string | null;
 	currency: string | null;
 };

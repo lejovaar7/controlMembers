@@ -45,7 +45,7 @@ export const messages = [
 	"An account setup link was sent to {email}.", "{email} already has an account and was added as owner.", "Resend setup link", "Create another",
 	"The company starts with one branch named Main.", "Company name", "Owner name", "Owner email", "Creating…",
 	"Account setup link sent again.", "That owner has already finished setting up.", "We could not send the link. Please try again.",
-	"Language", "My language", "Company language", "Use company language ({language})", "Application default ({language})",
+	"Language", "My language", "Company language", "Use company language ({language})",
 	"Choose a language for your account, or use the language configured by the company.",
 	"This language is used by people who have not chosen a personal language. Names and other entered data are not translated.",
 	"Only a company owner or administrator can change the company language.", "Save company language", "Company language saved.",

@@ -5,6 +5,23 @@ production deployment. The latest repository checkpoint is recorded first; earli
 localization, environment, Starter v1 and dependency-remediation evidence from
 the inherited foundation is preserved below.
 
+## 2026-09-15: Explicit company language
+
+Removed the application-default choice from company creation and Settings. Every
+new company receives an explicit registered language; the creation form initially
+selects the platform administrator's current resolved language, while the platform
+API rejects omitted, null and unsupported values before creating an identity.
+Personal language remains nullable so people can continue to use their company's
+language.
+
+Migration `0008_third_may_parker` normalizes existing null, regional and unsupported
+company values to English or Spanish, makes `organization.locale` non-null and
+sets English as the storage safety default. It applied successfully to the local
+D1 database, and `npm exec -- drizzle-kit check` passed. `npm run check` passed
+typecheck, lint, 24 environment/bootstrap tests, two i18n checks, 157 Workers/D1
+tests and all local/dev/production builds and deployment dry-runs (183 automated
+tests total). No remote database, email, cloud resource or deployment was changed.
+
 ## 2026-09-15: Platform routing and contextual language selection
 
 Centralized authenticated start-path selection so platform administrators land

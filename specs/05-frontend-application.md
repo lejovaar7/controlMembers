@@ -144,10 +144,10 @@ catalog implements `Catalog`; registering its native name, Intl locale and
 direction enables it in every selector and server validator. Do not add a second
 language list or per-feature language conditionals.
 
-Authenticated priority is personal `user.locale` → validated active Organization
-locale → `DEFAULT_LOCALE` (English). A null personal value means inherit from an
-active company; platform-only accounts display the resolved language explicitly.
-Unsupported legacy values safely fall back; registered regional/script codes are matched
+Authenticated company priority is personal `user.locale` → required active
+Organization locale. A null personal value means inherit from the active company;
+platform-only accounts display their resolved language explicitly. `DEFAULT_LOCALE`
+(English) remains the safe no-company and malformed legacy fallback. Registered regional/script codes are matched
 case-insensitively on reads, with parent fallback. Writes require an exact
 registered key or null. Currency and timezone are independent, not inferred.
 
@@ -173,10 +173,10 @@ The language API contract is intentionally narrow:
   Organization value contains only `{id,locale,canEdit}` after current active
   membership validation.
 - `PATCH /api/account/locale` accepts exactly `{locale}` and changes only the
-  authenticated user. `PATCH /api/company/locale` accepts the same body and
-  changes only the active company after an Owner/admin guard.
-- A write value is one exact registered locale key or `null`; extra fields and
-  unsupported values fail safely. `src/worker/localization.ts` owns this
+  authenticated user. Its value may be a registered locale or `null` to inherit.
+  `PATCH /api/company/locale` changes only the active company after an Owner/admin
+  guard and requires one exact registered locale key; company null is invalid.
+- Extra fields and unsupported values fail safely. `src/worker/localization.ts` owns this
   validation and persistence. The browser never submits a user or company ID as
   language authority.
 

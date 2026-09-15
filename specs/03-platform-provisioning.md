@@ -44,7 +44,7 @@ The platform form accepts only:
 - company name
 - Owner name
 - Owner email
-- company language (registered locale or application default)
+- company language (required registered locale, initially the platform administrator's current language)
 
 It does not collect billing, tax, branding, address, currency, timezone,
 or Branch configuration.
@@ -62,8 +62,8 @@ or Branch configuration.
 5. Reuse the first existing Branch or create `Main` through Better Auth Teams.
 6. Send account setup for a new or interrupted account (not an established password account).
 
-An optional `locale` is validated before identity creation and stored on a new
-Organization before sending email. Omitted/null uses the application fallback.
+The required `locale` is validated before identity creation and stored on a new
+Organization before sending email. Omitted, null and unsupported values are rejected.
 Retrying an existing company never overwrites its language. Setup and platform
 resend carry that company's ID internally; resend checks active recipient
 membership when a company ID is supplied. The recipient's personal language

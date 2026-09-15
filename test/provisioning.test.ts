@@ -166,6 +166,7 @@ describe("platform role is separate from organization role", () => {
 			companyName: "Allowed Co",
 			ownerName: "Allowed Owner",
 			ownerEmail: "allowed-owner@test.invalid",
+			locale: "en",
 		});
 		expect(response.status).toBe(200);
 	});

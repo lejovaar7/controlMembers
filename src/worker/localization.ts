@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { isLocale, normalizeLocale, type Locale, type LocalePreferences } from "../shared/i18n";
+import { DEFAULT_LOCALE, isLocale, normalizeLocale, type Locale, type LocalePreferences } from "../shared/i18n";
 import { requireAuth } from "./auth/session";
 import { getDb } from "./db";
 import { member, organization, user } from "./db/auth-schema";
@@ -9,6 +9,11 @@ import { requireOrganizationAdmin } from "./tenant";
 /** Strict writes; legacy/unsupported stored values are handled only on reads. */
 export function readLocale(value: unknown): Locale | null {
 	if (value === null || isLocale(value)) return value;
+	throw new RequestError(400, "INVALID_LOCALE");
+}
+
+export function readRequiredLocale(value: unknown): Locale {
+	if (isLocale(value)) return value;
 	throw new RequestError(400, "INVALID_LOCALE");
 }
 
@@ -27,7 +32,7 @@ export async function getLocalePreferences(env: Env, request: Request): Promise<
 		.where(and(eq(member.userId, session.user.id), eq(member.organizationId, activeId), eq(member.isActive, true))).limit(1) : [];
 	return {
 		userLocale: normalizeLocale(account?.locale),
-		organization: company ? { id: company.id, locale: normalizeLocale(company.locale), canEdit: company.role === "owner" || company.role === "admin" } : null,
+		organization: company ? { id: company.id, locale: normalizeLocale(company.locale) ?? DEFAULT_LOCALE, canEdit: company.role === "owner" || company.role === "admin" } : null,
 	};
 }
 
@@ -40,7 +45,8 @@ export async function updateUserLocale(env: Env, request: Request, body: Record<
 
 export async function updateCompanyLocale(env: Env, request: Request, body: Record<string, unknown>) {
 	const tenant = await requireOrganizationAdmin(env, request);
-	const locale = readPreference(body);
+	if (Object.keys(body).length !== 1 || !("locale" in body)) throw new RequestError(400, "INVALID_INPUT");
+	const locale = readRequiredLocale(body.locale);
 	// A stale tab may share a session whose active company changed elsewhere.
 	// This is a concurrency precondition, never a source of tenant authority.
 	const expectedCompany = request.headers.get("X-Company-Context");

@@ -90,7 +90,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 		setRemote((previous) => previous?.key !== key ? previous : {
 			key, preferences: path === "/api/account/locale"
 				? { ...previous.preferences, userLocale: next }
-				: { ...previous.preferences, organization: previous.preferences.organization ? { ...previous.preferences.organization, locale: next } : null },
+				: { ...previous.preferences, organization: previous.preferences.organization ? { ...previous.preferences.organization, locale: resolveLocale(null, next) } : null },
 		});
 		await refresh();
 	}

@@ -43,11 +43,12 @@ the schema-migration-D1-query path.
 | `team_member` | Member Branch assignment and active-Team mechanics |
 | `invitation` | Better Auth Organization invitation infrastructure |
 
-Organization rows include optional `locale`, `timezone`, and `currency` fields.
+Organization rows include required `locale` plus optional `timezone` and `currency` fields.
 There is no separate tenant, Branch, or Branch-membership custom table.
 `user.locale` is a nullable personal override; `organization.locale` is the
-company default. Null means inheritance. The shared registry's English
-`DEFAULT_LOCALE` is a presentation fallback, not a mass database backfill.
+explicit company default and cannot be null. Null personal locale means company
+inheritance. The shared registry's English `DEFAULT_LOCALE` remains the safe
+application fallback.
 Timezone/currency remain optional with no hardcoded business default or editor.
 Better Auth declares user locale as non-input; only the guarded application
 endpoint edits it. No new authentication or preference table is introduced.
@@ -73,6 +74,8 @@ Wrangler applies that same directory in development, tests, and deployment.
 | `0004_big_mentallo.sql` | Unique Organization/user membership index for retry-safe provisioning |
 | `0005_safe_thunderbird.sql` | Active memberships, administrator Branch scope and Owner-controlled appointment permission |
 | `0006_lively_starbolt.sql` | Nullable `user.locale` for personal language preference |
+| `0007_organic_lucky_pierre.sql` | Programs, Program/Branch availability and monthly Billing Plans |
+| `0008_third_may_parker.sql` | Normalize existing company languages and require an explicit Organization locale |
 
 Migrations are generated artifacts and the single migration source of truth.
 There is no test-only schema and no custom migration runner.

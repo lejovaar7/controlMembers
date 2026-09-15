@@ -57,6 +57,13 @@
       "when": 1789451867161,
       "tag": "0007_organic_lucky_pierre",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1789491246895,
+      "tag": "0008_third_may_parker",
+      "breakpoints": true
     }
   ]
 }
