@@ -24,12 +24,15 @@ Implemented platform routes:
 
 ## First platform-admin bootstrap
 
-The documented bootstrap avoids a public endpoint and default password:
+The guarded `npm run bootstrap:admin` command avoids a public bootstrap endpoint,
+raw operator SQL and a default password:
 
-1. Insert an unverified Better Auth user row with platform role `admin` through
-   an explicit Wrangler D1 operation.
-2. Request a controlled Magic Link for that existing email.
-3. The administrator completes the common `/setup-account` flow.
+1. Validate the explicit local, dev or production target and its D1/email/domain
+   configuration.
+2. Insert the first unverified Better Auth user with platform role `admin` through
+   Wrangler D1, refusing an existing different admin or non-platform identity.
+3. Request a controlled Magic Link for that existing email.
+4. The administrator completes the common `/setup-account` flow.
 
 There is no hardcoded administrator email, hidden setup route, or default
 credential.

@@ -5,6 +5,26 @@ production deployment. The latest repository checkpoint is recorded first; earli
 localization, environment, Starter v1 and dependency-remediation evidence from
 the inherited foundation is preserved below.
 
+## 2026-09-15: Guarded platform-admin bootstrap command
+
+Replaced the operator-facing raw SQL bootstrap procedure with
+`npm run bootstrap:admin`. The command requires an explicit local, dev or
+production target, validates email/name and configured D1/domain/email policy,
+requires `--confirm-production` for production, refuses to elevate existing
+tenant identities, and conditionally creates only the first platform
+administrator. It accepts no password and requests the existing one-time
+`/setup-account` Magic Link flow. A retry for the same unfinished identity is
+safe; an already configured identity exits without sending another link.
+
+Six new Node tests cover argument rejection, production acknowledgement,
+environment isolation, dev email allowlisting, SQL literal escaping and
+conditional insertion, first-admin/retry decisions, and the password-free setup
+request. `npm run check` passed typecheck, lint, 24 environment/bootstrap tests,
+two i18n checks, 155 Workers/D1 tests and all local/dev/production builds and
+deployment dry-runs (181 automated tests total). The command help path also ran
+successfully. No administrator record, remote database operation, email, cloud
+resource, deployment, commit or push was created during verification.
+
 ## 2026-09-15: Billing setup vertical slice
 
 Implemented the first ControlMembers domain slice without changing any remote

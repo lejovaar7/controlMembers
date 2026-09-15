@@ -279,36 +279,48 @@ for policies and the limits of ordered, non-transactional access edits.
 ### Bootstrapping the first platform admin
 
 Better Auth's `auth create-admin` CLI runs in Node against the auth config's
-database, so it cannot reach a Cloudflare D1 binding. Bootstrap instead with the
-tooling you already use, which never involves a default password:
+database, so it cannot reach a Cloudflare D1 binding. Use the guarded project
+command instead. It never accepts or creates a default password.
+
+For local development, keep `npm run dev` running in one terminal and run this
+in another:
 
 ```bash
-# 1. After deploying dev, insert its admin (no password, unverified).
-# Replace the name and email; the email must be in dev's recipient allowlist.
-npx wrangler d1 execute DB --config wrangler.json --env dev --remote --command \
-  "INSERT INTO user (id, name, email, email_verified, role, created_at, updated_at)
-   VALUES (lower(hex(randomblob(16))), 'Platform Admin', 'you@example.com', 0, 'admin',
-           unixepoch()*1000, unixepoch()*1000);"
-
-# 2. Ask Better Auth to email that address a setup link.
-# Replace dev.example.com with your configured dev domain before executing.
-curl -X POST https://dev.example.com/api/auth/sign-in/magic-link \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"you@example.com","callbackURL":"/setup-account"}'
+npm run bootstrap:admin -- \
+  --env local \
+  --email admin@example.com \
+  --name "Platform Admin"
 ```
 
-Opening the link proves mailbox ownership, verifies the account and takes you to
-`/setup-account` to choose a password. Each isolated ControlMembers environment
-must bootstrap its own platform admin this way. Run this bootstrap once per database; do not insert
-the same email again if its user already exists. A failed email can be retried
-without reinserting the user.
+Open the simulated email under `.wrangler/tmp/email/`, follow its link and choose
+a password at `/setup-account`.
 
-For local, replace `--env dev --remote` with `--env "" --local` and use
-`http://localhost:5173`. Keep the dev server running and open the simulated email
-under `.wrangler/tmp/email/`. For production, use `--env production --remote`,
-the production URL and a separately chosen production identity. Accounts,
-sessions and data do not synchronize between environments. Never reuse test
-credentials or test identities in production.
+After dev is configured, migrated and deployed, its administrator email must be
+in `allowed_destination_addresses`:
+
+```bash
+npm run bootstrap:admin -- \
+  --env dev \
+  --email admin@your-domain.com \
+  --name "Platform Admin"
+```
+
+Production requires its own configured, migrated and deployed resources plus an
+explicit acknowledgement:
+
+```bash
+npm run bootstrap:admin -- \
+  --env production \
+  --email admin@your-domain.com \
+  --name "Platform Admin" \
+  --confirm-production
+```
+
+The command validates the target, refuses placeholders and ambiguous options,
+creates only the first platform administrator, and safely resends setup for that
+same identity until a password exists. It will not elevate an existing tenant
+user or create a different administrator after bootstrap. Each environment owns
+separate accounts, sessions and data; never reuse test identities in production.
 
 ## Multi-tenancy
 

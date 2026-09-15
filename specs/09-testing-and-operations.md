@@ -31,6 +31,7 @@ environment and disables remote bindings, independently of shell environment.
 | `test/localization.test.ts` | Catalog completeness/placeholders, priority/fallback, public choice, persistence, tenant isolation, guarded language writes, provisioning and recipient email |
 | `scripts/i18n.test.mjs` | Static JSX/accessible copy uses catalogs; shared localization has no browser/Worker/secret dependencies |
 | `scripts/environments.test.mjs` | Node tests for environment isolation, explicit targets, placeholder rejection, dev email allowlist, command ordering and argument-override rejection |
+| `scripts/bootstrap-admin.test.mjs` | First-platform-admin argument, target, allowlist, SQL escaping, retry and password-free setup-link safety |
 
 See [the dated verification record](VERIFICATION.md) for current counts and
 command outputs. `test/helpers.ts` shares actor creation and same-origin requests.
@@ -136,6 +137,8 @@ platform-admin bootstrap; no credentials or customer data are promoted with code
 
 | Script | Responsibility |
 | --- | --- |
+| `npm run setup:local` | Safe first-clone variables, locked install and local D1 migration |
+| `npm run bootstrap:admin` | Guarded first platform administrator bootstrap for one explicit environment |
 | `npm run dev` / `npm run preview` | Local development / optimized local preview |
 | `npm run typecheck` | All referenced TypeScript projects |
 | `npm run lint` | ESLint repository checks |

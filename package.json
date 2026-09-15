@@ -6,6 +6,7 @@
 	"packageManager": "npm@11.12.1",
 	"scripts": {
 		"setup:local": "node scripts/setup-local.mjs",
+		"bootstrap:admin": "node scripts/bootstrap-admin.mjs",
 		"dev": "node scripts/environments.mjs local dev",
 		"build": "node scripts/environments.mjs local build",
 		"build:dev": "node scripts/environments.mjs dev build",
@@ -28,7 +29,7 @@
 		"db:migrate:remote": "node scripts/environments.mjs",
 		"test": "npm run test:environments && npm run test:i18n && node scripts/environments.mjs local test",
 		"test:i18n": "node --test scripts/i18n.test.mjs",
-		"test:environments": "node --test scripts/environments.test.mjs",
+		"test:environments": "node --test scripts/environments.test.mjs scripts/bootstrap-admin.test.mjs",
 		"test:watch": "node scripts/environments.mjs local test-watch"
 	},
 	"dependencies": {
