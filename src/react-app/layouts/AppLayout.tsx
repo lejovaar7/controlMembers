@@ -1,5 +1,5 @@
 import { useT } from "@/lib/i18n";
-import { Banknote, Building2, CalendarRange, ChartNoAxesCombined, ClipboardList, LayoutDashboard, Settings, UserRoundCheck, Users } from "lucide-react";
+import { Banknote, Building2, CalendarRange, ChartNoAxesCombined, ClipboardList, LayoutDashboard, LogOut, MapPin, Settings, UserRoundCheck, Users } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation } from "react-router";
 import { BranchSwitcher } from "@/components/branch-switcher";
@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { LanguagePicker } from "@/components/language-picker";
 import { isPlatformAdminRole } from "@/lib/session-routing";
+import { ProductBrand } from "@/components/product-brand";
 
 const navigation = [
 	{ to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, manage: false, reports: true },
@@ -45,7 +46,7 @@ function Navigation({
 	const t = useT();
 	return (
 		<nav aria-label={t("Main")} className={className}>
-			<ul className="flex flex-wrap gap-1 md:flex-col">
+			<ul className="flex gap-2 overflow-x-auto px-1 pb-2 md:flex-col md:overflow-visible md:pb-0">
 				{navigation
 					.filter((item) => (showManagement || !item.manage) && (!("fullScope" in item) || !item.fullScope || fullScope) && (!("reports" in item) || !item.reports || canViewReports))
 					.map(({ to, label, icon: Icon }) => (
@@ -54,15 +55,15 @@ function Navigation({
 							to={to}
 							className={({ isActive }) =>
 								cn(
-									"flex items-center gap-2 rounded-md px-3 py-2 text-sm",
-									"hover:bg-accent hover:text-accent-foreground",
+									"group flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200",
+									"hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
 									isActive
-										? "bg-accent text-accent-foreground font-medium"
+										? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-sidebar-primary/20"
 										: "text-muted-foreground",
 								)
 							}
 						>
-							<Icon aria-hidden="true" className="size-4" />
+							<Icon aria-hidden="true" className="size-4.5 transition-transform group-hover:scale-105" />
 							{t(label)}
 						</NavLink>
 					</li>
@@ -74,10 +75,11 @@ function Navigation({
 
 function Centered({ children }: { children: React.ReactNode }) {
 	return (
-		<div className="flex min-h-svh items-center justify-center">
-			<p className="text-muted-foreground text-sm" role="status">
+		<div className="flex min-h-svh items-center justify-center p-6">
+			<div className="flex max-w-md flex-col items-center gap-4 rounded-2xl bg-card p-8 text-center text-sm text-muted-foreground shadow-xl ring-1 ring-border" role="status">
+				<ProductBrand className="mb-2 w-56" />
 				{children}
-			</p>
+			</div>
 		</div>
 	);
 }
@@ -179,13 +181,16 @@ export function AppLayout() {
 		return <Navigate to="/no-company" replace />;
 	}
 	if (selection?.kind === "choose") {
-		return <div className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-4 p-6">
-			<LanguagePicker />
+		return <div className="mx-auto flex min-h-svh max-w-lg flex-col justify-center gap-4 p-6">
+			<div className="rounded-3xl bg-card p-7 shadow-xl ring-1 ring-border sm:p-9">
+			<ProductBrand className="mb-7 w-64" />
+			<div className="mb-4 flex justify-end"><LanguagePicker /></div>
 			<h1 className="text-2xl font-semibold">{t("Choose a company")}</h1>
-			<p className="text-muted-foreground">{t("Select the company you want to work in. Access and permissions are separate for each company.")}</p>
-			{companies.map((company) => <Button key={company.id} variant="outline" className="h-auto min-h-10 whitespace-normal break-words" disabled={switchingOrganization} onClick={() => void selectCompany(company.id)}>{company.name}</Button>)}
+			<p className="mb-6 text-muted-foreground">{t("Select the company you want to work in. Access and permissions are separate for each company.")}</p>
+			<div className="grid gap-3">{companies.map((company) => <Button key={company.id} variant="outline" className="h-auto min-h-11 justify-start whitespace-normal break-words" disabled={switchingOrganization} onClick={() => void selectCompany(company.id)}>{company.name}</Button>)}</div>
 			{switchingOrganization && <p role="status">{t("Opening company…")}</p>}
-			<Button variant="ghost" disabled={switchingOrganization} onClick={() => void handleSignOut()}>{t("Sign out")}</Button>
+			<Button className="mt-3" variant="ghost" disabled={switchingOrganization} onClick={() => void handleSignOut()}><LogOut />{t("Sign out")}</Button>
+			</div>
 		</div>;
 	}
 	if (selection?.kind === "activate") return <Centered>{t("Opening company…")}</Centered>;
@@ -234,13 +239,14 @@ export function AppLayout() {
 
 	return (
 		<div className="flex min-h-svh flex-col md:flex-row">
-			<aside className="border-b md:w-56 md:shrink-0 md:border-r md:border-b-0">
-				<div className="p-3">
-					<Navigation showManagement={manageBranches} fullScope={permissions?.allBranches === true} canViewReports={permissions?.canViewReports === true} />
+			<aside className="border-b border-sidebar-border bg-sidebar/95 backdrop-blur-xl md:sticky md:top-0 md:h-svh md:w-72 md:shrink-0 md:border-r md:border-b-0">
+				<div className="flex h-full min-h-0 flex-col">
+					<div className="flex items-center justify-between px-4 py-3 md:px-5 md:py-6"><ProductBrand compact className="w-52" /></div>
+					<Navigation className="min-h-0 flex-1 overflow-y-auto px-3 md:pb-5" showManagement={manageBranches} fullScope={permissions?.allBranches === true} canViewReports={permissions?.canViewReports === true} />
 				</div>
 			</aside>
 			<div className="flex min-w-0 flex-1 flex-col">
-				<header className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
+				<header className="sticky top-0 z-20 flex min-h-17 flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-background/85 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
 					<div className="flex min-w-0 flex-wrap items-center gap-2">
 						<OrganizationSwitcher companies={companies} activeOrganizationId={activeOrganizationId} switching={switchingOrganization} onSelect={(id) => void selectCompany(id)} />
 						{branches.length > 1 ? (
@@ -252,21 +258,21 @@ export function AppLayout() {
 						) : activeBranch ? (
 							// One location: show the branch as a plain label rather than
 							// asking the user to choose between one option.
-							<span className="text-muted-foreground text-sm">
-								{activeBranch.name}
+							<span className="flex items-center gap-1.5 rounded-lg bg-muted px-2.5 py-1.5 text-sm text-muted-foreground">
+								<MapPin className="size-3.5" />{activeBranch.name}
 							</span>
 						) : null}
 					</div>
 					<div className="flex min-w-0 flex-wrap items-center gap-3">
 						<LanguagePicker />
-						<span className="text-muted-foreground max-w-[12rem] truncate text-sm">
+						<span className="hidden max-w-[13rem] truncate rounded-lg bg-card px-3 py-1.5 text-sm font-medium text-foreground shadow-xs ring-1 ring-border sm:block">
 							{session.user.name || session.user.email}
 						</span>
 						<Button variant="outline" size="sm" onClick={handleSignOut}>
-							{t("Sign out")}</Button>
+							<LogOut />{t("Sign out")}</Button>
 					</div>
 				</header>
-				<main className="flex-1">
+				<main className="flex-1 bg-background/60">
 					{switchingOrganization ? <p role="status" className="p-6">{t("Switching company…")}</p> : <Outlet context={shell} />}
 				</main>
 			</div>
