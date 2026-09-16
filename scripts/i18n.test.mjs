@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 function sourceFiles(directory) {
@@ -13,7 +14,7 @@ function sourceFiles(directory) {
 
 test("application JSX copy and accessible labels use the translation catalog", () => {
 	const untranslated = [];
-	for (const file of sourceFiles(new URL("../src/react-app", import.meta.url).pathname)) {
+	for (const file of sourceFiles(fileURLToPath(new URL("../src/react-app", import.meta.url)))) {
 		const source = ts.createSourceFile(file, readFileSync(file, "utf8"), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 		function visit(node) {
 			if (ts.isJsxText(node) && /[A-Za-z]/.test(node.text)) untranslated.push(`${file}: ${node.text.trim()}`);

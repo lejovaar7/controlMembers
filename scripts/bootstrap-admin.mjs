@@ -137,9 +137,13 @@ function executeSql(databaseArgs, sql, target) {
 export async function requestSetupLink(baseUrl, email, fetchImplementation = fetch) {
 	let response;
 	try {
-		response = await fetchImplementation(new URL("/api/auth/sign-in/magic-link", baseUrl), {
+		const setupUrl = new URL("/api/auth/sign-in/magic-link", baseUrl);
+		response = await fetchImplementation(setupUrl, {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: {
+				"Content-Type": "application/json",
+				Origin: setupUrl.origin,
+			},
 			body: JSON.stringify({ email, callbackURL: "/setup-account" }),
 		});
 	} catch (error) {

@@ -62,6 +62,7 @@ test("setup links use the supported endpoint without sending a password", async 
 		return new Response(null, { status: 200 });
 	});
 	assert.equal(captured.url, "http://localhost:5173/api/auth/sign-in/magic-link");
+	assert.equal(captured.init.headers.Origin, "http://localhost:5173");
 	assert.deepEqual(JSON.parse(captured.init.body), { email: "admin@example.com", callbackURL: "/setup-account" });
 	assert.equal("password" in JSON.parse(captured.init.body), false);
 	await assert.rejects(() => requestSetupLink("http://localhost:5173", "admin@example.com", async () => new Response("no", { status: 500 })), /HTTP 500/);
