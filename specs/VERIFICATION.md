@@ -5,6 +5,23 @@ production deployment. The latest repository checkpoint is recorded first; earli
 localization, environment, Starter v1 and dependency-remediation evidence from
 the inherited foundation is preserved below.
 
+## 2026-09-16: Branded interface foundation
+
+Introduced the ControlMembers interface palette across the public shell,
+authentication experience, application shell, shared Button/Input/Card
+primitives, page hierarchy and financial dashboard. The final wordmark uses the
+same symbol, `Control` vector, proportions and navy/blue colors as ControlWash;
+only `Wash` is replaced by `Members`. The login was visually reviewed in Spanish
+at desktop width after fitting the SVG view box for legibility; the authenticated
+dashboard still requires the representative-user pilot for browser-level
+observation.
+
+`npm run check` passed typecheck, lint, 24 environment/bootstrap tests, two i18n
+checks, 173 Workers/D1 tests, and local/dev/production builds and deployment dry
+runs. `git diff --check` also passed. The build retains the existing non-blocking
+JavaScript chunk-size warning; no API, database, permission or financial rule
+changed.
+
 ## 2026-09-15: Complete local ControlMembers MVP release candidate
 
 Implemented the complete local receivables workflow on the inherited SaaS

@@ -28,6 +28,26 @@ shadcn files rather than modifying them when product behavior is needed. Do not
 add a second component library. Product branding may define one primary accent,
 logo and semantic status tokens while preserving accessible contrast.
 
+This branded baseline is the explicit product-level exception that permits
+visual token, size, radius and elevation changes in the checked-in Button, Input
+and Card primitives. Their behavior and public component APIs remain stable.
+
+## Brand system
+
+ControlMembers belongs to the same visual family as ControlWash. Its logo keeps
+the original ControlWash symbol, the exact vector construction of `Control`, its
+proportions and its navy/blue colors (`#02285A` and `#02A3F1`); only the product
+word changes from `Wash` to `Members`. The application may continue using its
+own indigo/violet interface accent so both products remain recognizable without
+breaking the shared brand family. Cool off-white surfaces keep financial states
+and content clearer than decorative color.
+
+The wordmark appears on public/authentication surfaces and in the application
+shell. Dashboards may repeat it inside a bounded brand panel without competing
+with balances or actions. All screens inherit the same CSS variables, spacing,
+radius, elevation and focus treatment; do not recreate brand colors ad hoc in
+individual feature pages.
+
 ## Terminology and navigation
 
 Customer records are **Members/Miembros**. The section for authenticated
