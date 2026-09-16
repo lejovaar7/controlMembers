@@ -39,7 +39,7 @@
 			"name": "controlmembers-dev",
 			"workers_dev": false,
 			"preview_urls": false,
-			"routes": [{ "pattern": "dev.example.invalid", "custom_domain": true }],
+			"routes": [{ "pattern": "dev.controlmembers.magdasystems.com", "custom_domain": true }],
 			"secrets": {
 				"required": ["BETTER_AUTH_SECRET", "APP_URL", "EMAIL_FROM"]
 			},
@@ -51,7 +51,7 @@
 			"d1_databases": [{
 				"binding": "DB",
 				"database_name": "controlmembers-dev-db",
-				"database_id": "REPLACE_WITH_DEV_D1_DATABASE_ID",
+				"database_id": "bd9c62b2-b5ab-4638-82b9-1bdaedb475b7",
 				"migrations_dir": "./drizzle",
 				"remote": false
 			}]

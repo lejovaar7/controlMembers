@@ -2,5 +2,5 @@
 # Copy to .dev.vars.dev to avoid falling back to .dev.vars during dev builds.
 # These non-secret fixtures must never be installed as deployed secrets.
 BETTER_AUTH_SECRET=build-only-dev-value-not-a-deployed-secret
-APP_URL=https://dev.example.invalid
-EMAIL_FROM=no-reply@dev.example.invalid
+APP_URL=https://dev.controlmembers.magdasystems.com
+EMAIL_FROM=no-reply@dev.controlmembers.magdasystems.com

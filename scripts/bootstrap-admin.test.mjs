@@ -29,13 +29,15 @@ test("production requires its deliberate confirmation flag", () => {
 });
 
 test("plans isolated local and remote D1 operations", () => {
+	const unconfigured = readConfig();
+	unconfigured.env.dev.d1_databases[0].database_id = "REPLACE_WITH_DEV_D1_DATABASE_ID";
 	assert.deepEqual(bootstrapPlan(readConfig(), { target: "local", email: "admin@example.com" }), {
 		baseUrl: "http://localhost:5173", databaseArgs: ["--config", "wrangler.json", "--env", "", "--local"],
 	});
 	assert.deepEqual(bootstrapPlan(configured(), { target: "dev", email: "admin@fixture-saas.com" }), {
 		baseUrl: "https://dev.fixture-saas.com", databaseArgs: ["--config", "wrangler.json", "--env", "dev", "--remote"],
 	});
-	assert.throws(() => bootstrapPlan(readConfig(), { target: "dev", email: "qa@example.invalid" }), /D1 placeholder/);
+	assert.throws(() => bootstrapPlan(unconfigured, { target: "dev", email: "qa@example.invalid" }), /D1 placeholder/);
 	assert.throws(() => bootstrapPlan(configured(), { target: "dev", email: "other@fixture-saas.com" }), /allowed_destination_addresses/);
 });
 

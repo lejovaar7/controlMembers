@@ -128,13 +128,12 @@ is local; `env.dev` and `env.production` are the two deployed environments.
 | Environment | URL | Worker | Database | Email |
 | --- | --- | --- | --- | --- |
 | Local | `http://localhost:5173` | Local runtime, not deployed | Local `controlmembers-db` state | Simulated |
-| Dev | Your `https://dev.<domain>` | `controlmembers-dev` | Separate `controlmembers-dev-db` in Cloudflare | Real sending, explicit test-recipient allowlist |
+| Dev | `https://dev.controlmembers.magdasystems.com` | `controlmembers-dev` | Separate `controlmembers-dev-db` in Cloudflare | Real sending, explicit test-recipient allowlist |
 | Production | Your `https://app.<domain>` | `controlmembers-production` | Separate `controlmembers-production-db` in Cloudflare | Real sending |
 
-The ControlMembers remote names are product defaults. Tracked remote D1 IDs,
-custom domains and dev recipients are intentionally non-working examples.
-See [Configuring ControlMembers environments](#configuring-controlmembers-environments) to
-replace them. No Cloudflare resource or DNS setup is created by a local build.
+The ControlMembers dev Worker, D1 database and custom domain are configured.
+Production and dev's controlled-recipient allowlist remain explicit release
+configuration. See [Configuring ControlMembers environments](#configuring-controlmembers-environments).
 
 `scripts/environments.mjs` selects the Cloudflare environment **before** Vite
 starts/builds, regardless of an inherited `CLOUDFLARE_ENV`. Remote deployment
