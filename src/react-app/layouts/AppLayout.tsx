@@ -1,5 +1,6 @@
 import { useT } from "@/lib/i18n";
-import { Banknote, Building2, CalendarRange, ChartNoAxesCombined, ClipboardList, LayoutDashboard, LogOut, MapPin, Settings, UserRoundCheck, Users } from "lucide-react";
+import { Banknote, Building2, CalendarRange, ChartNoAxesCombined, ClipboardList, LayoutDashboard, LogOut, MapPin, Menu, X, Settings, UserRoundCheck, Users } from "lucide-react";
+import { Dialog } from "@base-ui/react/dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation } from "react-router";
 import { BranchSwitcher } from "@/components/branch-switcher";
@@ -37,28 +38,31 @@ function Navigation({
 	showManagement,
 	fullScope,
 	canViewReports,
+	onNavigate,
 }: {
 	className?: string;
 	showManagement: boolean;
 	fullScope: boolean;
 	canViewReports: boolean;
+	onNavigate?: () => void;
 }) {
 	const t = useT();
 	return (
 		<nav aria-label={t("Main")} className={className}>
-			<ul className="flex gap-2 overflow-x-auto px-1 pb-2 md:flex-col md:overflow-visible md:pb-0">
+			<ul className="flex flex-col gap-1">
 				{navigation
 					.filter((item) => (showManagement || !item.manage) && (!("fullScope" in item) || !item.fullScope || fullScope) && (!("reports" in item) || !item.reports || canViewReports))
 					.map(({ to, label, icon: Icon }) => (
 					<li key={to}>
 						<NavLink
 							to={to}
+							onClick={onNavigate}
 							className={({ isActive }) =>
 								cn(
-									"group flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200",
+									"group flex min-h-11 items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
 									"hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
 									isActive
-										? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-sidebar-primary/20"
+										? "bg-sidebar-primary text-sidebar-primary-foreground"
 										: "text-muted-foreground",
 								)
 							}
@@ -95,6 +99,16 @@ export function AppLayout() {
 	const t = useT();
 	const { data: session, isPending } = useSession();
 	const location = useLocation();
+	const [menuOpen, setMenuOpen] = useState(false);
+	useEffect(() => {
+		const desktop = window.matchMedia("(min-width: 1024px)");
+		const closeOnDesktop = () => { if (desktop.matches) setMenuOpen(false); };
+		desktop.addEventListener("change", closeOnDesktop);
+		return () => desktop.removeEventListener("change", closeOnDesktop);
+	}, []);
+	useEffect(() => {
+		document.querySelector<HTMLElement>("main h1")?.focus({ preventScroll: true });
+	}, [location.pathname]);
 	const [signingOut, setSigningOut] = useState(false);
 	const [recoveryFailed, setRecoveryFailed] = useState(false);
 	const [switchingOrganization, setSwitchingOrganization] = useState(false);
@@ -238,16 +252,33 @@ export function AppLayout() {
 	};
 
 	return (
-		<div className="flex min-h-svh flex-col md:flex-row">
-			<aside className="border-b border-sidebar-border bg-sidebar/95 backdrop-blur-xl md:sticky md:top-0 md:h-svh md:w-72 md:shrink-0 md:border-r md:border-b-0">
+		<div className="flex min-h-svh">
+			<a href="#main-content" className="skip-link">{t("Skip to content")}</a>
+			<aside className="sticky top-0 hidden h-svh w-62 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">
 				<div className="flex h-full min-h-0 flex-col">
-					<div className="flex items-center justify-between px-4 py-3 md:px-5 md:py-6"><ProductBrand compact className="w-52" /></div>
-					<Navigation className="min-h-0 flex-1 overflow-y-auto px-3 md:pb-5" showManagement={manageBranches} fullScope={permissions?.allBranches === true} canViewReports={permissions?.canViewReports === true} />
+					<div className="flex h-22 items-center border-b px-6"><ProductBrand compact className="w-full" /></div>
+					<p className="px-6 pb-3 pt-7 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t("Workspace")}</p>
+					<Navigation className="min-h-0 flex-1 overflow-y-auto px-3 pb-5" showManagement={manageBranches} fullScope={permissions?.allBranches === true} canViewReports={permissions?.canViewReports === true} />
+					<div className="m-4 rounded-xl border bg-background p-4"><div className="mb-2 flex items-center gap-2 text-sm font-semibold"><Building2 className="size-4 text-primary" /><span className="truncate">{organization?.name}</span></div><p className="text-xs leading-5 text-muted-foreground">{t("Your workspace, in order.")}</p></div>
 				</div>
 			</aside>
 			<div className="flex min-w-0 flex-1 flex-col">
-				<header className="sticky top-0 z-20 flex min-h-17 flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-background/85 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
-					<div className="flex min-w-0 flex-wrap items-center gap-2">
+				{isPlatformAdminRole((session.user as { role?: unknown }).role) && <div className="border-b bg-secondary px-4 py-2 text-sm sm:px-6 lg:px-8"><NavLink to="/platform" className="font-medium text-primary">{t("Platform administration")}</NavLink></div>}
+				<header className="sticky top-0 z-20 flex min-h-22 flex-wrap items-center justify-between gap-3 border-b bg-card/95 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-8">
+					<div className="flex min-w-0 flex-1 items-center gap-3">
+						<Dialog.Root open={menuOpen} onOpenChange={setMenuOpen}>
+							<Dialog.Trigger render={<Button variant="outline" size="icon" className="lg:hidden" aria-label={t("Open navigation")} />}><Menu /></Dialog.Trigger>
+							<Dialog.Portal>
+								<Dialog.Backdrop className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm" />
+								<Dialog.Popup className="fixed inset-y-0 left-0 z-50 flex w-[min(320px,90vw)] flex-col bg-sidebar shadow-2xl">
+									<div className="flex items-center justify-between gap-3 border-b p-5"><ProductBrand compact className="w-48" /><Dialog.Close render={<Button variant="ghost" size="icon" aria-label={t("Close navigation")} />}><X /></Dialog.Close></div>
+									<Dialog.Title className="px-6 pb-3 pt-6 text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("Workspace")}</Dialog.Title>
+									<Navigation className="min-h-0 flex-1 overflow-y-auto px-4" showManagement={manageBranches} fullScope={permissions?.allBranches === true} canViewReports={permissions?.canViewReports === true} onNavigate={() => setMenuOpen(false)} />
+									<div className="space-y-4 border-t p-5"><p className="truncate text-sm font-medium">{session.user.name || session.user.email}</p><LanguagePicker /><Button variant="outline" className="w-full" onClick={handleSignOut}><LogOut />{t("Sign out")}</Button></div>
+								</Dialog.Popup>
+							</Dialog.Portal>
+						</Dialog.Root>
+						<div className="flex min-w-0 flex-1 flex-col items-start gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
 						<OrganizationSwitcher companies={companies} activeOrganizationId={activeOrganizationId} switching={switchingOrganization} onSelect={(id) => void selectCompany(id)} />
 						{branches.length > 1 ? (
 							<BranchSwitcher
@@ -262,17 +293,18 @@ export function AppLayout() {
 								<MapPin className="size-3.5" />{activeBranch.name}
 							</span>
 						) : null}
+						</div>
 					</div>
-					<div className="flex min-w-0 flex-wrap items-center gap-3">
+					<div className="hidden min-w-0 items-center gap-3 lg:flex">
 						<LanguagePicker />
-						<span className="hidden max-w-[13rem] truncate rounded-lg bg-card px-3 py-1.5 text-sm font-medium text-foreground shadow-xs ring-1 ring-border sm:block">
+						<span className="hidden max-w-[10rem] truncate text-sm font-medium xl:block">
 							{session.user.name || session.user.email}
 						</span>
 						<Button variant="outline" size="sm" onClick={handleSignOut}>
 							<LogOut />{t("Sign out")}</Button>
 					</div>
 				</header>
-				<main className="flex-1 bg-background/60">
+				<main id="main-content" tabIndex={-1} className="min-w-0 flex-1 outline-none">
 					{switchingOrganization ? <p role="status" className="p-6">{t("Switching company…")}</p> : <Outlet context={shell} />}
 				</main>
 			</div>

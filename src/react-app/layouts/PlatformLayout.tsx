@@ -1,3 +1,4 @@
+import { ProductBrand } from "@/components/product-brand";
 import { useT } from "@/lib/i18n";
 import { Link, Navigate, Outlet } from "react-router";
 import { Button } from "@/components/ui/button";
@@ -24,12 +25,13 @@ export function PlatformLayout() {
 
 	return (
 		<div className="flex min-h-svh flex-col">
-			<header className="flex min-h-14 flex-wrap items-center justify-between gap-4 border-b px-4 py-2 sm:px-6">
+			<header className="flex min-h-22 flex-wrap items-center justify-between gap-4 border-b bg-card px-4 py-4 sm:px-8">
 				<Link to="/platform" className="text-sm font-medium">
-					{t("Platform administration")}</Link>
+					<ProductBrand compact className="mb-1 w-48" /><span className="text-xs text-muted-foreground">{t("Platform administration")}</span></Link>
 				<div className="flex min-w-0 flex-wrap items-center gap-3">
+					<Link to="/platform" className="text-sm font-medium text-primary">{t("Companies")}</Link>
 					<LanguagePicker />
-					<span className="text-muted-foreground max-w-[12rem] truncate text-sm">
+					<span className="text-muted-foreground hidden max-w-[12rem] truncate text-sm sm:block">
 						{session.user.name || session.user.email}
 					</span>
 					<Button

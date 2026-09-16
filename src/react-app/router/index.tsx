@@ -11,6 +11,7 @@ import { MembersPage } from "@/pages/MembersPage";
 import { NoBranchAccessPage } from "@/pages/NoBranchAccessPage";
 import { NoCompanyPage } from "@/pages/NoCompanyPage";
 import { PlatformHomePage } from "@/pages/PlatformHomePage";
+import { PlatformOrganizationPage } from "@/pages/PlatformOrganizationPage";
 import { PlatformNewOrganizationPage } from "@/pages/PlatformNewOrganizationPage";
 import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
 import { SettingsPage } from "@/pages/SettingsPage";
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
 		element: <PlatformLayout />,
 		children: [
 			{ index: true, element: <PlatformHomePage /> },
+			{ path: "organizations/:id", element: <PlatformOrganizationPage /> },
 			{
 				path: "organizations/new",
 				element: <PlatformNewOrganizationPage />,

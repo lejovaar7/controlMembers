@@ -57,7 +57,7 @@ export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdm
 		finally { setPending(false); }
 	}
 
-	return <form onSubmit={submit} className="grid gap-4 rounded-lg border p-4" aria-label={member ? t("Edit access for {name}", { name: member.user.name }) : t("Add user")}>
+	return <form onSubmit={submit} className="grid max-w-3xl gap-5 rounded-xl border bg-card p-5 sm:p-6" aria-label={member ? t("Edit access for {name}", { name: member.user.name }) : t("Add user")}>
 		<h2 className="break-words font-medium">{member ? t("Edit access: {name}", { name: member.user.name }) : t("Add user")}</h2>
 		<fieldset disabled={pending} className="grid gap-4">
 			{!member && <>

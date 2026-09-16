@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GENERIC_ERROR } from "@/lib/auth-errors";
 import type { SetupEmailStatus } from "@/lib/members";
+import { Link } from "react-router";
 
 type Result = {
 	organizationId: string;
@@ -47,7 +48,10 @@ export function PlatformNewOrganizationPage() {
 			});
 
 			if (!response.ok) {
-				setError(GENERIC_ERROR);
+				const failure = await response.json().catch(() => null) as { error?: string } | null;
+				setError(failure?.error === "OWNER_EMAIL_ALREADY_ASSIGNED"
+					? "This email already owns a company. Use a different email for the new company."
+					: GENERIC_ERROR);
 				setSubmitting(false);
 				return;
 			}
@@ -96,6 +100,8 @@ export function PlatformNewOrganizationPage() {
 					</FormMessage>
 					<FormMessage tone="success">{resendState ? t(resendState) : null}</FormMessage>
 					<div className="flex flex-wrap gap-3">
+						<Button nativeButton={false} render={<Link to={`/platform/organizations/${result.organizationId}`} />}>{t("View company")}</Button>
+						<Button variant="outline" nativeButton={false} render={<Link to="/platform" />}>{t("Back to companies")}</Button>
 						{result.setupEmailStatus !== "not-required" ? (
 							<Button variant="outline" disabled={resending} onClick={handleResend}>
 								{resending ? t("Sending…") : t("Resend setup link")}
@@ -115,7 +121,7 @@ export function PlatformNewOrganizationPage() {
 				title={t("Create company")}
 				description={t("The initial branch name follows the company language.")}
 			/>
-			<form onSubmit={handleSubmit} className="flex max-w-sm flex-col gap-4">
+			<form onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-5 rounded-xl border bg-card p-5 sm:p-7">
 				<div className="grid gap-2">
 					<Label htmlFor="locale">{t("Company language")}</Label>
 					<select id="locale" name="locale" defaultValue={locale} required className="h-10 min-w-0 rounded-md border bg-background px-3">
@@ -138,13 +144,14 @@ export function PlatformNewOrganizationPage() {
 				</div>
 				<div className="grid gap-2">
 					<Label htmlFor="ownerEmail">{t("Owner email")}</Label>
+					<p id="owner-email-help" className="text-sm text-muted-foreground">{t("Use a different owner email for each company.")}</p>
 					<Input
 						id="ownerEmail"
 						name="ownerEmail"
 						type="email"
 						autoComplete="email"
 						required
-						aria-describedby={error ? "provision-error" : undefined}
+						aria-describedby={error ? "owner-email-help provision-error" : "owner-email-help"}
 					/>
 				</div>
 

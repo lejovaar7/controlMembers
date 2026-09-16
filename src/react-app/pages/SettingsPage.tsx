@@ -13,12 +13,12 @@ export function SettingsPage() {
 	return (
 		<PageContainer className="space-y-4">
 			<PageHeader title={t("Settings")} description={t("Your company workspace.")} />
-			<dl className="grid gap-4 rounded-lg border p-4 text-sm">
-				<div><dt className="text-muted-foreground">{t("Company")}</dt><dd>{shell.organizationName}</dd></div>
-				<div><dt className="text-muted-foreground">{t("Your role")}</dt><dd>{t(roleMessage(shell.organizationRole))}</dd></div>
-				<div><dt className="text-muted-foreground">{t("Active branch")}</dt><dd>{shell.activeBranch?.name ?? t("No branch selected")}</dd></div>
+			<dl className="grid gap-6 rounded-xl border bg-card p-6 text-sm sm:grid-cols-3">
+				<div><dt className="text-muted-foreground">{t("Company")}</dt><dd className="mt-1.5 font-semibold">{shell.organizationName}</dd></div>
+				<div><dt className="text-muted-foreground">{t("Your role")}</dt><dd className="mt-1.5 font-semibold">{t(roleMessage(shell.organizationRole))}</dd></div>
+				<div><dt className="text-muted-foreground">{t("Active branch")}</dt><dd className="mt-1.5 font-semibold">{shell.activeBranch?.name ?? t("No branch selected")}</dd></div>
 			</dl>
-			<section className="grid max-w-xl gap-3 rounded-lg border p-4">
+			<section className="grid max-w-3xl gap-4 rounded-xl border bg-card p-6">
 				<h2 className="font-medium">{t("My language")}</h2>
 				<p className="text-sm text-muted-foreground">{t("Choose a language for your account, or use the language configured by the company.")}</p>
 				<LanguagePicker />
@@ -44,7 +44,7 @@ function CompanyLanguageForm({ company }: { company: NonNullable<LocalePreferenc
 		catch { setFeedback("failed"); }
 		finally { setPending(false); }
 	}
-	return <form onSubmit={submit} className="grid max-w-xl gap-3 rounded-lg border p-4">
+	return <form onSubmit={submit} className="grid max-w-3xl gap-4 rounded-xl border bg-card p-6">
 		<label htmlFor="company-language" className="font-medium">{t("Company language")}</label>
 		<p className="text-sm text-muted-foreground">{t("This language is used by people who have not chosen a personal language. Names and other entered data are not translated.")}</p>
 		<select id="company-language" value={selection} required className="h-10 min-w-0 rounded-md border bg-background px-3" disabled={pending || !company.canEdit}

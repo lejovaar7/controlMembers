@@ -21,7 +21,7 @@ export function LanguagePicker() {
 	}
 	return <div className="flex min-w-0 max-w-full flex-col gap-1">
 		<label htmlFor={id} className="sr-only">{t(authenticated ? "My language" : "Language")}</label>
-		<select id={id} className="h-9 min-w-0 max-w-full rounded-md border bg-background px-2 text-sm" disabled={pending}
+		<select id={id} className="h-10 min-w-0 w-full max-w-full lg:max-w-48 rounded-md border bg-background px-2 text-sm" disabled={pending}
 			value={authenticated ? preferences?.userLocale ?? (canUseCompanyLanguage ? "" : locale) : locale} onChange={(event) => void change(event.target.value)}>
 			{canUseCompanyLanguage && <option value="">{t("Use company language ({language})", { language: languages[companyLocale].name })}</option>}
 			{localeOptions.map((option) => <option key={option.value} value={option.value} lang={option.value}>{option.name}</option>)}

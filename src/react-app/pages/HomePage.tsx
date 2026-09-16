@@ -1,38 +1,34 @@
 import { useT } from "@/lib/i18n";
 import { Link } from "react-router";
-import { PageContainer, PageHeader } from "@/components/page";
+import { PageContainer } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
 import { authenticatedStartPath } from "@/lib/session-routing";
-import { ProductBrand } from "@/components/product-brand";
-import { ArrowRight, BadgeCheck, UsersRound, WalletCards } from "lucide-react";
+import { ArrowRight, Check, ChartNoAxesCombined, UsersRound, WalletCards } from "lucide-react";
 
 export function HomePage() {
-	const t = useT();
-	const { data: session, isPending } = useSession();
-
-	return <PageContainer className="flex min-h-[calc(100svh-5rem)] items-center">
-		<div className="grid w-full items-center gap-10 py-8 lg:grid-cols-[1.05fr_0.95fr] lg:py-14">
-			<div className="max-w-2xl">
-				<ProductBrand className="mb-6 h-24 w-full max-w-xl" />
-				<PageHeader title={t("ControlMembers")} description={t("Simple recurring fee control for membership organizations.")} />
-				{isPending ? null : session ? (
-					<Button size="lg" nativeButton={false} render={<Link to={authenticatedStartPath(null, (session.user as { role?: unknown }).role)} />}>{t("Open app")}<ArrowRight /></Button>
-				) : (
-					<Button size="lg" nativeButton={false} render={<Link to="/login" />}>{t("Sign in")}<ArrowRight /></Button>
-				)}
-			</div>
-			<div aria-hidden="true" className="relative mx-auto aspect-square w-full max-w-lg overflow-hidden rounded-[2.5rem] bg-[#26205c] p-8 shadow-2xl shadow-primary/20">
-				<div className="absolute -right-16 -top-16 size-64 rounded-full bg-[#7567f4]/45 blur-2xl" />
-				<div className="absolute -bottom-20 -left-16 size-72 rounded-full bg-[#20b486]/15 blur-3xl" />
-				<div className="relative grid h-full place-items-center">
-					<div className="relative grid size-56 place-items-center rounded-[2.25rem] bg-white text-primary shadow-2xl sm:size-64">
-						<UsersRound className="size-28" strokeWidth={1.5} />
-						<div className="absolute -right-7 -top-7 grid size-20 place-items-center rounded-3xl bg-[#7567f4] text-white shadow-xl"><BadgeCheck className="size-10" /></div>
-						<div className="absolute -bottom-7 -left-7 grid size-20 place-items-center rounded-3xl bg-[#20b486] text-white shadow-xl"><WalletCards className="size-10" /></div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</PageContainer>;
+ const t = useT();
+ const { data: session, isPending } = useSession();
+ const features = [
+  { icon: UsersRound, title: "Organize your members", detail: "People enrolled in your academy and their current balances." },
+  { icon: WalletCards, title: "Stay on top of payments", detail: "Money received, allocations and reversals." },
+  { icon: ChartNoAxesCombined, title: "Know where you stand", detail: "A clear view of monthly collections and outstanding balances." },
+ ] as const;
+ return <PageContainer className="max-w-7xl">
+  <div className="grid items-center gap-12 py-8 lg:min-h-[65svh] lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:py-16">
+   <div className="max-w-2xl">
+    <p className="mb-6 inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-primary"><span className="size-1.5 rounded-full bg-primary" />{t("Your workspace, in order.")}</p>
+    <h1 className="text-4xl font-semibold leading-[1.1] tracking-[-0.045em] sm:text-5xl xl:text-6xl">{t("Less admin. More time for your members.")}</h1>
+    <p className="mt-6 max-w-md text-lg leading-8 text-muted-foreground">{t("Members, payments and balances. Everything in one place.")}</p>
+    <Button className="mt-8" size="lg" disabled={isPending} nativeButton={false} render={<Link to={session ? authenticatedStartPath(null, (session.user as { role?: unknown }).role) : "/login"} />}>{t(session ? "Open app" : "Sign in")}<ArrowRight /></Button>
+   </div>
+   <section className="relative overflow-hidden rounded-3xl bg-[var(--brand-panel)] p-6 text-white sm:p-10">
+    <div aria-hidden="true" className="absolute -right-20 -top-20 size-72 rounded-full border-[40px] border-white/5" />
+    <p className="relative mb-10 max-w-72 text-2xl font-medium leading-8 tracking-tight">{t("Keep your academy moving.")}</p>
+    <div className="relative space-y-3">{features.map(({ icon: Icon, title }, index) => <div key={title} className="flex items-center gap-4 rounded-xl border border-white/15 bg-white/5 p-4"><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/10"><Icon className="size-5 text-sky-200" /></span><div className="flex-1"><p className="mb-1 text-[10px] font-medium tracking-widest text-sky-200">0{index + 1}</p><h2 className="text-sm font-medium">{t(title)}</h2></div><Check className="size-4 shrink-0 text-emerald-300" /></div>)}</div>
+    <p className="relative mt-8 text-sm text-slate-300">{t("A simpler day starts here.")}</p>
+   </section>
+  </div>
+  <div className="grid gap-8 border-t py-8 sm:grid-cols-3">{features.map(({ icon: Icon, title, detail }) => <section key={title}><Icon className="mb-4 size-5 text-primary" /><h2 className="mb-2 text-sm font-semibold">{t(title)}</h2><p className="max-w-sm text-sm leading-6 text-muted-foreground">{t(detail)}</p></section>)}</div>
+ </PageContainer>;
 }

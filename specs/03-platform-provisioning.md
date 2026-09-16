@@ -19,8 +19,32 @@ Implemented platform routes:
 
 - `/platform`
 - `/platform/organizations/new`
+- `/platform/organizations/:id`
+- `GET /api/platform/organizations` (search and pagination)
+- `GET /api/platform/organizations/:id`
+- `PATCH /api/platform/organizations/:id` (company name only)
 - `POST /api/platform/organizations`
 - `POST /api/platform/account-setup/resend`
+
+## Company directory and administration
+
+The platform home lists all companies, including companies where the current
+platform administrator has no membership. Search matches company name, slug,
+Owner name or Owner email. Results use stable creation-date/ID ordering and
+20-row pages; search values are bound and wildcard characters are literal.
+
+Each company detail shows its Owners and activation status, Branch names,
+active user count, language, currency and timezone. Platform administrators may
+rename a company; the update and `platform.organization.renamed` audit event
+are atomic. Identity, slug, memberships and financial configuration remain intact.
+An active Owner with pending setup can receive the existing setup-link resend.
+Provisioning success links directly to the new company's detail and directory.
+
+Platform role does not grant tenant access. The detail offers **Open company**
+only for an active membership of the signed-in account, and the activation API
+independently verifies membership. Member, charge and payment administration
+continues to require tenant role and Branch permissions. Platform administration
+does not impersonate Owners or automatically create memberships.
 
 ## First platform-admin bootstrap
 
@@ -58,9 +82,15 @@ or Branch configuration.
    random provisional credential.
 3. Preserve existing password, verification state, providers, and platform role.
 4. Reuse a same-named Organization already owned by that user after a partial
-   retry, or create the Organization through Better Auth.
-5. Reuse the first existing Branch or create `Sede Principal` for Spanish
-   companies and `Main Branch` for English companies through Better Auth Teams.
+   retry. Reject a different company name with `409 OWNER_EMAIL_ALREADY_ASSIGNED`
+   if the normalized email already owns a company, including inactive ownership.
+5. Create a new Organization, Owner membership and localized initial Branch in
+   one atomic Drizzle/D1 batch. A conditional organization insert rechecks the
+   ownership inside that batch; the membership foreign key rolls back a losing
+   concurrent request. Resolve same-company retries and return a conflict for
+   competing company names. Slug collisions from unrelated owners are retried.
+   Use `Sede Principal` for Spanish companies and `Main Branch` for English.
+   Existing partial provisions reuse their Branch or recover it through Teams.
 6. Send account setup for a new or interrupted account (not an established password account).
 
 The required `locale` is validated before identity creation and stored on a new
@@ -80,8 +110,12 @@ normal collisions, not fatal errors.
 - The provisional credential is never returned, logged, displayed, or emailed.
 - Magic Link signup is disabled, so only a provisioned account can activate.
 - Verified existing password users do not receive forced first-account setup.
-- Existing users can become Owner of another Organization without duplicate
-  identity or credential changes.
+- An existing account that does not own a company can become an Owner without
+  identity or credential changes. A new school must use a different Owner email
+  from all existing schools. Email matching trims whitespace and ignores case.
+- Legacy duplicate ownerships are retained, never deleted or reassigned by this
+  validation. They cannot be used to create a third company. Existing employee
+  memberships and company switching are unaffected.
 - The Organization Owner does not gain platform role.
 - Retry does not duplicate the user, Organization, or initial Branch.
 - Email failure does not invalidate already-created database state.
@@ -119,9 +153,18 @@ company. Both forms recover from network errors. Shared primitives are in
   does not become a platform administrator.
 - Repeating a request reuses the same owned company. Equal company names with
   unrelated Owners do not cause accidental company reuse or fatal slug errors.
+- Different schools cannot reuse an Owner email, including simultaneous
+  submissions. Rejection creates no orphan Organization, Branch or membership,
+  sends no activation email and preserves the existing account credentials.
+- The creation form explains the unique-email requirement and displays a
+  localized conflict message without clearing the entered form values.
 - Email failure leaves valid company access intact and offers a safe resend.
 - The form recovers from request failures and can start another company entry.
 
-Evidence: `test/provisioning.test.ts`, `test/hardening.test.ts` and the
+Directory acceptance additionally covers platform-only list/detail/rename,
+literal search, pagination, activation status, active counts, audited rename,
+rejection of unrelated update fields, and absence of implicit tenant access.
+
+Evidence: `test/platform-organizations.test.ts`, `test/provisioning.test.ts`, `test/hardening.test.ts` and the
 [verification record](VERIFICATION.md). Billing, ownership transfer and company
 deletion are outside this module's current scope.

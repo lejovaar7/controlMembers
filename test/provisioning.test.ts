@@ -342,7 +342,7 @@ describe("magic link activation destroys the provisional credential", () => {
 	});
 });
 
-describe("existing user provisioned as a second owner", () => {
+describe("existing account without an owned company", () => {
 	it("reuses the account without touching its credentials", async () => {
 		const email = "existing-owner@test.invalid";
 		const existing = await createUser(email);
@@ -353,7 +353,7 @@ describe("existing user provisioned as a second owner", () => {
 			.where(eq(account.userId, existing.userId));
 
 		const result = await provisionOrganizationWithOwner(env, {
-			companyName: "Second Company",
+			companyName: "First Owned Company",
 			ownerName: "Existing Owner",
 			ownerEmail: email,
 		});
@@ -384,6 +384,71 @@ describe("existing user provisioned as a second owner", () => {
 			.from(userTable)
 			.where(eq(userTable.id, existing.userId));
 		expect(row?.role ?? null).not.toBe("admin");
+	});
+});
+
+describe("one school per owner email", () => {
+	it("rejects a different school with a normalized owner email without changing existing data", async () => {
+		const input = { companyName: "Unique Owner School", ownerName: "Owner", ownerEmail: "unique-school-owner@test.invalid", locale: "es" as const };
+		const first = await provisionOrganizationWithOwner(env, input);
+		const db = getDb(env);
+		const before = await db.select().from(account).where(eq(account.userId, first.userId));
+		const emailsBefore = vi.mocked(env.EMAIL.send).mock.calls.length;
+		const response = await call("/api/platform/organizations", platformAdmin, { ...input, companyName: "Another School", ownerEmail: "  UNIQUE-SCHOOL-OWNER@test.invalid  " });
+		expect(response.status).toBe(409);
+		expect(await response.json()).toEqual({ error: "OWNER_EMAIL_ALREADY_ASSIGNED" });
+		expect(await db.select().from(organization).where(eq(organization.name, "Another School"))).toHaveLength(0);
+		expect(await db.select().from(member).where(eq(member.userId, first.userId))).toHaveLength(1);
+		expect(await db.select().from(account).where(eq(account.userId, first.userId))).toEqual(before);
+		expect(vi.mocked(env.EMAIL.send).mock.calls.length).toBe(emailsBefore);
+	});
+
+	it("does not let an inactive owner email create a new school", async () => {
+		const input = { companyName: "Inactive Owner School", ownerName: "Owner", ownerEmail: "inactive-school-owner@test.invalid", locale: "en" as const };
+		const first = await provisionOrganizationWithOwner(env, input);
+		await getDb(env).update(member).set({ isActive: false }).where(eq(member.userId, first.userId));
+		expect((await call("/api/platform/organizations", platformAdmin, { ...input, companyName: "Inactive Owner Second School" })).status).toBe(409);
+	});
+
+	it("preserves legacy duplicate schools while refusing a third", async () => {
+		const actor = await createUser("legacy-school-owner@test.invalid");
+		const auth = getAuth(env);
+		await auth.api.createOrganization({ body: { name: "Legacy One", slug: "legacy-one", userId: actor.userId } });
+		await auth.api.createOrganization({ body: { name: "Legacy Two", slug: "legacy-two", userId: actor.userId } });
+		const db = getDb(env);
+		const before = await db.select().from(member).where(eq(member.userId, actor.userId));
+		const response = await call("/api/platform/organizations", platformAdmin, { companyName: "Legacy Three", ownerName: "Owner", ownerEmail: actor.email, locale: "en" });
+		expect(response.status).toBe(409);
+		expect(await db.select().from(member).where(eq(member.userId, actor.userId))).toEqual(before);
+		expect(before).toHaveLength(2);
+		expect(await db.select().from(organization).where(eq(organization.name, "Legacy Three"))).toHaveLength(0);
+	});
+
+	it("allows only one school when two different names arrive concurrently", async () => {
+		const actor = await createUser("concurrent-school-owner@test.invalid");
+		const input = { ownerName: "Owner", ownerEmail: actor.email, locale: "en" };
+		const responses = await Promise.all([
+			call("/api/platform/organizations", platformAdmin, { ...input, companyName: "Concurrent School A" }),
+			call("/api/platform/organizations", platformAdmin, { ...input, companyName: "Concurrent School B" }),
+		]);
+		expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+		const db = getDb(env);
+		const owned = await db.select().from(member).where(eq(member.userId, actor.userId));
+		expect(owned).toHaveLength(1);
+		const rows = await db.select().from(organization);
+		expect(rows.filter((row) => row.name.startsWith("Concurrent School "))).toHaveLength(1);
+		expect(await db.select().from(team).where(eq(team.organizationId, owned[0].organizationId))).toHaveLength(1);
+	});
+
+	it("reuses a single school and branch for simultaneous same-name retries", async () => {
+		const actor = await createUser("concurrent-retry-owner@test.invalid");
+		const input = { companyName: "Concurrent Retry School", ownerName: "Owner", ownerEmail: actor.email, locale: "es" };
+		const responses = await Promise.all([call("/api/platform/organizations", platformAdmin, input), call("/api/platform/organizations", platformAdmin, input)]);
+		expect(responses.map((response) => response.status)).toEqual([200, 200]);
+		const db = getDb(env);
+		const rows = await db.select().from(organization).where(eq(organization.name, input.companyName));
+		expect(rows).toHaveLength(1);
+		expect(await db.select().from(team).where(eq(team.organizationId, rows[0].id))).toHaveLength(1);
 	});
 });
 

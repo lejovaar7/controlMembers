@@ -9,7 +9,7 @@ export function PageContainer({
 	className?: string;
 }) {
 	return (
-		<div className={cn("mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10", className)}>
+		<div className={cn("page-content mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-9", className)}>
 			{children}
 		</div>
 	);
@@ -25,14 +25,14 @@ export function PageHeader({
 	actions?: ReactNode;
 }) {
 	return (
-		<header className="mb-7 flex flex-wrap items-start justify-between gap-5">
+		<header className="mb-7 flex flex-col items-start justify-between gap-5 lg:flex-row lg:items-center">
 			<div className="max-w-2xl space-y-1.5">
-				<h1 className="text-2xl font-bold tracking-[-0.025em] text-foreground sm:text-3xl">{title}</h1>
+				<h1 tabIndex={-1} className="text-2xl font-semibold tracking-[-0.035em] text-foreground outline-none sm:text-3xl">{title}</h1>
 				{description ? (
-					<p className="text-muted-foreground text-sm leading-6 sm:text-base">{description}</p>
+					<p className="text-muted-foreground text-sm leading-6">{description}</p>
 				) : null}
 			</div>
-			{actions}
+			{actions ? <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div> : null}
 		</header>
 	);
 }

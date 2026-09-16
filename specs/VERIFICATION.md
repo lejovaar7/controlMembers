@@ -5,6 +5,75 @@ production deployment. The latest repository checkpoint is recorded first; earli
 localization, environment, Starter v1 and dependency-remediation evidence from
 the inherited foundation is preserved below.
 
+## 2026-09-16: Distinct school owner emails
+
+Changed platform provisioning to reject a different school when the normalized
+Owner email already owns a company, including inactive ownership. Same-name
+retries resume the existing school. Existing duplicate ownerships are preserved.
+New Organization, Owner membership and initial Branch writes use an atomic D1
+batch with an ownership condition to prevent concurrent duplicate creation.
+The form includes guidance and a translated conflict message.
+
+Validation passed: type checking through `npm run build`, `npm run lint`,
+`git diff --check`, and `npm test` (24 environment/bootstrap checks, two i18n
+checks, 188 Workers/D1 tests). Five new cases cover normalized duplicate emails,
+inactive ownership, legacy duplicates, competing new names and concurrent
+same-name retries. Worker/client builds passed with the existing chunk-size
+warning. No schema migration, existing-school modification or deployment.
+
+## 2026-09-16: Platform company directory
+
+Added a searchable, paginated company directory, company details with Owners,
+activation status, Branches and active user counts, and an audited name update.
+Provisioning success now links to the company detail and directory. An active
+membership is required to open a company's operational workspace; platform role
+alone does not grant tenant access.
+
+Validation passed:
+
+- `npm run typecheck`, `npm run lint` and `git diff --check`;
+- `npm test`: 24 environment/bootstrap tests, two localization checks and 183
+  Workers/D1 tests across 13 files, including ten new directory tests;
+- `npm run build`: local Worker and client builds; the existing non-blocking
+  client chunk-size warning remains (approximately 608 kB uncompressed);
+- browser review of directory, empty search and company detail at desktop and
+  narrow mobile widths, using temporary simulated responses. Confirmed no
+  horizontal document overflow at 320 CSS pixels for the directory and 308 CSS
+  pixels for the detail, and fixed activation-button wrapping at narrow widths.
+
+The browser had no authenticated platform session, so visual checks used an
+isolated fixture, removed before the final build. Backend authorization, search,
+pagination, metadata and audit behavior were exercised against test D1. No real
+company or account was modified and no deployment was performed.
+
+## 2026-09-16: Responsive interface redesign
+
+Pulled `origin/main` through `e72a599` before making local changes. Unified the
+blue/slate palette, navigation, page hierarchy, financial cards, status badges,
+list skeletons, forms and public/auth/platform surfaces. Added a Base UI mobile
+navigation drawer and labeled mobile report rows. Dashboard visualization uses
+the existing API values; no API, database or permission rules were changed.
+
+Validation passed:
+
+- `npm run typecheck`, `npm run lint`, `npm run test:i18n` and `git diff --check`;
+- `npm test`: 24 environment/bootstrap tests, two localization checks and 173
+  Workers/D1 tests across 12 files;
+- `npm run build`: local Worker and client builds; the existing non-blocking
+  JavaScript chunk-size warning remains (approximately 597 kB uncompressed);
+- browser review at 320, 390, 768 and 1440 CSS-pixel viewport widths. Reviewed
+  dashboard, members and create form, charges, payments, plans, reports, settings,
+  member profile, home and sign-in; checked document widths for overflow;
+- mobile drawer opening, Escape dismissal and trigger focus restoration;
+  localized English/Spanish content and dashboard empty/error states.
+
+The available local session has no active company membership. Internal screens
+were reviewed using temporary browser-only API fixtures and synthetic records,
+without modifying local accounts, memberships or financial data. The fixture
+entry files were removed before the final build. This is layout/interaction
+evidence, not a replacement for authenticated business-flow acceptance with a
+representative user. No commit, push or deployment was performed.
+
 ## 2026-09-16: Branded interface foundation
 
 Introduced the ControlMembers interface palette across the public shell,

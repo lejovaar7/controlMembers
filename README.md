@@ -71,6 +71,9 @@ served by Vite. In production, `wrangler.json` points the Worker at
 | PATCH  | `/api/members/:membershipId/status`   | Deactivate/reactivate this company's access, preserving identity/history |
 | POST   | `/api/members/:membershipId/setup/resend` | Resend setup for an unfinished, manageable account |
 | POST   | `/api/platform/organizations`         | Platform-only company, Owner, and localized initial Branch provisioning |
+| GET    | `/api/platform/organizations`         | Platform-only company directory; search and 20-row pagination |
+| GET    | `/api/platform/organizations/:id`     | Company metadata, Owners, Branches and active user count |
+| PATCH  | `/api/platform/organizations/:id`     | Platform-only audited company rename |
 | POST   | `/api/platform/account-setup/resend`  | Platform-only setup-link resend |
 | POST   | `/api/account/setup-password`         | First-time password setup for the authenticated user |
 
@@ -205,7 +208,7 @@ Client-side routing uses React Router, with three route groups:
 | Group | Routes | Status |
 | ----- | ------ | ------ |
 | Public/auth | `/`, `/login`, `/verify-email`, `/forgot-password`, `/reset-password`, `/setup-account`, `/no-company` | Implemented |
-| Platform | `/platform`, `/platform/organizations/new` | Implemented; platform-admin UX guard plus server authorization |
+| Platform | `/platform`, `/platform/organizations/new`, `/platform/organizations/:id` | Company directory, provisioning, details and audited rename; platform-admin UX guard plus server authorization |
 | Application | `/app/dashboard`, `/app/customer-members`, `/app/charges`, `/app/payments`, `/app/billing-setup`, `/app/reports`, `/app/members`, `/app/branches`, `/app/settings` | Complete ControlMembers operational MVP plus company administration |
 | Redirected | `/register`, `/onboarding` | No public signup or self-service company onboarding |
 
@@ -240,6 +243,9 @@ Owner           →  receives one account-setup link
 ```
 
 Owners/admins add employees at `/app/members` using name, email, role and Branches.
+New companies require distinct Owner emails. An email already owning a company
+cannot create a different school; the platform form reports the conflict. Retrying
+the same company resumes it, and legacy duplicate ownerships remain unchanged.
 Members need at least one Branch. Admins can have all current/future Branches or
 selected Branches. New users receive the same secure setup flow as Owners.
 Existing identities, passwords and platform roles are preserved. Email failure

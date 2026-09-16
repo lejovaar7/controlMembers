@@ -101,7 +101,7 @@ function BranchWorkspace() {
 				{shell.branches.map((branch) => (
 					<li
 						key={branch.id}
-						className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3"
+						className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-5"
 					>
 						{renamingId === branch.id ? (
 							<form
@@ -156,7 +156,7 @@ function BranchWorkspace() {
 				))}
 			</ul>
 
-			{shell.canCreateBranches ? <form onSubmit={handleCreate} className="flex max-w-sm flex-col gap-4">
+			{shell.canCreateBranches ? <form onSubmit={handleCreate} className="flex max-w-xl flex-col gap-4 rounded-xl border bg-card p-6">
 				<div className="grid gap-2">
 					<Label htmlFor="branchName">{t("New branch name")}</Label>
 					<Input

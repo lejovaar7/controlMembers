@@ -1,5 +1,8 @@
+import { ListSkeleton } from "@/components/list-skeleton";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
+import { ArrowUpRight, Plus, Search, Upload } from "lucide-react";
+import { StatusBadge } from "@/components/status-badge";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,25 +38,24 @@ export function CustomerMembersPage() {
 	async function loadMore() { if (nextOffset === null) return; const result = await controlMembersApi.members(shell.organizationId, search, status, nextOffset); setMembers((current) => [...current, ...result.members]); setNextOffset(result.nextOffset); }
 
 	return <PageContainer className="space-y-6">
-		<PageHeader title={t("Members")} description={t("People enrolled in your academy and their current balances.")} />
-		<div className="flex flex-wrap gap-2"><Button onClick={() => setCreating((value) => !value)}>{t(creating ? "Close form" : "Add member")}</Button><Button variant="outline" onClick={() => setImporting((value) => !value)}>{t(importing ? "Close import" : "Import CSV")}</Button></div>
+		<PageHeader title={t("Members")} description={t("People enrolled in your academy and their current balances.")} actions={<><Button variant="outline" onClick={() => setImporting((value) => !value)}><Upload />{t(importing ? "Close import" : "Import CSV")}</Button><Button onClick={() => setCreating((value) => !value)}><Plus />{t(creating ? "Close form" : "Add member")}</Button></>} />
 		{creating ? <CreateMemberForm onCreated={() => { setCreating(false); setRevision((value) => value + 1); }} /> : null}
 		{importing ? <ImportMembers onDone={() => { setImporting(false); setRevision((value) => value + 1); }} /> : null}
 		<div className="grid gap-3 rounded-xl border bg-card p-4 md:grid-cols-[1fr_12rem]">
-			<div className="grid gap-2"><Label htmlFor="member-search">{t("Search members")}</Label><Input id="member-search" value={search} placeholder={t("Name, ID, email or phone")} onChange={(event) => setSearch(event.target.value)} /></div>
+			<div className="grid gap-2"><Label htmlFor="member-search">{t("Search members")}</Label><div className="relative"><Search aria-hidden="true" className="pointer-events-none absolute left-3 top-3.5 size-4 text-muted-foreground" /><Input className="pl-10" id="member-search" value={search} placeholder={t("Name, ID, email or phone")} onChange={(event) => setSearch(event.target.value)} /></div></div>
 			<div className="grid gap-2"><Label htmlFor="member-status">{t("Status")}</Label><select id="member-status" className="h-10 rounded-md border bg-background px-3" value={status} onChange={(event) => setStatus(event.target.value)}><option value="">{t("All statuses")}</option><option value="active">{t("Active")}</option><option value="paused">{t("Paused")}</option><option value="inactive">{t("Inactive")}</option></select></div>
 		</div>
 		{failed ? <p role="alert">{t("We could not load members.")}</p> : null}
-		{loading ? <p role="status" className="text-muted-foreground">{t("Loading members…")}</p> : null}
+		{loading ? <ListSkeleton label={t("Loading members…")} /> : null}
 		{!loading && !failed && !members.length ? <div className="rounded-xl border border-dashed p-8 text-center"><h2 className="font-semibold">{t("No members found")}</h2><p className="mt-1 text-sm text-muted-foreground">{t("Add your first member to begin tracking monthly payments.")}</p></div> : null}
-		{!loading && members.length ? <ul className="grid gap-3">{members.map((member) => <li key={member.id}><Link to={`/app/customer-members/${member.id}`} className="grid gap-2 rounded-xl border bg-card p-4 transition-colors hover:bg-accent sm:grid-cols-[1fr_auto] sm:items-center"><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{member.displayName}</h2><Status value={member.status} /></div><p className="mt-1 text-sm text-muted-foreground">{member.documentNumber || member.email || member.phoneE164 || t("No contact information")}</p></div><div className="sm:text-right"><p className="text-xs text-muted-foreground">{t("Outstanding")}</p><p className="font-semibold">{new Intl.NumberFormat(locale, { style: "currency", currency }).format(member.outstandingMinor / 100)}</p></div></Link></li>)}</ul> : null}
+		{!loading && !failed && members.length ? <ul className="record-list">{members.map((member) => <li key={member.id}><Link to={`/app/customer-members/${member.id}`} className="record-row grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center"><div className="flex items-center gap-3"><span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary text-sm font-semibold text-primary">{member.displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toLocaleUpperCase(locale)}</span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="text-sm font-semibold">{member.displayName}</h2><Status value={member.status} /></div><p className="mt-1 break-words text-sm text-muted-foreground">{member.documentNumber || member.email || member.phoneE164 || t("No contact information")}</p></div></div><div className="flex items-center justify-between gap-5 border-t pt-3 sm:border-0 sm:pt-0"><div className="sm:text-right"><p className="text-xs text-muted-foreground">{t("Outstanding")}</p><p className="mt-1 font-semibold tabular-nums">{new Intl.NumberFormat(locale, { style: "currency", currency }).format(member.outstandingMinor / 100)}</p></div><ArrowUpRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" /></div></Link></li>)}</ul> : null}
 		{nextOffset !== null && !loading ? <Button variant="outline" onClick={() => void loadMore()}>{t("Load more")}</Button> : null}
 	</PageContainer>;
 }
 
 function Status({ value }: { value: string }) {
 	const t = useT();
-	return <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{t(value === "active" ? "Active" : value === "paused" ? "Paused" : "Inactive")}</span>;
+	return <StatusBadge tone={value === "active" ? "success" : value === "paused" ? "warning" : "neutral"}>{t(value === "active" ? "Active" : value === "paused" ? "Paused" : "Inactive")}</StatusBadge>;
 }
 
 function CreateMemberForm({ onCreated }: { onCreated: () => void }) {

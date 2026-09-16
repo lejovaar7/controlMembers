@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getAuth } from "../auth";
 import { ensureProvisionedUser, sendAccountSetup, type SetupEmailStatus } from "../auth/provisioning";
 import { getDb } from "../db";
@@ -6,10 +6,12 @@ import {
 	member,
 	organization as organizationTable,
 	team,
+	user,
 } from "../db/auth-schema";
 import { slugify } from "./slug";
 import { readRequiredLocale } from "../localization";
 import { DEFAULT_LOCALE, type Locale } from "../../shared/i18n";
+import { RequestError } from "../http";
 
 export type ProvisionOwnerInput = {
 	companyName: string;
@@ -67,9 +69,9 @@ export async function provisionOrganizationWithOwner(
 	const existing = await ensureProvisionedUser(env, ownerEmail, ownerName);
 	const userId = existing.id;
 
-	// B. Reuse a company this owner already has under the same name, so a retry
-	// after a partial failure resumes instead of creating a second tenant.
-	const [alreadyOwned] = await db
+	// B. One new company per owner email. Existing duplicate ownerships are preserved,
+	// but cannot be used to create another company. Same-name retries resume.
+	const ownedCompanies = () => db
 		.select({ id: organizationTable.id, name: organizationTable.name, locale: organizationTable.locale })
 		.from(organizationTable)
 		.innerJoin(member, eq(member.organizationId, organizationTable.id))
@@ -77,29 +79,47 @@ export async function provisionOrganizationWithOwner(
 			and(
 				eq(member.userId, userId),
 				eq(member.role, "owner"),
-				eq(organizationTable.name, companyName),
 			),
-		)
-		.limit(1);
-
-	// Created on the owner's behalf with no session and no headers, so Better
-	// Auth treats it as a system action and allowUserToCreateOrganization does
-	// not block it.
-	const organization =
-		alreadyOwned ??
-		(await auth.api.createOrganization({
-			body: {
-				name: companyName,
-				locale,
-				slug: await resolveSlug(env, companyName),
-				userId,
-				keepCurrentActiveOrganization: true,
-			},
-		}));
-	if (!organization) throw new Error("organization could not be created");
-	const organizationLocale = alreadyOwned
-		? readRequiredLocale(alreadyOwned.locale)
-		: locale;
+		);
+	const owned = await ownedCompanies();
+	let organization = owned.find((company) => company.name === companyName);
+	if (!organization && owned.length) throw new RequestError(409, "OWNER_EMAIL_ALREADY_ASSIGNED");
+	if (!organization) {
+		const id = crypto.randomUUID();
+		const createdAt = new Date();
+		const initialBranchName = locale === "es" ? "Sede Principal" : "Main Branch";
+		// D1 executes the batch atomically. The conditional insert checks ownership
+		// inside that transaction, so concurrent requests cannot create two schools
+		// or leave an orphan company. If ownership was claimed concurrently, the
+		// member foreign key aborts the entire batch and we resolve that conflict.
+		for (let attempt = 0; attempt < 3; attempt++) {
+			const slug = await resolveSlug(env, companyName);
+			try {
+				await db.batch([
+					db.insert(organizationTable).select(db.select({
+						id: sql<string>`${id}`.as("id"), name: sql<string>`${companyName}`.as("name"), slug: sql<string>`${slug}`.as("slug"),
+						logo: sql<null>`null`.as("logo"), createdAt: sql<Date>`${createdAt.getTime()}`.as("created_at"), metadata: sql<null>`null`.as("metadata"),
+						locale: sql<string>`${locale}`.as("locale"), timezone: sql<null>`null`.as("timezone"), currency: sql<null>`null`.as("currency"),
+					}).from(user).where(and(eq(user.id, userId), sql`not exists (select 1 from member where user_id = ${userId} and role = 'owner')`))),
+					db.insert(member).values({ id: crypto.randomUUID(), organizationId: id, userId, role: "owner", createdAt }),
+					db.insert(team).values({ id: crypto.randomUUID(), organizationId: id, name: initialBranchName, createdAt }),
+				]);
+				break;
+			} catch (error) {
+				const concurrentOwned = await ownedCompanies();
+				if (concurrentOwned.length) {
+					if (!concurrentOwned.some((company) => company.name === companyName)) throw new RequestError(409, "OWNER_EMAIL_ALREADY_ASSIGNED");
+					break;
+				}
+				// A different owner may have taken the same slug after resolveSlug.
+				const [collision] = await db.select({ id: organizationTable.id }).from(organizationTable).where(eq(organizationTable.slug, slug)).limit(1);
+				if (!collision || attempt === 2) throw error;
+			}
+		}
+		organization = (await ownedCompanies()).find((company) => company.name === companyName);
+		if (!organization) throw new RequestError(409, "OWNER_EMAIL_ALREADY_ASSIGNED");
+	}
+	const organizationLocale = readRequiredLocale(organization.locale);
 	const localizedBranchName = organizationLocale === "es" ? "Sede Principal" : "Main Branch";
 
 	// C. Initial branch. Reuse it if a previous attempt already created it.

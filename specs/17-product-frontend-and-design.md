@@ -37,16 +37,35 @@ and Card primitives. Their behavior and public component APIs remain stable.
 ControlMembers belongs to the same visual family as ControlWash. Its logo keeps
 the original ControlWash symbol, the exact vector construction of `Control`, its
 proportions and its navy/blue colors (`#02285A` and `#02A3F1`); only the product
-word changes from `Wash` to `Members`. The application may continue using its
-own indigo/violet interface accent so both products remain recognizable without
-breaking the shared brand family. Cool off-white surfaces keep financial states
-and content clearer than decorative color.
+word changes from `Wash` to `Members`. The interface uses an accessible blue
+accent (`#1263C0`), navy text and cool off-white surfaces, aligned with the shared
+brand family. Semantic green, amber and rose badges retain explicit status
+labels. Financial data takes precedence over decorative color.
 
 The wordmark appears on public/authentication surfaces and in the application
 shell. Dashboards may repeat it inside a bounded brand panel without competing
 with balances or actions. All screens inherit the same CSS variables, spacing,
 radius, elevation and focus treatment; do not recreate brand colors ad hoc in
 individual feature pages.
+
+The desktop shell has a 248-pixel sidebar from 1024 pixels upward. Below that
+breakpoint, a Base UI modal navigation drawer provides focus trapping, Escape
+handling and focus restoration. It closes after navigation and when switching
+to desktop width. Language and sign-out controls remain available in the drawer.
+Main content has a keyboard skip link and shared focusable page headings.
+
+Dashboard cards use two columns on narrow screens and four on wide desktops;
+amounts and currency codes have separate lines to preserve legibility. The
+collection visualization uses the API collection rate, with an explicit unknown
+state rather than inventing zero. Its accessible label includes the value.
+Period changes discard stale dashboard results, with skeletons and retry feedback.
+
+Member, Charge and Payment lists share compact bordered rows. Report tables
+become labeled vertical rows below 640 pixels, preserving financial fields and
+column headers. Inputs and selects are at least 44 pixels tall; small shared
+buttons are at least 40 pixels. Reduced-motion preferences disable decoration
+and loading animations. Public, authentication, platform and tenant screens
+share the same surface, typography and control tokens.
 
 ## Terminology and navigation
 

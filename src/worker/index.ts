@@ -6,6 +6,7 @@ import { AuthError, requireAuth, requirePlatformAdmin } from "./auth/session";
 import { getDb } from "./db";
 import { systemCheck } from "./db/schema";
 import { provisionOrganizationWithOwner } from "./platform/provision";
+import { getPlatformOrganization, listPlatformOrganizations, renamePlatformOrganization } from "./platform/organizations";
 import { hasCredentialAccount, resendAccountSetup } from "./auth/provisioning";
 import { readJsonObject, RequestError, requireSameOriginJson } from "./http";
 import { requireOrganizationAdmin, requireTenant } from "./tenant";
@@ -142,6 +143,10 @@ app.patch("/api/members/:membershipId/status", async (c) => {
 });
 
 /** Platform administration. Organization roles never grant access here. */
+app.get("/api/platform/organizations", async (c) => c.json(await listPlatformOrganizations(c.env, c.req.raw)));
+app.get("/api/platform/organizations/:id", async (c) => c.json(await getPlatformOrganization(c.env, c.req.raw, c.req.param("id"))));
+app.patch("/api/platform/organizations/:id", async (c) => c.json(await renamePlatformOrganization(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
+
 app.post("/api/platform/organizations", async (c) => {
 	await requirePlatformAdmin(c.env, c.req.raw);
 

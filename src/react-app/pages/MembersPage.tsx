@@ -81,10 +81,10 @@ function MemberWorkspace() {
 			</section>}
 			{form ? <MemberForm key={`${form === "new" ? "new" : form.membershipId}-${shell.allBranches}-${shell.canAppointAdmins}-${shell.organizationRole}`} branches={shell.branches} member={form === "new" ? undefined : form} allBranchesAllowed={shell.allBranches} canAppointAdmins={shell.canAppointAdmins} isOwner={shell.organizationRole === "owner"} onCancel={() => setForm(null)} onSaved={(status) => { setForm(null); setMessage(status ? setupMessage(status) : "User access updated."); setRevision((value) => value + 1); }} /> : <div><Button disabled={Boolean(statusTarget)} onClick={() => { setMessage(null); setForm("new"); }}>{t("Add user")}</Button></div>}
 			{failed ? <div role="alert">{t("We could not load users.")}<Button variant="outline" onClick={() => setRevision((value) => value + 1)}>{t("Try again")}</Button></div> : !current ? <p role="status">{t("Loading users…")}</p> : current.members.length === 0 ? <p>{t("No users found.")}</p> : (
-				<ul className="grid gap-3">
+				<ul className="grid gap-4 xl:grid-cols-2">
 					{current.members.map((entry) => (
-						<li key={entry.membershipId} className="rounded-lg border p-4">
-							<h2 className="break-words font-medium">{entry.user.name}</h2>
+						<li key={entry.membershipId} className="rounded-xl border bg-card p-5 sm:p-6">
+							<h2 className="break-words text-lg font-semibold">{entry.user.name}</h2>
 							<p className="text-muted-foreground break-all text-sm">{entry.user.email}</p>
 							<p className="mt-2 text-sm">{t("Role: {role}", { role: t(roleMessage(entry.role)) })}</p>
 							<p className="text-sm">{t("Company access: {status}", { status: t(entry.isActive ? "Active" : "Inactive") })}</p>
