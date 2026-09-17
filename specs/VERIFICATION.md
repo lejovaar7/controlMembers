@@ -1,9 +1,107 @@
 # ControlMembers Verification Record
 
+## 2026-09-17 — Currency symbol before the amount
+
+- The shared money formatter now places the actual currency symbol first,
+  followed by a nonbreaking space and a localized number, including `$ 0`.
+  Integer amounts stay compact; negative balances and hundredths are preserved.
+- Updated localization assertions cover symbol position and spacing in Spanish
+  and English for pesos, dollars and euros. `npm run check` passed, including
+  all 189 Worker tests, typechecking, lint and all three build/dry-run targets.
+
+## 2026-09-17 — Restored file terminology and compact currency display
+
+- Restored Import CSV and Export labels, including import controls and export
+  permissions. Kept explanatory upload guidance and the other plain-language copy.
+- Amounts now use compact currency symbols. Whole values omit decimals; values
+  with hundredths preserve both digits. A shared currency caption names the
+  currency once above financial data rather than inside every amount.
+- `npm run check` passed, including 189 Worker tests and all three build/dry-run
+  targets. Typechecking and lint also passed after adding currency captions to
+  payment, charge and member-detail pages.
+- Actual dashboard metric components and restored file action labels were
+  rendered in a temporary static fixture. At 320, 390 and 1440 pixels, large
+  amounts remained on one line with no horizontal document overflow. Preview
+  resources were removed; no remote data or deployment was changed.
+
+## 2026-09-17 — Plain-language interface copy
+
+- Replaced technical action labels across members, payments, reports and access
+  controls with readable bilingual copy; Spanish consistently uses "sede" and
+  "informes". Upload instructions explain the actual CSV requirement and retain
+  the existing template contract. Download labels reflect their actual contents.
+- Currency names and amounts use shared localized helpers; billing settings
+  offer named currencies. A new localization test verifies COP/USD names, zero,
+  negative balances and hundredths. Explicit fraction precision prevents
+  runtime-specific currency defaults from rounding stored hundredths away.
+- `npm run check` passed: typechecking, lint, 27 environment/bootstrap tests,
+  two localization boundary tests, 189 Worker tests and builds/dry-runs for all
+  three targets. No remote deployment or database writes were required.
+- Browser review of actual metric, upload and billing settings components in an
+  isolated static fixture at 320 and 1440 pixels found no horizontal document
+  overflow. This checked representative copy and long monetary values, not all
+  authenticated workflows. The temporary preview was removed afterward.
+
 This is dated execution evidence, not a permanent test-count target or proof of
 production deployment. The latest repository checkpoint is recorded first; earlier
 localization, environment, Starter v1 and dependency-remediation evidence from
 the inherited foundation is preserved below.
+
+## 2026-09-17: Structural loading convention and mobile forms
+
+Added the official shadcn/ui Skeleton primitive, using the existing local `cn`
+utility instead of retaining a duplicate dependency added by the generator.
+Shared list, dashboard, detail and form patterns now represent known data
+layouts. Ring 2 remains the only spinner for authentication and actions. The
+convention is recorded in specification 17, README and contributor guidance.
+Financial reports now show skeletons before data arrives and discard responses
+from obsolete period/company requests instead of rendering a premature empty
+table. Loading, failure and data states remain distinct.
+
+Updated shared authentication cards, public branding and page actions for small
+screens. Authentication fields/actions are 48 pixels tall with 16-pixel input
+text, password visibility controls, bounded card width and natural vertical
+scrolling. Mobile action labels wrap inside their buttons; the platform header
+uses a full-width action row on small screens.
+
+`npm run check` passed: typecheck, lint, 27 environment/bootstrap tests, two i18n
+checks, 188 Workers tests and three target build/dry-runs. Dependency installation
+reported zero audit vulnerabilities. The existing client chunk warning remains.
+Live public routes (login, recovery, verification, invalid reset and home) were
+checked at 320 pixels without horizontal overflow. Password visibility was
+exercised with a disposable value without submitting a form. Desktop login was
+visually reviewed at 1440 pixels.
+
+An isolated server rendered the actual components with fixture shell context,
+without API requests or database writes. Twelve content/form screens were
+inspected at 320 pixels; representative dashboard, directory, company creation
+and billing screens were checked at 390, 768 and 1440 pixels. No horizontal
+overflow was observed. This covers initial loading/form layouts, not every
+populated tenant record or physical-device keyboard behavior. Temporary preview
+tooling was removed. No deployment, commit or push was performed.
+
+## 2026-09-17: Consistent Ring 2 loading indicators
+
+Pinned `ldrs` to 1.1.9 and introduced shared `Loader` and `LoadingButton`
+components. Replaced text-only loading and list/dashboard skeletons across
+session guards, localization, platform and tenant screens. Existing busy form
+actions and workspace/language selectors use the same ring. Busy buttons retain
+their dimensions, have accessible names and disable duplicate submission.
+Loading labels are visually hidden; reduced motion stops the animation.
+
+`npm run check` passed after the final accessibility adjustment: typecheck,
+lint, 27 environment/bootstrap tests, two i18n checks, 188 Workers tests and
+all three build/dry-runs. Installation audit and production dependency audit
+reported zero vulnerabilities. `git diff --check` passed. The existing client
+chunk-size warning remains.
+
+Rendered the actual components in an isolated local preview using compiled CSS.
+Desktop and a 390-pixel viewport showed the same ring for page, section and
+button sizes without horizontal overflow. Idle/busy matching buttons measured
+the same width and 40-pixel height. Browser accessibility inspection confirmed
+busy button names and loading status labels. The development health endpoint
+returned HTTP 200 and the live login page rendered after reload. Temporary
+preview tooling was removed; no deployment, commit or push was performed.
 
 ## 2026-09-17: Branded email action links
 

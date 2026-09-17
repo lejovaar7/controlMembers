@@ -228,6 +228,11 @@ separate on purpose.
   an equivalent. Those files are generated — re-running `shadcn add` overwrites
   local edits, so wrap rather than modify them.
 - Reuse `PageContainer` / `PageHeader` instead of re-implementing page chrome.
+- Follow the loading convention in specification 17: use shared shadcn Skeleton
+  patterns from `content-skeleton.tsx` for known data layouts, and LDRS Ring 2
+  through `Loader` / `LoadingButton` for session checks and actions. Keep filters
+  visible, hide placeholder shapes from assistive technology, and respect
+  reduced motion. Never replace a submitting form with a skeleton.
 - ControlMembers may add its product identity through the existing Tailwind,
   shadcn/ui, Base UI, Lucide and Geist system. Keep tokens accessible and avoid a
   competing component library.

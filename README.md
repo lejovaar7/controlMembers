@@ -235,6 +235,11 @@ Styling is Tailwind CSS v4 with shadcn/ui components in
 system; product UI rules are specified in
 [`specs/17-product-frontend-and-design.md`](specs/17-product-frontend-and-design.md).
 
+Known content layouts use shadcn/ui Skeleton through the shared list, dashboard,
+detail and form patterns. Session checks and mutations use LDRS Ring 2 through
+`Loader` and `LoadingButton`. Both follow the loading convention in specification
+17, retain accessible status labels and respect reduced-motion preferences.
+
 ## Provisioning
 
 This is a closed B2B SaaS: **public signup is disabled**. Accounts are created by

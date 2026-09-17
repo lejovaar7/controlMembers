@@ -163,7 +163,9 @@ still take priority and that hint never selects a company.
 active Organization. It aborts stale requests and uses generation checks so a
 late response cannot replace the new context. Initial authenticated loading and
 failure are distinct states with retry/sign-out; no old company's language is
-rendered while resolving the next. Preferences refresh on focus/visibility and
+rendered while resolving the next. The shared Ring 2 loader takes an explicit
+translated accessible label so it works before the i18n provider is ready.
+Preferences refresh on focus/visibility and
 every 30 seconds while visible. Successful saves update the matching context
 immediately and revalidate it.
 

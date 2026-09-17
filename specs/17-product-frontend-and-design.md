@@ -54,11 +54,12 @@ handling and focus restoration. It closes after navigation and when switching
 to desktop width. Language and sign-out controls remain available in the drawer.
 Main content has a keyboard skip link and shared focusable page headings.
 
-Dashboard cards use two columns on narrow screens and four on wide desktops;
-amounts and currency codes have separate lines to preserve legibility. The
+Dashboard cards use one column below 380 pixels, two on larger mobile screens
+and four on wide desktops. Amounts show the currency symbol first, with a shared
+currency caption above the cards to preserve legibility. The
 collection visualization uses the API collection rate, with an explicit unknown
 state rather than inventing zero. Its accessible label includes the value.
-Period changes discard stale dashboard results, with skeletons and retry feedback.
+Period changes discard stale dashboard results, with structural skeletons and retry feedback.
 
 Member, Charge and Payment lists share compact bordered rows. Report tables
 become labeled vertical rows below 640 pixels, preserving financial fields and
@@ -67,7 +68,64 @@ buttons are at least 40 pixels. Reduced-motion preferences disable decoration
 and loading animations. Public, authentication, platform and tenant screens
 share the same surface, typography and control tokens.
 
+### Loading convention
+
+Use the existing shadcn/ui Skeleton primitive for content with a known layout.
+The shared `components/content-skeleton.tsx` owns reusable list, dashboard,
+detail and form patterns. Keep page headings, filters and navigation visible;
+replace only the region waiting for data. Shapes follow the responsive grid and
+approximate the resulting rows, fields or cards. Never show fake values or an
+empty-results message before a request finishes.
+
+| Waiting for | Required pattern | Current screens |
+| --- | --- | --- |
+| Records or directory | ListSkeleton | Companies, members, users, charges, payments |
+| Metrics and summaries | DashboardSkeleton | Dashboard, financial reports |
+| A complete entity | DetailSkeleton | Company and member details |
+| Settings and fields | FormSkeleton | Billing settings and plans |
+| Session or workspace resolution | Loader (LDRS Ring 2) | Authentication and application guards |
+| Submit, resend or selector mutation | LoadingButton or inline Loader | Forms, invitations, language and workspace selectors |
+
+Ring 2 remains the sole spinner, with shared speed and stroke style. Do not
+replace an editable form with a skeleton during submission. Busy buttons retain
+their dimensions and prevent duplicate submission. Loading regions have one
+translated status announcement; skeleton shapes are hidden from assistive
+technology. Loading copy is not shown visually. Reduced motion stops both pulse
+and ring animations. Errors and empty results remain separate, explicit states.
+
+### Mobile forms and content
+
+Authentication uses a centered, width-constrained card below the public header,
+with room to scroll naturally on short screens or when the keyboard opens.
+Fields and primary actions are 48 pixels tall, and inputs use 16-pixel text to
+avoid focus zoom. Password fields share a labeled visibility toggle. The desktop
+brand panel is omitted on smaller screens so the form stays the main action.
+Page actions wrap and expand on mobile; long translated button labels remain
+inside their controls. Data tables become labeled records below 640 pixels.
+
 ## Terminology and navigation
+
+### Plain-language copy convention
+
+Write for owners and staff without technical or accounting training. Use clear
+actions while retaining the established "Import CSV", "Preview import" and
+"Export payments" terminology requested for file operations.
+Reserve file extensions and format names for upload instructions, explaining
+that the completed template must be saved as comma-separated CSV, not XLSX.
+Spanish uses "sede" consistently for branches and "informes" for reports.
+Payment reversal is labeled "Cancel payment"; its confirmation explains that it
+stops counting toward charges and credit and does not issue a refund.
+
+Use shared `currencyName` and `formatMoney` helpers for visible currency names
+and amounts. Amounts always place the currency symbol first, followed by a
+nonbreaking space and the localized number (for example, `$ 0`). They omit decimals for whole
+values and preserve hundredths otherwise. Dashboard, member pages, charges, payments and reports
+show a shared `CurrencyLabel` once above the data, rather than repeating a long
+currency name in every figure. Currency labels use capitalized, plural names.
+Billing settings select currencies by their readable names while retaining their
+original codes in requests. Money remains stored in hundredths; language never
+selects a currency or changes financial calculations.
+Avoid implementation details such as "starter" in customer-facing settings.
 
 Customer records are **Members/Miembros**. The section for authenticated
 organization users is **Users & permissions/Usuarios y permisos**. Its primary
@@ -157,7 +215,8 @@ inactive records remain discoverable.
 - All controls have programmatic names and keyboard operation.
 - Dialog focus is trapped and restored by Base UI primitives.
 - Touch targets are at least 40 CSS pixels in the product application.
-- Loading skeletons preserve layout; errors, empty data and zero results are
+- Structural skeletons reserve content space and Ring 2 indicates actions;
+  errors, empty data and zero results are
   visually and semantically distinct.
 - `document.lang` and direction follow the existing localization provider.
 - English and Spanish catalogs remain complete with placeholder parity.
