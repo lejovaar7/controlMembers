@@ -28,3 +28,9 @@ test("form buttons explicitly declare submission or a non-submit action", () => 
 	}
 	assert.deepEqual(missing, [], "Base UI defaults to type=button; form save actions must explicitly use type=submit.");
 });
+
+test("product interactions use shared dialogs instead of native browser prompts", () => {
+	for (const file of sourceFiles(fileURLToPath(new URL("../src/react-app", import.meta.url)))) {
+		assert.doesNotMatch(readFileSync(file, "utf8"), /\b(?:window|globalThis)\s*\.\s*(?:alert|confirm|prompt)\s*\(/, file);
+	}
+});

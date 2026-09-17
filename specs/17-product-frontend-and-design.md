@@ -245,6 +245,40 @@ inactive records remain discoverable.
 
 ## Interaction rules
 
+### Confirmation and reason dialogs
+
+Use `ActionDialog` through `useActionDialog` for action confirmations and reason
+forms. Do not use browser `alert`, `confirm` or `prompt` calls. This convention
+covers Member status, enrollment status/terms, recording and cancelling Payments,
+Charge generation/adjustment/voiding, Contact unlinking, Plan deactivation and
+User access changes. Navigation drawers and date/select popovers keep their
+purpose-specific placement.
+
+"Add member" and "Add user" open their existing creation forms in the same
+`CenteredDialog` presentation, with a wider desktop surface and vertical scroll
+on mobile. Feature forms keep their field validation, Branch and permission
+rules, submit handlers and error state. Their close/cancel controls are disabled
+while saving; a successful creation closes the popup and refreshes the directory.
+Editing existing User access retains its inline form.
+
+The shared Base UI dialog is centered above a dimmed backdrop, has a translated
+title and consequence, and identifies its confirmation action explicitly. Gather
+related fields in one form rather than a sequence of prompts. Reason fields are
+required, trimmed and limited to 500 characters; numeric fields retain domain
+bounds. The payment confirmation repeats its amount and allocation breakdown,
+and retries within the dialog retain the same idempotency key and timestamp.
+
+Cancel, Close and Escape dismiss without saving. Outside clicks do not discard
+an unfinished form. While saving, all fields and dismissal actions are disabled,
+and the shared LoadingButton prevents duplicate submissions. Failed saves retain
+the form and show translated feedback inside the dialog. Base UI traps focus;
+opening focuses the heading to avoid immediately opening a mobile keyboard,
+and closing restores the initiating control when it still exists. The popup
+fits the dynamic viewport, scrolls vertically on short screens and stacks its
+actions on mobile. Reduced motion disables its entrance/exit transitions.
+
+### Forms and actions
+
 - One primary action per page region.
 - Every Button or LoadingButton inside a form declares its `type`: save actions
   use `submit`, while secondary actions use `button`. Base UI's default is

@@ -1,4 +1,5 @@
 import { SelectField } from "@/components/select-field";
+import { CenteredDialog, type DialogReturnFocus } from "@/components/centered-dialog";
 import { LoadingButton } from "@/components/loading-button";
 import type { MessageKey } from "../../shared/i18n";
 import { useT } from "@/lib/i18n";
@@ -9,7 +10,9 @@ import { Label } from "@/components/ui/label";
 import type { Branch } from "@/hooks/use-branches";
 import type { MemberAccess, MemberSummary, SetupEmailStatus } from "@/lib/members";
 
-export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdmins, isOwner, onSaved, onCancel }: {
+export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdmins, isOwner, onSaved, onCancel, inDialog = false, returnFocus }: {
+	inDialog?: boolean;
+	returnFocus?: DialogReturnFocus;
 	branches: Branch[];
 	member?: MemberSummary;
 	allBranchesAllowed: boolean;
@@ -59,16 +62,16 @@ export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdm
 		finally { setPending(false); }
 	}
 
-	return <form onSubmit={submit} className="grid max-w-3xl gap-5 rounded-xl border bg-card p-5 sm:p-6" aria-label={member ? t("Edit access for {name}", { name: member.user.name }) : t("Add user")}>
-		<h2 className="break-words font-medium">{member ? t("Edit access: {name}", { name: member.user.name }) : t("Add user")}</h2>
+	const formContent = <form onSubmit={submit} className={inDialog ? "grid gap-5 px-5 pt-5 sm:px-7" : "grid max-w-3xl gap-5 rounded-xl border bg-card p-5 sm:p-6"} aria-busy={pending} aria-label={member ? t("Edit access for {name}", { name: member.user.name }) : t("Add user")}>
+		{!inDialog && <h2 className="break-words font-medium">{member ? t("Edit access: {name}", { name: member.user.name }) : t("Add user")}</h2>}
 		<fieldset disabled={pending} className="grid gap-4">
 			{!member && <>
-				<div className="grid gap-2"><Label htmlFor={`${id}-name`}>{t("Name")}</Label><Input id={`${id}-name`} name="name" autoComplete="name" maxLength={200} autoFocus required /></div>
+				<div className="grid gap-2"><Label htmlFor={`${id}-name`}>{t("Name")}</Label><Input id={`${id}-name`} name="name" autoComplete="name" maxLength={200} autoFocus={!inDialog} required /></div>
 				<div className="grid gap-2"><Label htmlFor={`${id}-email`}>{t("Email")}</Label><Input id={`${id}-email`} name="email" type="email" autoComplete="email" maxLength={254} required /></div>
 			</>}
 			<div className="grid gap-2">
 				<Label htmlFor={`${id}-role`}>{t("Company role")}</Label>
-				<SelectField id={`${id}-role`} autoFocus={Boolean(member)} className="h-11 rounded-md border bg-background px-3 " value={role} onValueChange={(value) => setRole(value as "member" | "admin")} options={[{ value: "member", label: t("User") }, ...(canAppointAdmins ? [{ value: "admin", label: t("Admin") }] : [])]} />
+				<SelectField id={`${id}-role`} autoFocus={Boolean(member) && !inDialog} className="h-11 rounded-md border bg-background px-3 " value={role} onValueChange={(value) => setRole(value as "member" | "admin")} options={[{ value: "member", label: t("User") }, ...(canAppointAdmins ? [{ value: "admin", label: t("Admin") }] : [])]} />
 			</div>
 			{role === "admin" && allBranchesAllowed && <div className="grid gap-2">
 				<Label htmlFor={`${id}-scope`}>{t("Branch access")}</Label>
@@ -96,8 +99,9 @@ export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdm
 			{!member && <p className="text-sm text-muted-foreground">{t("New users receive a secure link to choose their own password. Existing accounts keep their sign-in details.")}</p>}
 		</fieldset>
 		{error && <p role="alert" className="text-sm text-destructive">{error ? t(error) : null}</p>}
-		<div className="flex flex-wrap gap-2"><LoadingButton loading={pending} loadingLabel={t("Saving…")} type="submit" disabled={pending}>{member ? t("Save access") : t("Add user")}</LoadingButton><Button type="button" variant="outline" disabled={pending} onClick={onCancel}>{t("Cancel")}</Button></div>
+		<div className={inDialog ? "-mx-5 flex flex-col gap-2 border-t bg-muted/30 px-5 py-4 sm:-mx-7 sm:flex-row-reverse sm:px-7" : "flex flex-wrap gap-2"}><LoadingButton loading={pending} loadingLabel={t("Saving…")} type="submit" disabled={pending}>{member ? t("Save access") : t("Add user")}</LoadingButton><Button type="button" variant="outline" disabled={pending} onClick={onCancel}>{t("Cancel")}</Button></div>
 	</form>;
+	return inDialog ? <CenteredDialog open title={member ? t("Edit access: {name}", { name: member.user.name }) : t("Add user")} description={t("Manage who can sign in to the system and what actions they can perform.")} pending={pending} onClose={onCancel} returnFocus={returnFocus} wide>{formContent}</CenteredDialog> : formContent;
 }
 
 function PermissionCheckbox({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {

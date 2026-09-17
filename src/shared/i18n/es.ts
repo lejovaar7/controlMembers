@@ -1,6 +1,21 @@
 import type { Catalog } from "./en";
 
 export const es = {
+	"Close dialog": "Cerrar ventana",
+	"We could not save this change. Your information is still here. Please try again.": "No pudimos guardar el cambio. Conservamos lo que escribiste para que puedas intentarlo de nuevo.",
+	"Change the status of {name}. Existing charges and payments will be kept.": "Vas a cambiar el estado de {name}. Sus cobros y pagos anteriores se conservarán.",
+	"End enrollment": "Finalizar mensualidad",
+	"Pause enrollment": "Pausar mensualidad",
+	"Resume enrollment": "Reanudar mensualidad",
+	"End {plan}? No new charges will be generated for this enrollment. Existing charges and payments will be kept.": "Vas a finalizar {plan}. Ya no se generarán nuevos cobros para esta mensualidad. Los cobros y pagos anteriores se conservarán.",
+	"Pause {plan}? New charges will pause until you resume this enrollment.": "Vas a pausar {plan}. No se generarán nuevos cobros hasta que reanudes esta mensualidad.",
+	"Resume {plan}? This enrollment will be included in future monthly charges.": "Vas a reanudar {plan}. Esta mensualidad volverá a incluirse en los próximos cobros.",
+	"Update {plan}. These changes apply to future charges; existing charges will stay the same.": "Actualiza las condiciones de {plan}. Los cambios se aplicarán a los próximos cobros; los anteriores conservarán sus valores.",
+	"The discount cannot exceed the monthly amount.": "El descuento no puede superar el valor de la mensualidad.",
+	"Unlink contact": "Desvincular contacto",
+	"Adjust charge": "Ajustar cobro",
+	"Update the adjustment for {name} · {plan}.": "Modifica el ajuste del cobro de {name}, correspondiente a {plan}.",
+	"Void charge": "Anular cobro",
 	"Choose a month": "Elige un mes",
 	"Previous year": "Año anterior",
 	"Next year": "Año siguiente",

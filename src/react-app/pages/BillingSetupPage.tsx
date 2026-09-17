@@ -1,4 +1,5 @@
 import { SelectField } from "@/components/select-field";
+import { useActionDialog } from "@/hooks/use-action-dialog";
 import { formatMoney, currencyName } from "../../shared/i18n";
 import { LoadingButton } from "@/components/loading-button";
 import { FormSkeleton } from "@/components/content-skeleton";
@@ -177,6 +178,7 @@ function normalizeTag(value: string) {
 }
 
 function PlanCard({ plan, onUpdated }: { plan: Plan; onUpdated: (value: Plan) => void }) {
+	const { dialog, openDialog } = useActionDialog();
 	const t = useT();
 	const { locale } = useI18n();
 	const shell = useAppShell();
@@ -221,7 +223,12 @@ function PlanCard({ plan, onUpdated }: { plan: Plan; onUpdated: (value: Plan) =>
 	}
 
 	async function changeStatus() {
-		if (plan.isActive && !window.confirm(t("Deactivate {name}? Existing records will be kept.", { name: plan.name }))) return;
+		if (plan.isActive) {
+			openDialog({ title: t("Deactivate plan"), description: t("Deactivate {name}? Existing records will be kept.", { name: plan.name }), confirmLabel: t("Deactivate plan"), destructive: true,
+				onConfirm: async () => { onUpdated(await billingSetupApi.updatePlan(shell.organizationId, plan.id, { isActive: false })); },
+			});
+			return;
+		}
 		setPending(true); setFailed(false);
 		try { onUpdated(await billingSetupApi.updatePlan(shell.organizationId, plan.id, { isActive: !plan.isActive })); }
 		catch { setFailed(true); }
@@ -229,6 +236,7 @@ function PlanCard({ plan, onUpdated }: { plan: Plan; onUpdated: (value: Plan) =>
 	}
 
 	return <li className="rounded-xl border bg-background p-4">
+		{dialog}
 		{editing ? <form onSubmit={save} className="grid gap-3">
 			<div className="grid gap-2"><Label htmlFor={`edit-plan-name-${plan.id}`}>{t("Plan name")}</Label><Input id={`edit-plan-name-${plan.id}`} value={name} maxLength={120} required onChange={(event) => setName(event.target.value)} /></div>
 			<div className="grid gap-2"><Label htmlFor={`edit-plan-description-${plan.id}`}>{t("Description (optional)")}</Label><Input id={`edit-plan-description-${plan.id}`} value={description} maxLength={1000} onChange={(event) => setDescription(event.target.value)} /></div>
