@@ -1,3 +1,4 @@
+import { createPaymentMethod, listPaymentMethods, updatePaymentMethod } from "./product/payment-methods";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { getAuth } from "./auth";
@@ -102,6 +103,10 @@ app.post("/api/charges/generate/preview", async (c) => c.json(await previewCharg
 app.post("/api/charges/generate", async (c) => c.json(await generateCharges(c.env, c.req.raw, await readJsonObject(c.req.raw))));
 app.patch("/api/charges/:id/adjust", async (c) => c.json(await adjustCharge(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
 app.patch("/api/charges/:id/void", async (c) => c.json(await voidCharge(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
+
+app.get("/api/payment-methods", async (c) => c.json(await listPaymentMethods(c.env, c.req.raw)));
+app.post("/api/payment-methods", async (c) => c.json(await createPaymentMethod(c.env, c.req.raw, await readJsonObject(c.req.raw)), 201));
+app.patch("/api/payment-methods/:id", async (c) => c.json(await updatePaymentMethod(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
 
 app.get("/api/payments", async (c) => c.json(await listPayments(c.env, c.req.raw)));
 app.get("/api/customer-members/:id/payment-preview", async (c) => c.json(await previewPaymentAllocation(c.env, c.req.raw, c.req.param("id"), Number(c.req.query("amountMinor")))));

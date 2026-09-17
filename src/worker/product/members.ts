@@ -130,7 +130,7 @@ export async function getCustomerMember(env: Env, request: Request, id: string) 
 	const postedTotal = payments.filter((item) => item.status === "posted").reduce((sum, item) => sum + item.amountMinor, 0);
 	const allocatedTotal = normalizedCharges.reduce((sum, item) => sum + item.paidMinor, 0);
 	const creditMinor = Math.max(0, postedTotal - allocatedTotal);
-	return { member: row, contacts, enrollments, charges: normalizedCharges, payments, summary: { grossOutstandingMinor, creditMinor, netMinor: grossOutstandingMinor - creditMinor } };
+	return { member: row, contacts, enrollments, charges: normalizedCharges, payments: payments.map((item) => ({ ...item, method: item.paymentMethodId ?? item.method })), summary: { grossOutstandingMinor, creditMinor, netMinor: grossOutstandingMinor - creditMinor } };
 }
 
 export async function updateCustomerMember(env: Env, request: Request, id: string, body: Record<string, unknown>) {

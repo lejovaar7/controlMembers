@@ -127,7 +127,7 @@ describe("ControlMembers MVP workflow", () => {
 
 	it("reconciles member balances and dashboard metrics after multiple replacement Payments", async () => {
 		for (const amountMinor of [6000, 4000]) {
-			const payment = await callApi("/api/payments", owner, { memberId: customerId, branchId, amountMinor, method: "bank_transfer", paidAt: "2026-01-20T12:00:00.000Z", idempotencyKey: `pay-replacement-${amountMinor}`, allocations: [{ chargeId: januaryChargeId, amountMinor }] });
+			const payment = await callApi("/api/payments", owner, { memberId: customerId, branchId, amountMinor, method: "cash", paidAt: "2026-01-20T12:00:00.000Z", idempotencyKey: `pay-replacement-${amountMinor}`, allocations: [{ chargeId: januaryChargeId, amountMinor }] });
 			expect(payment.status).toBe(201);
 			await expectMemberBalance(amountMinor === 6000 ? 4000 : 0);
 		}

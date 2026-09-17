@@ -192,6 +192,15 @@ export const charge = sqliteTable("charge", {
 	check("charge_total_check", sql`${table.totalMinor} >= 0 and ${table.totalMinor} = ${table.subtotalMinor} - ${table.discountMinor} + ${table.adjustmentMinor}`),
 ]);
 
+export const paymentMethod = sqliteTable("payment_method", {
+	id: text("id").primaryKey(),
+	organizationId: text("organization_id").notNull().references(() => organization.id, { onDelete: "cascade" }),
+	name: text("name").notNull(),
+	normalizedName: text("normalized_name").notNull(),
+	isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+	createdAt: timestampMs(),
+}, (table) => [uniqueIndex("payment_method_org_name_uidx").on(table.organizationId, table.normalizedName)]);
+
 export const payment = sqliteTable("payment", {
 	id: text("id").primaryKey(),
 	organizationId: text("organization_id").notNull().references(() => organization.id, { onDelete: "cascade" }),
@@ -201,6 +210,8 @@ export const payment = sqliteTable("payment", {
 	currency: text("currency").notNull(),
 	paidAt: integer("paid_at", { mode: "timestamp_ms" }).notNull(),
 	method: text("method").notNull(),
+	paymentMethodId: text("payment_method_id").references(() => paymentMethod.id, { onDelete: "restrict" }),
+	methodName: text("method_name"),
 	externalReference: text("external_reference"),
 	note: text("note"),
 	receiptNumber: text("receipt_number").notNull(),
