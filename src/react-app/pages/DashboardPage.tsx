@@ -1,5 +1,4 @@
 import { MonthPicker } from "@/components/date-picker";
-import { CurrencyLabel } from "@/components/currency-label";
 import { formatMoney } from "../../shared/i18n";
 import { DashboardSkeleton } from "@/components/content-skeleton";
 import { useEffect, useState, type ReactNode } from "react";
@@ -41,7 +40,6 @@ export function DashboardPage() {
   {failed ? <div role="alert" className="flex flex-wrap items-center justify-between gap-3">{t("We could not load the dashboard.")}<Button variant="outline" onClick={() => { setFailed(false); setRevision((value) => value + 1); }}>{t("Try again")}</Button></div> : null}
   {!metrics && !failed ? <DashboardSkeleton label={t("Loading dashboard…")} /> : null}
   {metrics && !failed ? <>
-   <CurrencyLabel currency={metrics.currency} />
    <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 sm:gap-4 xl:grid-cols-4">
     <Metric icon={<CalendarClock />} label={t("Total to collect")} value={amount(metrics.expectedMinor)} to={`/app/charges?period=${period}`} tone="blue" />
     <Metric icon={<ArrowDownLeft />} label={t("Collected")} value={amount(metrics.collectedMinor)} to="/app/payments" tone="green" />

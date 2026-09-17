@@ -259,8 +259,7 @@ export function AppLayout() {
 			<aside className="sticky top-0 z-30 hidden h-svh w-62 shrink-0 bg-sidebar shadow-[6px_0_28px_-18px_rgba(15,23,42,0.28)] lg:block">
 				<div className="flex h-full min-h-0 flex-col">
 					<NavLink to={permissions?.canViewReports ? "/app/dashboard" : "/app/customer-members"} className="mx-4 mt-5 flex min-h-14 items-center rounded-xl px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ProductBrand compact className="w-full" /></NavLink>
-					<p className="px-6 pb-3 pt-6 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{t("Workspace")}</p>
-					<Navigation className="min-h-0 flex-1 overflow-y-auto px-3 pb-5" showManagement={manageBranches} fullScope={permissions?.allBranches === true} canViewReports={permissions?.canViewReports === true} />
+					<Navigation className="min-h-0 flex-1 overflow-y-auto px-3 pt-5 pb-5" showManagement={manageBranches} fullScope={permissions?.allBranches === true} canViewReports={permissions?.canViewReports === true} />
 					<div className="m-4 rounded-xl bg-muted/50 p-4"><div className="mb-2 flex items-center gap-2 text-sm font-semibold"><Building2 className="size-4 shrink-0 text-primary" /><span className="truncate">{organization?.name}</span></div><p className="text-xs leading-5 text-muted-foreground">{t("Your workspace, in order.")}</p></div>
 				</div>
 			</aside>
@@ -274,8 +273,8 @@ export function AppLayout() {
 								<Dialog.Backdrop className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm" />
 								<Dialog.Popup className="fixed inset-y-0 left-0 z-50 flex w-[min(320px,90vw)] flex-col bg-sidebar shadow-2xl">
 									<div className="flex items-center justify-between gap-3 px-5 pb-2 pt-5"><NavLink to={permissions?.canViewReports ? "/app/dashboard" : "/app/customer-members"} onClick={() => setMenuOpen(false)} className="min-w-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ProductBrand compact className="w-48" /></NavLink><Dialog.Close render={<Button variant="ghost" size="icon" className="size-11 shrink-0" aria-label={t("Close navigation")} />}><X /></Dialog.Close></div>
-									<Dialog.Title className="px-6 pb-3 pt-6 text-xs font-semibold uppercase tracking-widest text-muted-foreground">{t("Workspace")}</Dialog.Title>
-									<Navigation className="min-h-0 flex-1 overflow-y-auto px-4" showManagement={manageBranches} fullScope={permissions?.allBranches === true} canViewReports={permissions?.canViewReports === true} onNavigate={() => setMenuOpen(false)} />
+									<Dialog.Title className="sr-only">{t("Workspace")}</Dialog.Title>
+									<Navigation className="min-h-0 flex-1 overflow-y-auto px-4 pt-4" showManagement={manageBranches} fullScope={permissions?.allBranches === true} canViewReports={permissions?.canViewReports === true} onNavigate={() => setMenuOpen(false)} />
 									<div className="space-y-4 border-t p-5"><p className="truncate text-sm font-medium">{session.user.name || session.user.email}</p><LanguagePicker compact /><Button variant="outline" className="w-full" onClick={handleSignOut}><LogOut />{t("Sign out")}</Button></div>
 								</Dialog.Popup>
 							</Dialog.Portal>
