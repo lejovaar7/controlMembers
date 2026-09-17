@@ -1,5 +1,94 @@
 # ControlMembers Verification Record
 
+## 2026-09-17 — Member and User creation popups
+
+- "Add member" and "Add user" now open their feature forms in a centered
+  popup using `CenteredDialog`, the presentation also shared by action dialogs.
+  Retained the original API calls, Branch selections and User permissions.
+  Pending requests disable dismissal and fields; errors keep entered data.
+- Browser QA used the actual directory pages and API clients with synthetic
+  HTTP fixtures. Verified blank-name blocking, required User Branch selection,
+  role-dependent fields, nested Select interaction, error retention and retry,
+  Cancel/Escape focus restoration, and successful create/close/list refresh.
+  The User request preserved the selected north Branch and report permission.
+- Inspected the Member popup at 1440×900; tested the User popup at 390×844 and
+  320×680. Forms stayed inside the viewport without horizontal overflow and
+  scrolled vertically when needed. Reloaded the fixture and confirmed reopening
+  resets the creation fields. No real Member, User or email was created.
+- Removed the temporary preview and its dependency cache before the final gate.
+  The initial lint attempt included generated fixture dependencies; they were
+  removed rather than weakening project lint rules.
+- Final `npm run check` passed with typecheck, lint, 27 environment/bootstrap
+  checks, 2 catalog checks, 2 form/dialog checks, 192 Worker tests and all three
+  environment build/dry runs. The live development health endpoint returned
+  HTTP 200 with database status `ok`.
+
+## 2026-09-17 — Shared centered action dialogs
+
+- Replaced all native browser prompts/confirmations in Member detail, Charges,
+  Payments and Plans, and the inline User-access confirmation, with a shared
+  Base UI dialog. Enrollment terms now use one form; payment review includes
+  its amount and allocations. The existing drawer/date/select behavior stays
+  separate. Added an automated guard against native browser dialogs.
+- Browser QA used the actual pages and API clients with an isolated HTTP fixture
+  and synthetic records, without writing to remote D1 or sending emails. At
+  1440×900 the reason dialog was centered and 512 pixels wide. At 390×844 and
+  320×680, dialogs fit without horizontal overflow; the longer terms form
+  scrolled vertically within the viewport.
+- Verified blank/whitespace reasons cannot submit, excessive discounts show
+  validation, failed saves retain the reason, and pending saves disable controls.
+  Cancel and Escape made no writes and returned focus; Tab remained in the
+  dialog. Verified terms and enrollment status PATCH payloads, charge adjustment
+  and User access changes, plus the payment review, Contact unlink, Charge void
+  and Plan deactivation confirmations using fixture data.
+- `npm run check` passed: 27 environment/bootstrap checks, 2 catalog checks,
+  2 form/dialog convention checks, 192 Worker tests and all three environment
+  builds/dry runs. Typecheck and lint were repeated after the feedback typing
+  change. The final fixture browser console had no warnings or errors. The
+  fixture was stopped and removed; the live development login page rendered
+  successfully afterward. No commit, push or deployment was performed.
+
+## 2026-09-17 — Restored nonempty member lists
+
+- Reproduced a successful Member POST followed by a failing list GET in the
+  actual Workers/D1 test runtime. The balance query's nested SQL lost column
+  qualification and D1 rejected the ambiguous `amount_minor` reference, including
+  for newly created Members without Charges. Empty lists skipped that query.
+- Replaced the nested balance query with explicit joins and per-Charge payment
+  aggregation before summing Member balances. Multiple allocations cannot repeat
+  Charge totals; only posted Payments and open Charges affect the balance.
+- The 14-test MVP workflow passes with create-then-list regression assertions
+  and balance checks after partial Payments, reversals, multiple open Charges,
+  adjustments, voids and multiple Payments against one Charge. Requests use
+  both owner and branch-scoped staff access; foreign-tenant lists remain empty.
+- The running development server's `/api/health` returned HTTP 200 with database
+  status `ok`. These checks did not create Members in the remote tenant; the
+  create/list workflow was verified against isolated D1 test data.
+- Typecheck, lint, 27 environment/bootstrap checks, 2 catalog checks and the form
+  check passed. The first full Worker run timed out in the access-control setup
+  hook; repeating all Worker tests with `--maxWorkers=2` passed all 192 tests.
+  `npm run check:environments` then passed all three builds and deployment dry
+  runs. No migration or remote deployment was needed.
+
+## 2026-09-17 — Restored member and related form submission
+
+- Reproduced the member-create failure using the actual CustomerMembersPage and
+  API client against a temporary in-memory HTTP fixture. The rendered save
+  button had `type="button"`; clicking it left the form open with no POST.
+- Added explicit `type="submit"` to eight save actions: member creation/profile,
+  enrollments, payments, contacts, billing settings and plan creation/editing.
+  Kept the shared Button default and non-submit actions unchanged.
+- After the fix, clicking save sent one POST with the selected north branch,
+  closed the form and refreshed the list. The fixture member remained visible
+  after a page reload. At 390 pixels, Enter saved a second member using the
+  default main branch; an empty name kept save disabled. No browser errors were
+  recorded. The fixture used no real accounts, database writes or emails and
+  was removed afterward; live-tenant creation was not exercised.
+- Added `npm run test:forms` to the normal test chain. The regression check
+  failed on all eight missing button types before the fix and passed afterward.
+  `npm run check` passed with 27 environment/bootstrap checks, 2 catalog checks,
+  the new form check, 192 Worker tests and all environment build/dry runs.
+
 ## 2026-09-17 — Styled dropdowns throughout the application
 
 - Replaced 20 native select fields with a shared Base UI Select wrapper. Filters,
