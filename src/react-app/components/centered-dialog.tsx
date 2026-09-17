@@ -20,7 +20,7 @@ export function CenteredDialog({ title, description, open, pending = false, onCl
 }) {
 	const t = useT();
 	const titleRef = useRef<HTMLHeadingElement>(null);
-	return <Dialog.Root open={open} disablePointerDismissal onOpenChange={(next, details) => {
+	return <Dialog.Root open={open} disablePointerDismissal={pending} onOpenChange={(next, details) => {
 		if (!next) { if (pending) details.cancel(); else onClose(); }
 	}}>
 		<Dialog.Portal>
