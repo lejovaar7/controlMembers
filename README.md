@@ -128,12 +128,12 @@ is local; `env.dev` and `env.production` are the two deployed environments.
 | Environment | URL | Worker | Database | Email |
 | --- | --- | --- | --- | --- |
 | Local | `http://localhost:5173` | Local runtime, not deployed | Local `controlmembers-db` state | Simulated |
-| Dev | `https://dev.controlmembers.magdasystems.com` | `controlmembers-dev` | Separate `controlmembers-dev-db` in Cloudflare | Real sending, explicit test-recipient allowlist |
+| Dev | `https://dev.controlmembers.magdasystems.com` | `controlmembers-dev` | Separate `controlmembers-dev-db` in Cloudflare | Real sending, no application recipient allowlist |
 | Production | Your `https://app.<domain>` | `controlmembers-production` | Separate `controlmembers-production-db` in Cloudflare | Real sending |
 
 The ControlMembers dev Worker, D1 database and custom domain are configured.
-Production and dev's controlled-recipient allowlist remain explicit release
-configuration. See [Configuring ControlMembers environments](#configuring-controlmembers-environments).
+Production remains explicit release configuration. See
+[Configuring ControlMembers environments](#configuring-controlmembers-environments).
 
 `scripts/environments.mjs` selects the Cloudflare environment **before** Vite
 starts/builds, regardless of an inherited `CLOUDFLARE_ENV`. Remote deployment
@@ -144,7 +144,7 @@ and Email policy against the selected source target before proceeding.
 
 The wrapper rejects shared Worker names, D1 names/IDs, domains, missing bindings,
 and unintended local remote connections. Actual migrations/deploys reject D1
-placeholders; deploys also reject example domains and dev email recipients.
+placeholders; deploys also reject example domains.
 These are operational guardrails, not Cloudflare access control: direct Wrangler
 commands can bypass them. Always verify the Cloudflare account and target.
 
@@ -312,8 +312,8 @@ npm run bootstrap:admin -- \
 Open the simulated email under `.wrangler/tmp/email/`, follow its link and choose
 a password at `/setup-account`.
 
-After dev is configured, migrated and deployed, its administrator email must be
-in `allowed_destination_addresses`:
+After dev is configured, migrated and deployed, bootstrap its administrator
+using the administrator's email address:
 
 ```bash
 npm run bootstrap:admin -- \
@@ -574,15 +574,13 @@ Use the deployed dev environment to test actual delivery.
 
 Both deployed environments need an `EMAIL_FROM` authorized in **Cloudflare Email
 Sending**. Each SaaS onboards its own sending domain or subdomain and configures
-its own values. Dev's `send_email[0].allowed_destination_addresses` must list only
-controlled test mailboxes, including the dev platform admin and test employees.
-An unlisted recipient is rejected by the binding: provisioning may succeed but
-report failed setup email. Update the allowlist, redeploy dev and resend.
+its own values. Neither deployed environment configures
+`allowed_destination_addresses`: the application does not maintain a recipient
+allowlist. Cloudflare's account, sender and delivery requirements still apply.
+Changes to this binding take effect after redeploying the selected environment.
 
-Production has no test-recipient restriction. Never import customer recipients
-into dev to test sending. The allowlist controls email, not website access;
-restrict dev access separately (for example with Cloudflare Access) before wider
-testing. Access policies are not provisioned by this application.
+Dev website access is configured separately (for example with Cloudflare Access).
+Access policies are not provisioned by this application.
 
 ## Configuring ControlMembers environments
 
@@ -611,8 +609,7 @@ Cloudflare resources and belong to an explicitly authorized release/setup:
    lets deployment configure that hostname; do not attach an occupied production
    hostname to dev. `workers_dev` and `preview_urls` stay disabled, so no alternate
    public URL bypasses the chosen domain/access policy.
-6. Onboard the email sending domain, replace dev's recipient examples with
-   controlled mailboxes, and set all three remote secrets per environment using
+6. Onboard the email sending domain and set all three remote secrets per environment using
    [Configuration](#configuration). The command wrapper cannot verify secret
    values or Cloudflare domain ownership; check them before release.
 7. Run `npm run cf-typegen` and `npm run check`. This verifies both remote build
@@ -666,7 +663,7 @@ curl https://dev.example.com/api/health
 ```
 
 Bootstrap dev's own platform admin, test activation and password recovery with
-allowlisted addresses, create a company/Branches/members, and verify permissions
+test mailboxes, create a company/Branches/members, and verify permissions
 and company switching. Confirm every email link returns to the dev origin.
 
 Only after approving the same code revision for production:

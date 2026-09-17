@@ -9,7 +9,6 @@ function configured() {
 	config.env.production.d1_databases[0].database_id = "22222222-2222-4222-8222-222222222222";
 	config.env.dev.routes[0].pattern = "dev.fixture-saas.com";
 	config.env.production.routes[0].pattern = "app.fixture-saas.com";
-	config.env.dev.send_email[0].allowed_destination_addresses = ["admin@fixture-saas.com"];
 	return config;
 }
 
@@ -38,7 +37,9 @@ test("plans isolated local and remote D1 operations", () => {
 		baseUrl: "https://dev.fixture-saas.com", databaseArgs: ["--config", "wrangler.json", "--env", "dev", "--remote"],
 	});
 	assert.throws(() => bootstrapPlan(unconfigured, { target: "dev", email: "qa@example.invalid" }), /D1 placeholder/);
-	assert.throws(() => bootstrapPlan(configured(), { target: "dev", email: "other@fixture-saas.com" }), /allowed_destination_addresses/);
+	assert.deepEqual(bootstrapPlan(configured(), { target: "dev", email: "other@fixture-saas.com" }), {
+		baseUrl: "https://dev.fixture-saas.com", databaseArgs: ["--config", "wrangler.json", "--env", "dev", "--remote"],
+	});
 });
 
 test("SQL construction escapes user values and keeps bootstrap conditional", () => {

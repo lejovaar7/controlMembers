@@ -183,8 +183,8 @@ Rules:
   and extra target overrides must be rejected before remote operations.
 - Local Vite/preview and tests disable remote bindings. Adding local-to-cloud D1
   access needs an explicitly requested guarded opt-in; never silently enable it.
-- Dev Email requires a controlled test-recipient allowlist. Production uses its
-  own real sender. Alternate workers.dev and preview URLs remain disabled;
+- Dev and production Email have no application-managed recipient allowlist and
+  use their own authorized senders. Alternate workers.dev and preview URLs remain disabled;
   dev website access policy and domain ownership are external setup tasks.
 - Build-only example values are not deployed secrets. Never share the ignored
   Worker build folder or put secrets in `VITE_*` values; only `dist/client` is

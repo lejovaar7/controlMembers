@@ -70,10 +70,6 @@ export function bootstrapPlan(config, options) {
 		`${options.target}: replace the D1 placeholder with the real database UUID first.`);
 	const domain = entry.routes[0].pattern;
 	requireValue(!isExampleDomain(domain), `${options.target}: replace the example domain before bootstrapping an administrator.`);
-	if (options.target === "dev") {
-		const allowed = entry.send_email[0].allowed_destination_addresses.map((value) => value.toLowerCase());
-		requireValue(allowed.includes(options.email), "The dev administrator email must be in allowed_destination_addresses.");
-	}
 	return { baseUrl: `https://${domain}`, databaseArgs: [...environmentArgs, "--remote"] };
 }
 

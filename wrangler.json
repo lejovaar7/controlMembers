@@ -45,7 +45,6 @@
 			},
 			"send_email": [{
 				"name": "EMAIL",
-				"allowed_destination_addresses": ["qa@example.invalid"],
 				"remote": false
 			}],
 			"d1_databases": [{

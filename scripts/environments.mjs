@@ -62,9 +62,6 @@ export function validateConfig(config) {
 			domains.add(domain.toLowerCase());
 		}
 	}
-	const recipients = config.env.dev.send_email[0].allowed_destination_addresses;
-	requireValue(Array.isArray(recipients) && recipients.length > 0 && recipients.every((email) => typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)),
-		"Dev email requires an explicit, nonempty test-recipient allowlist.");
 }
 
 export function commandPlan(config, target, action) {
@@ -79,10 +76,6 @@ export function commandPlan(config, target, action) {
 		if (action === "deploy") {
 			requireValue(!/\.(invalid|test|example|localhost)$/i.test(entry.routes[0].pattern) && !/(^|\.)example\.(com|net|org)$/i.test(entry.routes[0].pattern),
 				`${target}: replace the example custom domain before deploying.`);
-			if (target === "dev") {
-				requireValue(!entry.send_email[0].allowed_destination_addresses.some((email) => /\.(invalid|test|example|localhost)$/i.test(email) || /@(?:[^@]+\.)?example\.(com|net|org)$/i.test(email)),
-					"Dev: replace the example recipients with controlled test mailboxes before deploying.");
-			}
 		}
 	}
 	const build = [["tsc", "-b"], ["vite", "build"]];

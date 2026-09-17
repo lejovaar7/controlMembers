@@ -91,11 +91,12 @@ send real messages. Dev and production each configure their own `EMAIL_FROM`,
 never belong in tracked source. Each `APP_URL` must match its deployed HTTPS
 custom domain; the wrapper cannot verify remote secret values.
 
-Dev's Email binding permits only explicitly allowlisted test recipients. The
-platform admin and test accounts must use those mailboxes; other deliveries
-fail without undoing valid provisioning. Production has no test-recipient
-restriction. Domains/sender setup and actual delivery are external release
-checks, not claims established by a build/dry-run.
+Dev and production Email bindings have no application-managed recipient allowlist.
+Bootstrap and deployment do not require registering recipients in project config.
+Cloudflare account, domain and sender requirements still apply. Delivery failures
+do not undo valid provisioning. Binding changes require redeployment; domain/sender
+setup and actual delivery are external release checks, not claims established by
+a build/dry-run. Local messages remain simulated.
 
 Build-only `.dev.vars.dev.example` and `.dev.vars.production.example` contain
 non-secret fixtures. Optional ignored copies prevent local-file fallback during

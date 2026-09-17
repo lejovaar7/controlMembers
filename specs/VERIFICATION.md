@@ -5,6 +5,20 @@ production deployment. The latest repository checkpoint is recorded first; earli
 localization, environment, Starter v1 and dependency-remediation evidence from
 the inherited foundation is preserved below.
 
+## 2026-09-16: Removed the dev email recipient allowlist
+
+Removed `allowed_destination_addresses` from the dev Email binding and the
+deployment/bootstrap checks that required listed recipients. Updated the guides
+and regression tests so dev deployment and administrator bootstrap accept an
+email without a repository-managed recipient list. Cloudflare account and
+sender requirements still apply; local email remains simulated.
+
+Validation passed: `npm run test:environments` (24 tests), `npm run lint`,
+`git diff --check`, and `npm run deploy:dev:dry-run`, including TypeScript and
+Worker/client builds. Wrangler reported `env.EMAIL (unrestricted)` for the
+generated dev binding. The existing client chunk-size warning remains.
+No remote deployment or real email delivery was performed or verified.
+
 ## 2026-09-16: Distinct school owner emails
 
 Changed platform provisioning to reject a different school when the normalized

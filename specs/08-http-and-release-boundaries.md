@@ -69,7 +69,7 @@ characters in Better Auth hooks, independently of frontend validation.
   placeholders prevent accidental publication and secrets remain external.
 - Environment commands reject shared resources and ambiguous remote targets.
   This is an operator guardrail, not a replacement for Cloudflare permissions.
-- Dev has an email-recipient allowlist and a distinct custom domain. Alternate
+- Dev has a distinct custom domain and no application email-recipient allowlist. Alternate
   workers.dev/preview URLs are disabled, but website access restrictions still
   require the operator's separate policy/setup.
 

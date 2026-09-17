@@ -141,8 +141,8 @@ and responses are not cached. See [HTTP boundaries](08-http-and-release-boundari
   local email is simulated and D1 is local.
 - Named dev/production deployment selects the environment before compilation.
   Remote operations require configuring that target's resources explicitly.
-- Dev sending has a required test-recipient allowlist; production uses its own
-  sender/secrets and permits delivery to customer recipients.
+- Dev and production use independent senders/secrets without an application
+  recipient allowlist. Cloudflare account and delivery requirements still apply.
 - Public custom domains are environment-specific; workers.dev and preview URLs
   are disabled. The local target has no public route and cannot be deployed by
   the supported commands.

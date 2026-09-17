@@ -30,8 +30,8 @@ environment and disables remote bindings, independently of shell environment.
 | `test/hardening.test.ts` | Bootstrap end-to-end, JSON/origin/body-limit handling, native invitation restrictions, cache policy and HTML escaping |
 | `test/localization.test.ts` | Catalog completeness/placeholders, priority/fallback, public choice, persistence, tenant isolation, guarded language writes, provisioning and recipient email |
 | `scripts/i18n.test.mjs` | Static JSX/accessible copy uses catalogs; shared localization has no browser/Worker/secret dependencies |
-| `scripts/environments.test.mjs` | Node tests for environment isolation, explicit targets, placeholder rejection, dev email allowlist, command ordering and argument-override rejection |
-| `scripts/bootstrap-admin.test.mjs` | First-platform-admin argument, target, allowlist, SQL escaping, retry and password-free setup-link safety |
+| `scripts/environments.test.mjs` | Node tests for environment isolation, explicit targets, placeholder rejection, deployment without recipient restrictions, command ordering and argument-override rejection |
+| `scripts/bootstrap-admin.test.mjs` | First-platform-admin argument, target, unrestricted recipient selection, SQL escaping, retry and password-free setup-link safety |
 
 See [the dated verification record](VERIFICATION.md) for current counts and
 command outputs. `test/helpers.ts` shares actor creation and same-origin requests.
@@ -63,20 +63,19 @@ The same codebase has exactly three supported environment targets:
 | Target | Wrangler selection | Application execution | Data / email |
 | --- | --- | --- | --- |
 | `local` | Top-level config, explicit empty `CLOUDFLARE_ENV` | Loopback port 5173 through Vite/workerd | Original local D1 state, simulated Email |
-| `dev` | `env.dev` | Separate deployed Worker and dev custom domain | Real independent dev D1, allowlisted test email |
+| `dev` | `env.dev` | Separate deployed Worker and dev custom domain | Real independent dev D1, real email without an application recipient allowlist |
 | `production` | `env.production` | Separate deployed Worker and production custom domain | Real independent production D1, customer email |
 
 Top-level configuration is local, not a fourth deployed environment. Its D1
 name/ID are preserved so this change does not reset existing local data. Each
 remote environment explicitly redeclares D1, Email and required secret names.
-Worker names, D1 names/IDs and custom domains must be different. Remote IDs,
-domains and dev recipients ship as non-working examples for the operator to
-replace; no real Cloudflare resource is committed to the generic starter.
+Worker names, D1 names/IDs and custom domains must be different. This project
+configures its dev resources; production placeholders still require operator setup.
 
 `workers_dev` and `preview_urls` are disabled for every target. Local has no
 public routes; each remote target has one custom domain. Domain ownership/DNS,
 Cloudflare account permissions and any dev website access policy must be
-configured externally. An email allowlist is not an access policy.
+configured externally. Email delivery configuration does not control website access.
 
 `vite.config.ts` and `vitest.config.ts` disable remote binding connections.
 Local-to-cloud-D1 development is deliberately not part of these three targets;
@@ -98,10 +97,10 @@ Vitest and Wrangler executables, without installing tools dynamically.
   target or supported local deployment. Extra CLI arguments/target overrides
   are rejected rather than forwarded to Wrangler.
 - Remote migrations/deploys reject placeholder or malformed UUIDs. Actual
-  deploys additionally reject example domains and dev test-recipient examples.
+  deploys additionally reject example domains.
   Builds and dry runs allow placeholders to validate a fresh clone without
   accessing its future cloud resources.
-- Missing non-inherited bindings, duplicate resources, absent dev allowlists or
+- Missing non-inherited bindings, duplicate resources or
   accidental remote local-binding settings fail before child tools execute.
 - Deploy always rebuilds its selected target. After compilation, the wrapper
   verifies the generated Worker name, target environment, D1 binding, routes and
@@ -167,8 +166,8 @@ separate production migration/deployment. No migration copies preferences or
 accounts between environments. A new catalog alone requires no schema migration.
 
 A ControlMembers installation uses its distinct remote Worker/database names and
-two domains, creates two D1 databases, replaces the remote placeholder IDs, configures dev
-test recipients, generates binding types, and installs each environment's
+two domains, creates two D1 databases, replaces the remote placeholder IDs,
+generates binding types, and installs each environment's
 secrets. See the [operator setup guide](../README.md#configuring-controlmembers-environments)
 for exact commands, domain/email setup and first-admin bootstrap.
 
@@ -267,8 +266,8 @@ upgrade unrelated packages or force an audit fix.
   compilation mode must not be confused with the production resource target.
 - Ambiguous commands, placeholder remote UUIDs, duplicate resources, missing
   bindings and extra target overrides fail before any remote write.
-- Remote dev cannot deploy without a real custom domain and explicit controlled
-  email recipients; production has different resources and secrets.
+- Remote dev cannot deploy without a real custom domain and database ID;
+  no recipient allowlist is required. Production has different resources and secrets.
 - Local migrations and isolated test databases use all actual Drizzle SQL files;
   adding environments does not change schema, business logic or dependencies.
 - Release dev first; verify actual email links, bootstrap, isolation and user

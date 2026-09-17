@@ -15,7 +15,6 @@ function configured() {
 	config.env.production.d1_databases[0].database_id = productionId;
 	config.env.dev.routes[0].pattern = "dev.fixture-saas.com";
 	config.env.production.routes[0].pattern = "app.fixture-saas.com";
-	config.env.dev.send_email[0].allowed_destination_addresses = ["qa@fixture-saas.com"];
 	return config;
 }
 
@@ -80,12 +79,11 @@ test("a template custom domain blocks deployment but not database preparation", 
 	assert.doesNotThrow(() => commandPlan(config, "dev", "migrate"));
 });
 
-test("dev needs real controlled email recipients before deployment", () => {
+test("dev deployment does not require a recipient allowlist", () => {
 	const config = configured();
-	config.env.dev.send_email[0].allowed_destination_addresses = ["qa@example.invalid"];
-	assert.throws(() => commandPlan(config, "dev", "deploy"), /example recipients/);
-	delete config.env.dev.send_email[0].allowed_destination_addresses;
-	assert.throws(() => validateConfig(config), /allowlist/);
+	assert.equal(config.env.dev.send_email[0].allowed_destination_addresses, undefined);
+	assert.doesNotThrow(() => validateConfig(config));
+	assert.deepEqual(commandPlan(config, "dev", "deploy").at(-1), ["wrangler", "deploy"]);
 });
 
 test("shared Worker, D1 name, D1 ID and custom domain are rejected", () => {
