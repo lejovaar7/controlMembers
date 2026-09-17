@@ -62,7 +62,7 @@ The same codebase has exactly three supported environment targets:
 
 | Target | Wrangler selection | Application execution | Data / email |
 | --- | --- | --- | --- |
-| `local` | Top-level config, explicit empty `CLOUDFLARE_ENV` | Loopback port 5173 through Vite/workerd | Original local D1 state, simulated Email |
+| `local` execution | Top-level config, explicit empty `CLOUDFLARE_ENV` | Local APP_URL host on port 5173 through Vite/workerd | Remote dev D1 and real Email in development; original local D1 and simulated Email in preview/tests |
 | `dev` | `env.dev` | Separate deployed Worker and dev custom domain | Real independent dev D1, real email without an application recipient allowlist |
 | `production` | `env.production` | Separate deployed Worker and production custom domain | Real independent production D1, customer email |
 
@@ -77,9 +77,14 @@ public routes; each remote target has one custom domain. Domain ownership/DNS,
 Cloudflare account permissions and any dev website access policy must be
 configured externally. Email delivery configuration does not control website access.
 
-`vite.config.ts` and `vitest.config.ts` disable remote binding connections.
-Local-to-cloud-D1 development is deliberately not part of these three targets;
-adding it requires an explicit safe opt-in, never silently changing the default.
+Builds, preview and `vitest.config.ts` disable remote binding connections.
+`npm run dev` enables EMAIL and the D1 selected from `env.dev` remotely, and binds the
+address in local `APP_URL` on port 5173. The command rejects placeholder senders,
+nonlocal URLs and extra arguments. It requires Cloudflare authentication and an
+authorized sender and a valid dev D1 UUID distinct from production. Builds,
+preview and tests clear inherited remote-binding settings and cannot silently
+enable them. Real delivery needs a mailbox check. Existing local data is
+preserved but is not migrated to dev; remote users and companies are separate.
 The `remote: false` binding setting affects local emulation only, not the real
 bindings of a deployed Worker.
 
@@ -91,8 +96,8 @@ Vitest and Wrangler executables, without installing tools dynamically.
 
 - Select `CLOUDFLARE_ENV` before starting Vite or compiling. Local overrides an
   inherited production selection with an explicit empty value.
-- Local dev/preview bind loopback at port 5173 and refuse automatic port changes
-  so the configured authentication URL stays valid.
+- Local dev binds the APP_URL host and preview binds loopback, both on port 5173.
+  Both refuse automatic port changes so the authentication URL stays valid.
 - Bare `deploy` and `db:migrate:remote` scripts fail. There is no default remote
   target or supported local deployment. Extra CLI arguments/target overrides
   are rejected rather than forwarded to Wrangler.
@@ -129,8 +134,10 @@ the entire build directory; only `dist/client` is public static content.
 
 The wrapper does not fetch or validate deployed secret values, domain ownership,
 real email delivery, backups or Cloudflare Access settings. Those are release
-checks. Local, dev and production have independent accounts, sessions, tokens and
-platform-admin bootstrap; no credentials or customer data are promoted with code.
+checks. Simulated local D1, remote dev D1 and production D1 have independent
+accounts, sessions, tokens and platform-admin bootstrap. `npm run dev` shares
+dev D1 with the deployed dev Worker; no local credentials or customer data are
+copied or promoted with code.
 
 ## Package scripts
 
@@ -260,8 +267,9 @@ upgrade unrelated packages or force an audit fix.
 
 ### Environment acceptance checks
 
-- Local commands still use the original local database when the shell exports
-  `CLOUDFLARE_ENV=production`; no real email or remote D1 is used by local/test.
+- Development uses the configured dev D1 even when the shell exports
+  `CLOUDFLARE_ENV=production`; it never selects the production database.
+  Tests, preview and local migrations retain local D1 and simulated bindings.
 - Every build/dry-run selects its own Worker, D1 and Email policy. A production
   compilation mode must not be confused with the production resource target.
 - Ambiguous commands, placeholder remote UUIDs, duplicate resources, missing

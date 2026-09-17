@@ -30,7 +30,7 @@ function prepareLocalVariables() {
 	}
 
 	const withAppUrl = appendVariable(content, "APP_URL", "http://localhost:5173");
-	const withEmail = appendVariable(withAppUrl, "EMAIL_FROM", "no-reply@local.invalid");
+	const withEmail = appendVariable(withAppUrl, "EMAIL_FROM", "no-reply@dev.controlmembers.magdasystems.com");
 	changed ||= withEmail !== content;
 	content = withEmail;
 
@@ -66,4 +66,4 @@ prepareLocalVariables();
 runNpm(["ci"]);
 runNpm(["run", "db:migrate:local"]);
 
-console.log("\nLocal setup is ready. Start the application with: npm run dev");
+console.log("\nLocal setup is ready. Verify EMAIL_FROM in .dev.vars, authenticate with npx wrangler login, then start with npm run dev. Development sends real email.");

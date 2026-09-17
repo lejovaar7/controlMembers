@@ -1,7 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { networkInterfaces } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseEnv } from "node:util";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const configPath = path.join(root, "wrangler.json");
@@ -64,7 +66,30 @@ export function validateConfig(config) {
 	}
 }
 
-export function commandPlan(config, target, action) {
+export function developmentHost(vars, interfaces = networkInterfaces()) {
+	const sender = vars.EMAIL_FROM?.trim();
+	requireValue(sender && /^[^\s@<>]+@[^\s@<>]+\.[a-z]{2,}$/i.test(sender)
+		&& !/\.(invalid|test|example|localhost)$/i.test(sender)
+		&& !/@(?:[^@]+\.)?example\.(com|net|org)$/i.test(sender),
+		"Set EMAIL_FROM in .dev.vars to your authorized Cloudflare Email Sending address before starting development.");
+	const url = new URL(vars.APP_URL);
+	const addresses = Object.values(interfaces).flatMap((entries) => entries?.map((entry) => entry.address) ?? []);
+	requireValue(url.protocol === "http:" && url.port === "5173" && url.pathname === "/"
+		&& !url.username && !url.password && !url.search && !url.hash
+		&& ["localhost", "127.0.0.1", ...addresses].includes(url.hostname),
+		"APP_URL must use this PC's address and port 5173, such as http://localhost:5173 or your Wi-Fi IP.");
+	return url.hostname;
+}
+
+export function developmentDatabase(config) {
+	validateConfig(config);
+	const database = config.env.dev.d1_databases[0];
+	requireValue(/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(database.database_id),
+		"Configure the real dev D1 database UUID before starting development.");
+	return database;
+}
+
+export function commandPlan(config, target, action, devHost = "localhost") {
 	requireValue(targets.includes(target) && actions.includes(action), usage);
 	requireValue(target === "local" || !localActions.includes(action), "Interactive development and tests are local-only.");
 	requireValue(target !== "local" || action !== "deploy", "Local cannot be deployed. " + usage);
@@ -83,7 +108,7 @@ export function commandPlan(config, target, action) {
 	// binding-type headers reproducible across machines.
 	const envArgs = ["--config", "wrangler.json", "--env", target === "local" ? "" : target];
 	switch (action) {
-		case "dev": return [["vite", "--host", "localhost", "--port", "5173", "--strictPort"]];
+		case "dev": return [["vite", "--host", devHost, "--port", "5173", "--strictPort"]];
 		case "build": return build;
 		case "preview": return [...build, ["vite", "preview", "--host", "localhost", "--port", "5173", "--strictPort"]];
 		case "dry-run": return [...build, ["wrangler", "deploy", "--dry-run"]];
@@ -96,14 +121,19 @@ export function commandPlan(config, target, action) {
 	}
 }
 
-export function childEnvironment(target, inherited = process.env) {
+export function childEnvironment(target, inherited = process.env, action, config) {
+	const remoteDev = target === "local" && action === "dev";
+	const database = remoteDev ? developmentDatabase(config ?? readConfig()) : undefined;
 	return {
 		...inherited,
-		// Explicit empty selection preserves the original local D1 identity and
-		// overrides inherited production settings and Vite's .env selection.
+		// Keep local execution and vars; only dev remaps DB to the named dev D1.
+		// Tests, preview and migrations retain their explicit database selection.
 		CLOUDFLARE_ENV: target === "local" ? "" : target,
-		CLOUDFLARE_VITE_FORCE_LOCAL: "true",
+		CLOUDFLARE_VITE_FORCE_LOCAL: remoteDev ? "false" : "true",
 		CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV: "false",
+		CONTROLMEMBERS_REMOTE_DEV: remoteDev ? "true" : "false",
+		CONTROLMEMBERS_DEV_DATABASE_ID: database?.database_id ?? "",
+		CONTROLMEMBERS_DEV_DATABASE_NAME: database?.database_name ?? "",
 	};
 }
 
@@ -122,7 +152,9 @@ export function validateBuild(config, target, built) {
 
 export function run(target, action) {
 	const config = readConfig();
-	const commands = commandPlan(config, target, action);
+	const devHost = target === "local" && action === "dev"
+		? developmentHost(parseEnv(readFileSync(path.join(root, ".dev.vars"), "utf8"))) : "localhost";
+	const commands = commandPlan(config, target, action, devHost);
 	const bins = {
 		tsc: "typescript/bin/tsc",
 		vite: "vite/bin/vite.js",
@@ -130,10 +162,11 @@ export function run(target, action) {
 		vitest: "vitest/vitest.mjs",
 	};
 	console.log(`Environment: ${target}; operation: ${action}; Worker: ${targetConfig(config, target).name}`);
+	if (action === "dev") console.log(`Local web; remote dev D1: ${developmentDatabase(config).database_name}; real Cloudflare email. Authenticate with npx wrangler login if required.`);
 	for (const [tool, ...args] of commands) {
 		const result = spawnSync(process.execPath, [path.join(root, "node_modules", bins[tool]), ...args], {
 			cwd: root,
-			env: childEnvironment(target),
+			env: childEnvironment(target, process.env, action, config),
 			stdio: "inherit",
 		});
 		if (result.error) throw result.error;

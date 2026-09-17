@@ -98,10 +98,14 @@ plain-text `404` instead.
 
 For a fresh clone, the one-command setup creates or safely completes
 `.dev.vars`, installs the locked dependencies and applies all local D1
-migrations. Existing variable values are preserved.
+migrations for preview. Existing variable values are preserved. Development uses
+the separately configured remote dev database, which must already have the
+project migrations applied (`npm run db:migrate:dev` when preparing that database).
 
 ```bash
 npm run setup:local
+npx wrangler login
+# Set EMAIL_FROM in .dev.vars to an authorized Cloudflare sender.
 npm run dev
 ```
 
@@ -111,12 +115,14 @@ The equivalent manual setup is:
 npm ci
 cp -n .dev.vars.example .dev.vars   # do not overwrite existing local values
 # Replace the example local secret in .dev.vars; see Configuration.
+# Set EMAIL_FROM to an authorized Cloudflare sender.
+npx wrangler login
 npm run db:migrate:local   # create the local D1 schema
 npm run dev                # http://localhost:5173
 curl http://localhost:5173/api/health
 ```
 
-The server binds to loopback, uses port 5173, and fails if that port is occupied
+The server binds to the host in local `APP_URL`, uses port 5173, and fails if that port is occupied
 instead of silently breaking the configured authentication URL. `npm run preview`
 builds the local target and previews it on the same port; stop `dev` first.
 
@@ -127,7 +133,7 @@ is local; `env.dev` and `env.production` are the two deployed environments.
 
 | Environment | URL | Worker | Database | Email |
 | --- | --- | --- | --- | --- |
-| Local | `http://localhost:5173` | Local runtime, not deployed | Local `controlmembers-db` state | Simulated |
+| Local execution | `APP_URL` on port 5173 | Local runtime, not deployed | Remote `controlmembers-dev-db` in development; local state in preview/tests | Real in development; simulated in preview/tests |
 | Dev | `https://dev.controlmembers.magdasystems.com` | `controlmembers-dev` | Separate `controlmembers-dev-db` in Cloudflare | Real sending, no application recipient allowlist |
 | Production | Your `https://app.<domain>` | `controlmembers-production` | Separate `controlmembers-production-db` in Cloudflare | Real sending |
 
@@ -148,11 +154,12 @@ placeholders; deploys also reject example domains.
 These are operational guardrails, not Cloudflare access control: direct Wrangler
 commands can bypass them. Always verify the Cloudflare account and target.
 
-The Vite plugin and test runtime disable remote binding connections. Local means
-local D1 and simulated email, even if remote credentials exist on your machine.
-Connecting local code to cloud D1 is **not enabled** by these three environments;
-it would need a separate, deliberately guarded opt-in. Never point local tests
-at production. `remote: false` controls local simulation only; a deployed Worker
+`npm run dev` connects EMAIL and the configured `env.dev` D1 database to Cloudflare.
+Builds, preview and tests disable remote binding connections.
+Development refuses an unconfigured dev database or a database shared with
+production; it never falls back to local D1. Existing local records stay separate
+and are not copied into dev. Never point local tests at production.
+`remote: false` controls default local simulation only; a deployed Worker
 uses its real Cloudflare bindings.
 
 ## Database
@@ -219,8 +226,9 @@ enforces authorization.
 Working auth flows are sign in, sign out, resend verification, forgot/reset
 password, and controlled first-account setup for already-provisioned users.
 Public registration is disabled in Better Auth and `/register` redirects to
-login. Local email is always simulated by the supported scripts, so messages appear under
-`.wrangler/tmp/email/` instead of being delivered.
+login. `npm run dev` runs the application locally with real email and remote dev
+D1. Users, credentials and companies come from the remote database. Preview and
+tests use local D1 and simulate email under `.wrangler/tmp/email/`.
 
 Styling is Tailwind CSS v4 with shadcn/ui components in
 `src/react-app/components/ui`. ControlMembers extends this existing design
@@ -277,7 +285,7 @@ The generated migration `0005_safe_thunderbird.sql` adds membership status,
 admin scope and appointment permission. Apply it before starting the new code:
 
 ```bash
-npm run db:migrate:local
+npm run db:migrate:dev
 npm run dev
 ```
 
@@ -299,8 +307,9 @@ Better Auth's `auth create-admin` CLI runs in Node against the auth config's
 database, so it cannot reach a Cloudflare D1 binding. Use the guarded project
 command instead. It never accepts or creates a default password.
 
-For local development, keep `npm run dev` running in one terminal and run this
-in another:
+For an isolated local preview, use `APP_URL=http://localhost:5173`, keep
+`npm run preview` running in one terminal and run this in another. This local
+account is separate from the remote dev accounts used by `npm run dev`:
 
 ```bash
 npm run bootstrap:admin -- \
@@ -309,8 +318,8 @@ npm run bootstrap:admin -- \
   --name "Platform Admin"
 ```
 
-Open the simulated email under `.wrangler/tmp/email/`, follow its link and choose
-a password at `/setup-account`.
+Open the simulated email under `.wrangler/tmp/email/`, follow its link and
+choose a password at `/setup-account`.
 
 After dev is configured, migrated and deployed, bootstrap its administrator
 using the administrator's email address:
@@ -514,8 +523,9 @@ and set it as the local `BETTER_AUTH_SECRET`:
 openssl rand -base64 32
 ```
 
-Keep local `APP_URL=http://localhost:5173`. Local email can use an `.invalid`
-sender because it is simulated. Never install the example secret in Cloudflare.
+Use local `APP_URL=http://localhost:5173`, or this PC's Wi-Fi IP on port 5173
+when sharing locally. Simulated email can use an `.invalid` sender; `npm run dev`
+requires an authorized real sender. Never install the example secret in Cloudflare.
 
 Remote secrets are set separately on Cloudflare for **each** target. Generate
 different random signing secrets for dev and production. Set `APP_URL` to exactly
@@ -567,10 +577,25 @@ Outgoing email uses the Cloudflare `EMAIL` binding (Email Sending) through
 `src/worker/email/`. Application and auth code never touches the binding
 directly.
 
-**Local development and tests simulate email** — nothing is actually sent, and
-local generated bodies are written under `.wrangler/tmp/email/`. The supported
-scripts and Vite/test configurations deliberately disable remote bindings.
-Use the deployed dev environment to test actual delivery.
+**`npm run dev` always sends real email through Cloudflare.** Preview and tests
+simulate email, saving generated bodies under `.wrangler/tmp/email/`.
+
+To run the web locally with real email and the remote dev database:
+
+1. Authenticate this PC with `npx wrangler login`.
+2. Set `EMAIL_FROM` in the ignored `.dev.vars` to the address authorized by
+   Cloudflare Email Sending. Keep `APP_URL` at the local address used in your
+   browser, on port 5173; for Wi-Fi access use this PC's Wi-Fi IP.
+3. Stop the existing server and run `npm run dev`.
+4. Re-send activation for a provisioned account and verify delivery in the
+   mailbox. A successful request alone does not prove inbox delivery.
+
+This command enables EMAIL and the remote D1 selected from `env.dev`. It uses
+the remote database's accounts, rejects placeholder senders/databases and invalid local URLs, and
+does not deploy a website or require a public website domain. Links work only
+where the configured local URL is reachable. Builds, preview and tests clear
+inherited development email settings and retain simulation. There is no silent
+fallback to simulated email when development cannot authenticate with Cloudflare.
 
 Both deployed environments need an `EMAIL_FROM` authorized in **Cloudflare Email
 Sending**. Each SaaS onboards its own sending domain or subdomain and configures
@@ -627,7 +652,7 @@ files are not moved or deleted automatically.
 
 | Script | Description |
 | --- | --- |
-| `npm run dev` | Local frontend + Worker, local D1, simulated email |
+| `npm run dev` | Local frontend + Worker, remote dev D1 and real Cloudflare email; requires authentication and an authorized sender |
 | `npm run preview` | Build local target and preview at localhost:5173 |
 | `npm run build` | Typecheck + optimized build using local configuration |
 | `npm run build:dev` | Typecheck + build for the remote dev target; no deployment |

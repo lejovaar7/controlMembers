@@ -85,8 +85,14 @@ activation-page language before company selection but grants no authority and
 does not persist a personal preference. Public/recipient resolution never changes
 the generic account-existence response. No live translation service is involved.
 
-Local development/preview and automated tests disable remote bindings and never
-send real messages. Dev and production each configure their own `EMAIL_FROM`,
+Preview and automated tests disable remote bindings.
+The standard `npm run dev` command enables remote EMAIL and the configured dev D1.
+Authentication accounts and sessions live in dev D1; local accounts are separate.
+It requires Cloudflare authentication and
+an authorized `EMAIL_FROM` in `.dev.vars`; `APP_URL` stays at this PC's address
+on port 5173. A public website domain or deployment is not required. Recipients
+must be able to reach that local address to open activation links.
+Dev and production each configure their own `EMAIL_FROM`,
 `APP_URL` and independent `BETTER_AUTH_SECRET` on Cloudflare. Real secret values
 never belong in tracked source. Each `APP_URL` must match its deployed HTTPS
 custom domain; the wrapper cannot verify remote secret values.
@@ -96,7 +102,7 @@ Bootstrap and deployment do not require registering recipients in project config
 Cloudflare account, domain and sender requirements still apply. Delivery failures
 do not undo valid provisioning. Binding changes require redeployment; domain/sender
 setup and actual delivery are external release checks, not claims established by
-a build/dry-run. Local messages remain simulated.
+a build/dry-run. Preview and test messages remain simulated.
 
 Build-only `.dev.vars.dev.example` and `.dev.vars.production.example` contain
 non-secret fixtures. Optional ignored copies prevent local-file fallback during

@@ -3,7 +3,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { childEnvironment, commandPlan, readConfig, validateBuild, validateConfig } from "./environments.mjs";
+import { childEnvironment, commandPlan, developmentDatabase, developmentHost, readConfig, validateBuild, validateConfig } from "./environments.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const devId = "11111111-1111-4111-8111-111111111111";
@@ -31,9 +31,10 @@ test("local commands override inherited production selection without deleting cr
 	assert.equal(childEnvironment("production", env).CLOUDFLARE_ENV, "production");
 });
 
-test("local development and preview use the auth URL's fixed loopback port", () => {
+test("development uses the auth URL host and preview keeps loopback on the fixed port", () => {
 	const config = readConfig();
 	assert.deepEqual(commandPlan(config, "local", "dev"), [["vite", "--host", "localhost", "--port", "5173", "--strictPort"]]);
+	assert.deepEqual(commandPlan(config, "local", "dev", "192.168.1.10"), [["vite", "--host", "192.168.1.10", "--port", "5173", "--strictPort"]]);
 	assert.deepEqual(commandPlan(config, "local", "preview").at(-1), ["vite", "preview", "--host", "localhost", "--port", "5173", "--strictPort"]);
 });
 
@@ -84,6 +85,48 @@ test("dev deployment does not require a recipient allowlist", () => {
 	assert.equal(config.env.dev.send_email[0].allowed_destination_addresses, undefined);
 	assert.doesNotThrow(() => validateConfig(config));
 	assert.deepEqual(commandPlan(config, "dev", "deploy").at(-1), ["wrangler", "deploy"]);
+});
+
+test("development requires a usable sender and a URL belonging to this PC", () => {
+	const vars = { EMAIL_FROM: "notifications@fixture-saas.com", APP_URL: "http://localhost:5173" };
+	assert.equal(developmentHost(vars, {}), "localhost");
+	assert.equal(developmentHost({ ...vars, APP_URL: "http://192.168.1.10:5173" }, { wifi: [{ address: "192.168.1.10" }] }), "192.168.1.10");
+	for (const sender of [undefined, "", "not-an-email", "no-reply@local.invalid", "qa@example.com"]) {
+		assert.throws(() => developmentHost({ ...vars, EMAIL_FROM: sender }, {}), /EMAIL_FROM/);
+	}
+	for (const url of ["https://app.fixture-saas.com", "http://192.168.1.11:5173", "http://localhost:9999", "http://user:password@localhost:5173", "http://localhost:5173/setup"]) {
+		assert.throws(() => developmentHost({ ...vars, APP_URL: url }, {}), /APP_URL/);
+	}
+});
+
+test("development selects dev D1 and real email despite inherited production settings", () => {
+	const env = childEnvironment("local", { CLOUDFLARE_ENV: "production", CLOUDFLARE_API_TOKEN: "fixture", CONTROLMEMBERS_REMOTE_DEV: "false", CLOUDFLARE_VITE_FORCE_LOCAL: "true", CONTROLMEMBERS_DEV_DATABASE_ID: productionId }, "dev", configured());
+	assert.equal(env.CLOUDFLARE_ENV, "");
+	assert.equal(env.CLOUDFLARE_API_TOKEN, "fixture");
+	assert.equal(env.CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV, "false");
+	assert.equal(env.CLOUDFLARE_VITE_FORCE_LOCAL, "false");
+	assert.equal(env.CONTROLMEMBERS_REMOTE_DEV, "true");
+	assert.equal(env.CONTROLMEMBERS_DEV_DATABASE_ID, devId);
+	assert.equal(env.CONTROLMEMBERS_DEV_DATABASE_NAME, configured().env.dev.d1_databases[0].database_name);
+	for (const target of ["local", "dev", "production"]) {
+		for (const action of ["build", "preview", "test", "test-watch", "types", "migrate", "deploy", "dry-run"]) {
+			assert.equal(childEnvironment(target, env, action).CONTROLMEMBERS_REMOTE_DEV, "false");
+			assert.equal(childEnvironment(target, env, action).CONTROLMEMBERS_DEV_DATABASE_ID, "");
+			assert.equal(childEnvironment(target, env, action).CONTROLMEMBERS_DEV_DATABASE_NAME, "");
+			assert.equal(childEnvironment(target, env, action).CLOUDFLARE_VITE_FORCE_LOCAL, "true");
+		}
+	}
+});
+
+test("development rejects unconfigured or shared D1 and does not rewrite local identity", () => {
+	const config = configured();
+	const local = structuredClone(config.d1_databases);
+	assert.equal(developmentDatabase(config).database_id, devId);
+	assert.deepEqual(config.d1_databases, local);
+	config.env.dev.d1_databases[0].database_id = "REPLACE_WITH_DATABASE_ID";
+	assert.throws(() => developmentDatabase(config), /real dev D1/);
+	config.env.dev.d1_databases[0].database_id = productionId;
+	assert.throws(() => developmentDatabase(config), /different/);
 });
 
 test("shared Worker, D1 name, D1 ID and custom domain are rejected", () => {

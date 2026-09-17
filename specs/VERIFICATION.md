@@ -5,6 +5,90 @@ production deployment. The latest repository checkpoint is recorded first; earli
 localization, environment, Starter v1 and dependency-remediation evidence from
 the inherited foundation is preserved below.
 
+## 2026-09-17: Operator-requested remote dev data reset
+
+Exported `controlmembers-dev-db` to an ignored backup before clearing all 23
+application tables. Verified every application table was empty, all 12 migration
+records were retained and `foreign_key_check` returned no violations. Schema,
+local preview data and production were unchanged.
+
+Created the replacement platform administrator with the operator's accessible
+email and supplied password through Better Auth. Cloudflare accepted the real
+verification email. The local health endpoint returned HTTP 200, and sign-in
+returned `EMAIL_NOT_VERIFIED` pending the recipient's verification. Remote checks
+confirmed the new admin role, zero organizations and intact migration records.
+Temporary administrative tooling was removed. No authentication bypass was added.
+
+## 2026-09-17: Remote dev D1 for the local web
+
+Updated `npm run dev` to use the D1 database declared in `env.dev`, alongside
+real Email. The server still binds the local APP_URL. The environment runner
+validates the dev UUID and resource isolation, overrides inherited production
+selection and clears remote development settings for other operations. Vite
+mutates the existing DB binding without changing the source local database
+identity. Existing local data is retained separately and was not copied.
+
+Read-only Cloudflare checks confirmed `controlmembers-dev-db` exists, has no
+pending migrations and initially contained no users or organizations. Created
+the operator-requested first platform administrator through the project's
+Better Auth server API with the supplied password. Verified the remote role
+and credential presence without reading the hash. Cloudflare accepted the
+verification email. A sign-in request through the local web returned HTTP 403
+`EMAIL_NOT_VERIFIED`, confirming the remote identity and required verification.
+Temporary administrative tooling was removed; no public bootstrap endpoint,
+plaintext credential or authorization bypass was added.
+
+`npm run check` passed: typecheck, lint, 27 environment/bootstrap tests, two
+i18n checks, 188 Workers/D1 tests and all three build/dry-runs. `git diff --check`
+passed. The existing client chunk-size warning remains. Restarted with exactly
+`npm run dev`; the remote connection and health API (HTTP 200, healthy D1) passed.
+No migration, production change, application deployment, commit or push occurred.
+
+## 2026-09-17: Real email as the development default
+
+Made `npm run dev` always connect EMAIL to Cloudflare, retaining local D1 and
+binding the host from local APP_URL on port 5173. Moved sender/URL checks into
+the existing environment runner and removed the separate `dev:email` command
+and helper files. Development overrides inherited simulation settings; builds,
+preview, tests and other operations clear inherited real-email settings.
+Updated setup defaults, examples and guides to match this behavior.
+
+Validation passed: `npm run check` (typecheck, lint, 26 environment/bootstrap
+tests, two i18n checks, 188 Workers/D1 tests and all three build/dry-runs), plus
+`git diff --check`. The existing client chunk-size warning remains. Restarted
+the application using exactly `npm run dev`, confirmed the Cloudflare remote
+connection and HTTP 200 from the web and health API with healthy local D1.
+The preceding remote-send verification remains applicable; no additional
+activation email was sent for this command consolidation. No commit or push.
+
+## 2026-09-17: Explicit real email from the local web
+
+Added `npm run dev:email` to connect only EMAIL to Cloudflare while retaining
+the original local D1 and authentication state. The command checks the sender
+and local APP_URL, rejects extra arguments and clears inherited remote target
+selection. Ordinary commands clear inherited email opt-in. Vite mutates the
+existing EMAIL entry to avoid appending a second simulated binding through the
+plugin's array-merge behavior. Updated the operating and architecture guides.
+
+Validation passed: `npm run check` (typecheck, lint, 26 environment/bootstrap
+tests, two i18n checks, 188 Workers/D1 tests, and all three target build/dry-runs)
+and `git diff --check`. The existing client chunk-size warning remains.
+
+Runtime checks confirmed local HTTP 200 and healthy D1. An initial activation
+request returned success but generated simulated files; this exposed and led to
+the binding-merge correction. After correction, the real-email server attempted
+a remote connection and failed explicitly because Wrangler was unauthenticated.
+OAuth authorization timed out without completion. The authorized sender was set
+only in ignored local vars; no credentials or generated artifacts were tracked.
+After the operator completed a subsequent Wrangler OAuth authorization, the
+`dev:email` server established its remote connection successfully. Local health
+returned HTTP 200 with healthy D1. A requested activation for an existing Owner
+returned HTTP 200 and an Email Service message ID, while the simulated-message
+file count remained unchanged (98 files before and after). This verifies remote
+submission; inbox delivery still needs recipient confirmation. The web remains
+local with real EMAIL and simulated D1. No remote application deployment,
+migration, commit or push was performed for this change.
+
 ## 2026-09-16: Removed the dev email recipient allowlist
 
 Removed `allowed_destination_addresses` from the dev Email binding and the

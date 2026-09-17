@@ -169,9 +169,9 @@ Rules:
 
 ## Environments
 
-- Local is the top-level Wrangler config. `npm run dev` and `preview` use
-  loopback port 5173, simulated D1/Email and an ignored `.dev.vars`. Preserve
-  existing local data and secret files.
+- Local is the top-level Wrangler config. `npm run dev` uses the local APP_URL
+  host on port 5173, the remote D1 from `env.dev` and real Email. Preview uses loopback with simulated
+  bindings. Preserve existing local data and the ignored `.dev.vars`.
 - Dev and production are `env.dev` and `env.production`, with explicitly
   redeclared bindings/secrets, different Worker/D1 names and IDs, separate
   custom domains and separately installed remote secrets.
@@ -181,8 +181,11 @@ Rules:
 - Real deployment and migration require explicit targets. Bare `deploy` and
   `db:migrate:remote` intentionally fail; placeholder resources, shared resources
   and extra target overrides must be rejected before remote operations.
-- Local Vite/preview and tests disable remote bindings. Adding local-to-cloud D1
-  access needs an explicitly requested guarded opt-in; never silently enable it.
+- `npm run dev` enables real Email and the configured remote dev D1, with a local APP_URL and an
+  authorized sender. Builds, preview and tests disable remote bindings and clear
+  inherited development binding settings. Validate that dev D1 has a real UUID
+  and stays distinct from production. Never silently fall back to local data or
+  copy local accounts into remote D1. The source local database identity stays unchanged.
 - Dev and production Email have no application-managed recipient allowlist and
   use their own authorized senders. Alternate workers.dev and preview URLs remain disabled;
   dev website access policy and domain ownership are external setup tasks.

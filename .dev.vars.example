@@ -2,4 +2,5 @@
 # Generate your own local value with: openssl rand -base64 32
 BETTER_AUTH_SECRET=REPLACE_WITH_A_RANDOM_LOCAL_SECRET
 APP_URL=http://localhost:5173
-EMAIL_FROM=no-reply@local.invalid
+# Development sends real email; this sender must be authorized in Cloudflare.
+EMAIL_FROM=no-reply@dev.controlmembers.magdasystems.com

@@ -137,8 +137,11 @@ and responses are not cached. See [HTTP boundaries](08-http-and-release-boundari
 
 ## Operational boundaries
 
-- Local Vite development/preview and tests disable remote binding connections;
-  local email is simulated and D1 is local.
+- `npm run dev` runs the web locally with EMAIL and `env.dev` D1 connected to
+  Cloudflare. It validates the dev database UUID and isolation from production;
+  accounts and companies are read from dev D1. Local records are not copied.
+  Builds, preview and tests disable remote bindings. Development requires an
+  authorized sender and Cloudflare access.
 - Named dev/production deployment selects the environment before compilation.
   Remote operations require configuring that target's resources explicitly.
 - Dev and production use independent senders/secrets without an application
