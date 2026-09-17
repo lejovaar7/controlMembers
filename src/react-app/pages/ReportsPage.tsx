@@ -1,4 +1,7 @@
+import { CurrencyLabel } from "@/components/currency-label";
+import { formatMoney } from "../../shared/i18n";
 import { useEffect, useState } from "react";
+import { DashboardSkeleton } from "@/components/content-skeleton";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,24 +16,33 @@ export function ReportsPage() {
 	const t = useT(); const { locale } = useI18n(); const shell = useAppShell();
 	const [period, setPeriod] = useState(currentPeriod());
 	const [rows, setRows] = useState<Array<{ id: string; displayName: string; branchName: string; status: string; outstandingMinor: number; creditMinor: number; netMinor: number }>>([]);
-	const [summary, setSummary] = useState<Summary | null>(null); const [currency, setCurrency] = useState("COP"); const [failed, setFailed] = useState(false);
+	const [summary, setSummary] = useState<Summary | null>(null); const [currency, setCurrency] = useState("COP");
+	const key = `${shell.organizationId}:${period}`;
+	const [loadedKey, setLoadedKey] = useState<string | null>(null);
+	const [failedKey, setFailedKey] = useState<string | null>(null);
+	const failed = failedKey === key;
+	const loading = loadedKey !== key && !failed;
 	useEffect(() => {
+		let cancelled = false;
 		void Promise.all([controlMembersApi.balances(shell.organizationId), controlMembersApi.financialReports(shell.organizationId, period)])
-			.then(([balances, reports]) => { setRows(balances.balances); setCurrency(reports.currency || balances.currency); setSummary(reports); setFailed(false); })
-			.catch(() => setFailed(true));
-	}, [shell.organizationId, period]);
-	const money = (value: number) => new Intl.NumberFormat(locale, { style: "currency", currency }).format(value / 100);
+			.then(([balances, reports]) => { if (cancelled) return; setRows(balances.balances); setCurrency(reports.currency || balances.currency); setSummary(reports); setLoadedKey(key); setFailedKey(null); })
+			.catch(() => { if (!cancelled) setFailedKey(key); });
+		return () => { cancelled = true; };
+	}, [shell.organizationId, period, key]);
+	const money = (value: number) => formatMoney(locale, value, currency);
 	const download = (kind: string) => window.open(`/api/exports/${kind}${["receivables", "payments"].includes(kind) ? `?period=${encodeURIComponent(period)}` : ""}`, "_blank", "noopener,noreferrer");
 	return <PageContainer className="space-y-6">
-		<PageHeader title={t("Reports")} description={t("Balances and exports that reconcile with charges and payments.")} />
+		<PageHeader title={t("Reports")} description={t("Review balances and export lists of members, charges and payments.")} />
 		<div className="flex flex-wrap items-end gap-4 rounded-xl border bg-card p-5"><div className="grid gap-2"><Label htmlFor="report-period">{t("Period")}</Label><Input id="report-period" type="month" value={period} onChange={(event) => setPeriod(event.target.value)} /></div>{shell.canExportFinancialData ? <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => download("members")}>{t("Export members")}</Button><Button variant="outline" onClick={() => download("member-balances")}>{t("Export balances")}</Button><Button variant="outline" onClick={() => download("receivables")}>{t("Export receivables")}</Button><Button variant="outline" onClick={() => download("payments")}>{t("Export payments")}</Button></div> : null}</div>
 		{failed ? <p role="alert">{t("We could not load reports.")}</p> : null}
-		{summary ? <>
-			<section className="space-y-3"><div><h2 className="font-semibold">{t("Receivables aging")}</h2><p className="text-sm text-muted-foreground">{t("Outstanding balances grouped by days past due.")}</p></div><div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5"><Metric label={t("Current")} value={money(summary.aging.current)} /><Metric label={t("1–30 days")} value={money(summary.aging.days1To30)} /><Metric label={t("31–60 days")} value={money(summary.aging.days31To60)} /><Metric label={t("61–90 days")} value={money(summary.aging.days61To90)} /><Metric label={t("90+ days")} value={money(summary.aging.days90Plus)} /></div></section>
+		{loading ? <DashboardSkeleton label={t("Loading reports…")} /> : null}
+		{!loading && !failed && summary ? <>
+			<CurrencyLabel currency={currency} />
+			<section className="space-y-3"><div><h2 className="font-semibold">{t("Balances by days overdue")}</h2><p className="text-sm text-muted-foreground">{t("Outstanding balances grouped by days past due.")}</p></div><div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5"><Metric label={t("Current")} value={money(summary.aging.current)} /><Metric label={t("1–30 days")} value={money(summary.aging.days1To30)} /><Metric label={t("31–60 days")} value={money(summary.aging.days31To60)} /><Metric label={t("61–90 days")} value={money(summary.aging.days61To90)} /><Metric label={t("90+ days")} value={money(summary.aging.days90Plus)} /></div></section>
 			<SummaryTable title={t("Period charges by plan")} rows={summary.plans} money={money} />
 			<SummaryTable title={t("Branch summary")} rows={summary.branches} money={money} />
-		</> : null}
 		<section className="space-y-3"><h2 className="font-semibold">{t("Member balances")}</h2><div className="overflow-hidden rounded-xl border"><table className="data-table"><thead className="bg-muted/50 text-left"><tr><th scope="col" className="p-3">{t("Member")}</th><th scope="col" className="p-3">{t("Branch")}</th><th scope="col" className="p-3 text-right">{t("Outstanding")}</th><th scope="col" className="p-3 text-right">{t("Credit")}</th><th scope="col" className="p-3 text-right">{t("Net balance")}</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id} className="border-t"><td data-label={t("Member")} className="p-3 font-medium">{row.displayName}</td><td data-label={t("Branch")} className="p-3">{row.branchName}</td><td data-label={t("Outstanding")} className="p-3 text-right">{money(row.outstandingMinor)}</td><td data-label={t("Credit")} className="p-3 text-right">{money(row.creditMinor)}</td><td data-label={t("Net balance")} className="p-3 text-right font-medium">{money(row.netMinor)}</td></tr>)}</tbody></table></div></section>
+		</> : null}
 	</PageContainer>;
 }
 
@@ -38,5 +50,5 @@ function Metric({ label, value }: { label: string; value: string }) { return <di
 
 function SummaryTable({ title, rows, money }: { title: string; rows: Array<{ id: string; name: string; expectedMinor: number; allocatedMinor: number; outstandingMinor: number }>; money: (value: number) => string }) {
 	const t = useT();
-	return <section className="space-y-3"><h2 className="font-semibold">{title}</h2>{rows.length ? <div className="overflow-x-auto rounded-xl border"><table className="data-table"><thead className="bg-muted/50 text-left"><tr><th scope="col" className="p-3">{t("Name")}</th><th scope="col" className="p-3 text-right">{t("Expected")}</th><th scope="col" className="p-3 text-right">{t("Allocated")}</th><th scope="col" className="p-3 text-right">{t("Outstanding")}</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id} className="border-t"><td data-label={t("Name")} className="p-3 font-medium">{row.name}</td><td data-label={t("Expected")} className="p-3 text-right">{money(row.expectedMinor)}</td><td data-label={t("Allocated")} className="p-3 text-right">{money(row.allocatedMinor)}</td><td data-label={t("Outstanding")} className="p-3 text-right">{money(row.outstandingMinor)}</td></tr>)}</tbody></table></div> : <p className="text-sm text-muted-foreground">{t("No charges in this period.")}</p>}</section>;
+	return <section className="space-y-3"><h2 className="font-semibold">{title}</h2>{rows.length ? <div className="overflow-x-auto rounded-xl border"><table className="data-table"><thead className="bg-muted/50 text-left"><tr><th scope="col" className="p-3">{t("Name")}</th><th scope="col" className="p-3 text-right">{t("Total to collect")}</th><th scope="col" className="p-3 text-right">{t("Applied payments")}</th><th scope="col" className="p-3 text-right">{t("Outstanding")}</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id} className="border-t"><td data-label={t("Name")} className="p-3 font-medium">{row.name}</td><td data-label={t("Total to collect")} className="p-3 text-right">{money(row.expectedMinor)}</td><td data-label={t("Applied payments")} className="p-3 text-right">{money(row.allocatedMinor)}</td><td data-label={t("Outstanding")} className="p-3 text-right">{money(row.outstandingMinor)}</td></tr>)}</tbody></table></div> : <p className="text-sm text-muted-foreground">{t("No charges in this period.")}</p>}</section>;
 }

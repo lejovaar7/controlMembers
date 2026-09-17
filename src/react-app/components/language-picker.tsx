@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { Loader } from "@/components/loader";
 import { isLocale, languages, localeOptions, resolveLocale } from "../../shared/i18n";
 import { useI18n } from "@/lib/i18n";
 
@@ -26,6 +27,7 @@ export function LanguagePicker() {
 			{canUseCompanyLanguage && <option value="">{t("Use company language ({language})", { language: languages[companyLocale].name })}</option>}
 			{localeOptions.map((option) => <option key={option.value} value={option.value} lang={option.value}>{option.name}</option>)}
 		</select>
+		{pending && <Loader size="inline" label={t("Saving…")} />}
 		{failed && <p role="alert" className="text-sm text-destructive">{t("We could not save the language. Please try again.")}</p>}
 	</div>;
 }

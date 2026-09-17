@@ -1,3 +1,4 @@
+import { LoadingButton } from "@/components/loading-button";
 import type { MessageKey } from "../../shared/i18n";
 import { useT } from "@/lib/i18n";
 import { type FormEvent, useState } from "react";
@@ -118,12 +119,12 @@ function BranchWorkspace() {
 										maxLength={100}
 									/>
 								</div>
-								<Button
+								<LoadingButton loading={submitting}
 									type="submit"
 									size="sm"
 									disabled={submitting || renameValue.trim().length === 0}
 								>
-									{t("Save")}</Button>
+									{t("Save")}</LoadingButton>
 								<Button
 									type="button"
 									size="sm"
@@ -173,9 +174,9 @@ function BranchWorkspace() {
 
 				<FormMessage id="branch-error">{error ? t(error) : null}</FormMessage>
 
-				<Button type="submit" disabled={submitting || name.trim().length === 0}>
-					{submitting ? t("Saving…") : t("Add branch")}
-				</Button>
+				<LoadingButton loading={submitting} loadingLabel={t("Saving…")} type="submit" disabled={submitting || name.trim().length === 0}>
+					{t("Add branch")}
+				</LoadingButton>
 			</form> : <p className="text-sm text-muted-foreground">{t("You can rename your assigned branches. Creating a new branch requires company-wide administration.")}</p>}
 		</PageContainer>
 	);

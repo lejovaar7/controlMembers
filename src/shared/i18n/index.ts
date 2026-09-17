@@ -54,6 +54,20 @@ export function formatNumber(locale: Locale, value: number, options?: Intl.Numbe
 	return new Intl.NumberFormat(languages[locale].intl, options).format(value);
 }
 
+/** A readable currency label for selectors and section-level context. */
+export function currencyName(locale: Locale, currency: string) {
+	const name = new Intl.NumberFormat(languages[locale].intl, { style: "currency", currency, currencyDisplay: "name" }).formatToParts(2).find((part) => part.type === "currency")?.value ?? currency;
+	return name.charAt(0).toLocaleUpperCase(languages[locale].intl) + name.slice(1);
+}
+
+/** Amounts in this product are stored in hundredths, independently of locale. */
+export function formatMoney(locale: Locale, minor: number, currency: string) {
+	const symbol = new Intl.NumberFormat(languages[locale].intl, { style: "currency", currency, currencyDisplay: "narrowSymbol" }).formatToParts(0).find((part) => part.type === "currency")?.value ?? currency;
+	const amount = formatNumber(locale, minor / 100, { minimumFractionDigits: minor % 100 === 0 ? 0 : 2, maximumFractionDigits: 2 });
+	// Keep the symbol first and attached to the amount across all UI languages.
+	return `${symbol}\u00a0${amount}`;
+}
+
 export function formatDate(locale: Locale, value: Date | number, options?: Intl.DateTimeFormatOptions) {
 	return new Intl.DateTimeFormat(languages[locale].intl, options).format(value);
 }

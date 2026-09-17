@@ -1,4 +1,5 @@
 import { useT } from "@/lib/i18n";
+import { Loader } from "@/components/loader";
 import { useState } from "react";
 import type { Branch } from "@/hooks/use-branches";
 import { activateBranch } from "@/lib/activate-branch";
@@ -55,6 +56,7 @@ export function BranchSwitcher({
 					</option>
 				))}
 			</select>
+			{switching && <Loader size="inline" label={t("Loading workspace…")} />}
 			{failed ? <span role="alert" className="text-destructive text-sm">{t("Could not switch branch. Try again.")}</span> : null}
 		</div>
 	);

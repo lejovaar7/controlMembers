@@ -1,8 +1,8 @@
+import { LoadingButton } from "@/components/loading-button";
 import { PageContainer, PageHeader } from "@/components/page";
 import { useAppShell } from "@/hooks/use-app-shell";
 import { useState, type FormEvent } from "react";
 import { useI18n } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
 import { LanguagePicker } from "@/components/language-picker";
 import { isLocale, localeOptions, roleMessage, type Locale, type LocalePreferences } from "../../shared/i18n";
 
@@ -24,7 +24,7 @@ export function SettingsPage() {
 				<LanguagePicker />
 			</section>
 			{company?.id === shell.organizationId && <CompanyLanguageForm key={company.id} company={company} />}
-			<p className="max-w-prose text-sm text-muted-foreground">{t("Timezone, currency and product-specific settings are not editable in this starter.")}</p>
+			<p className="max-w-prose text-sm text-muted-foreground">{t("Currency and billing time are managed in Plans by an owner or an administrator with access to all branches.")}</p>
 		</PageContainer>
 	);
 }
@@ -51,7 +51,7 @@ function CompanyLanguageForm({ company }: { company: NonNullable<LocalePreferenc
 			onChange={(event) => { if (isLocale(event.target.value)) setDraft(event.target.value); setFeedback(null); }}>
 			{localeOptions.map((option) => <option key={option.value} value={option.value} lang={option.value}>{option.name}</option>)}
 		</select>
-		{company.canEdit ? <Button type="submit" disabled={pending}>{t(pending ? "Saving…" : "Save company language")}</Button>
+		{company.canEdit ? <LoadingButton loading={pending} loadingLabel={t("Saving…")} type="submit" disabled={pending}>{t("Save company language")}</LoadingButton>
 			: <p className="text-sm text-muted-foreground">{t("Only a company owner or administrator can change the company language.")}</p>}
 		{feedback && <p role={feedback === "failed" ? "alert" : "status"} className="text-sm">{t(feedback === "saved" ? "Company language saved." : "We could not save the language. Please try again.")}</p>}
 	</form>;

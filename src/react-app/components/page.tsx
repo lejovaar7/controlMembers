@@ -32,7 +32,7 @@ export function PageHeader({
 					<p className="text-muted-foreground text-sm leading-6">{description}</p>
 				) : null}
 			</div>
-			{actions ? <div className="flex max-w-full flex-wrap items-center gap-2">{actions}</div> : null}
+			{actions ? <div className="page-actions flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">{actions}</div> : null}
 		</header>
 	);
 }

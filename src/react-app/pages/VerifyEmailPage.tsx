@@ -1,3 +1,4 @@
+import { LoadingButton } from "@/components/loading-button";
 import type { MessageKey } from "../../shared/i18n";
 import { useT } from "@/lib/i18n";
 import { type FormEvent, useState } from "react";
@@ -89,9 +90,9 @@ export function VerifyEmailPage() {
 				<FormMessage>{error ? t(error) : null}</FormMessage>
 				<FormMessage tone="success">{status ? t(status) : null}</FormMessage>
 
-				<Button type="submit" variant="outline" disabled={submitting}>
-					{submitting ? t("Sending…") : t("Resend verification email")}
-				</Button>
+				<LoadingButton loading={submitting} loadingLabel={t("Sending…")} type="submit" variant="outline" disabled={submitting}>
+					{t("Resend verification email")}
+				</LoadingButton>
 			</form>
 		</AuthCard>
 	);

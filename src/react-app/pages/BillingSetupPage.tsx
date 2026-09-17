@@ -1,3 +1,6 @@
+import { formatMoney, currencyName } from "../../shared/i18n";
+import { LoadingButton } from "@/components/loading-button";
+import { FormSkeleton } from "@/components/content-skeleton";
 import { useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Navigate } from "react-router";
 import { PageContainer, PageHeader } from "@/components/page";
@@ -9,6 +12,11 @@ import { billingSetupApi, type BillingSettings, type Plan, type Tag } from "@/li
 import { useI18n, useT } from "@/lib/i18n";
 
 type Workspace = { settings: BillingSettings; plans: Plan[]; tags: Tag[] };
+
+function availableCurrencies(current: string) {
+	const intl = Intl as typeof Intl & { supportedValuesOf?: (key: "currency") => string[] };
+	return [...new Set([current, ...(intl.supportedValuesOf?.("currency") ?? ["COP", "USD", "EUR", "MXN", "ARS", "CLP", "PEN", "BRL", "GBP", "CAD"])])];
+}
 
 export function BillingSetupPage() {
 	const shell = useAppShell();
@@ -38,7 +46,7 @@ function BillingSetupWorkspace() {
 	return <PageContainer className="space-y-6">
 		<PageHeader title={t("Plans")} description={t("Create the monthly options available to your members.")} />
 		{failed ? <div role="alert" className="rounded-xl border p-4"><p>{t("We could not load plans.")}</p><Button className="mt-3" variant="outline" onClick={() => { setFailed(false); setWorkspace(null); setRevision((value) => value + 1); }}>{t("Try again")}</Button></div> : null}
-		{!workspace && !failed ? <p role="status" className="text-muted-foreground">{t("Loading plans…")}</p> : null}
+		{!workspace && !failed ? <FormSkeleton label={t("Loading plans…")} /> : null}
 		{workspace ? <>
 			<SettingsForm settings={workspace.settings} onSaved={(settings) => setWorkspace({ ...workspace, settings })} />
 			<PlansPanel
@@ -67,6 +75,7 @@ function mergeTags(current: Tag[], added: Tag[]) {
 
 function SettingsForm({ settings, onSaved }: { settings: BillingSettings; onSaved: (value: BillingSettings) => void }) {
 	const t = useT();
+	const { locale } = useI18n();
 	const shell = useAppShell();
 	const [currency, setCurrency] = useState(settings.currency ?? "COP");
 	const [timezone, setTimezone] = useState(settings.timezone ?? "America/Bogota");
@@ -81,9 +90,9 @@ function SettingsForm({ settings, onSaved }: { settings: BillingSettings; onSave
 	}
 	return <form onSubmit={submit} className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2">
 		<div className="sm:col-span-2"><h2 className="text-lg font-semibold">{t("Billing settings")}</h2><p className="text-sm text-muted-foreground">{t("Choose the currency and timezone used for billing.")}</p></div>
-		<div className="grid gap-2"><Label htmlFor="billing-currency">{t("Currency")}</Label><Input id="billing-currency" value={currency} maxLength={3} onChange={(event) => setCurrency(event.target.value.toUpperCase())} required /></div>
+		<div className="grid min-w-0 gap-2"><Label htmlFor="billing-currency">{t("Currency")}</Label><select id="billing-currency" className="h-11 w-full min-w-0 rounded-md border bg-background px-3" value={currency} onChange={(event) => setCurrency(event.target.value)} required>{availableCurrencies(currency).map((code) => ({ code, name: currencyName(locale, code) })).sort((a, b) => a.name.localeCompare(b.name, locale)).map(({ code, name }) => <option key={code} value={code}>{name}</option>)}</select></div>
 		<div className="grid gap-2"><Label htmlFor="billing-timezone">{t("Timezone")}</Label><Input id="billing-timezone" value={timezone} maxLength={100} onChange={(event) => setTimezone(event.target.value)} required /></div>
-		<div className="flex flex-wrap items-center gap-3 sm:col-span-2"><Button disabled={pending}>{t(pending ? "Saving…" : "Save billing settings")}</Button>{feedback ? <span role={feedback === "failed" ? "alert" : "status"} className="text-sm">{t(feedback === "saved" ? "Billing settings saved." : "We could not save billing settings.")}</span> : null}</div>
+		<div className="flex flex-wrap items-center gap-3 sm:col-span-2"><LoadingButton loading={pending} loadingLabel={t("Saving…")} disabled={pending}>{t("Save billing settings")}</LoadingButton>{feedback ? <span role={feedback === "failed" ? "alert" : "status"} className="text-sm">{t(feedback === "saved" ? "Billing settings saved." : "We could not save billing settings.")}</span> : null}</div>
 	</form>;
 }
 
@@ -134,14 +143,14 @@ function PlansPanel({ settings, plans, tags, onCreated, onUpdated }: { settings:
 
 	return <section className="space-y-5 rounded-xl border bg-card p-4">
 		<div><h2 className="text-lg font-semibold">{t("Your plans")}</h2><p className="text-sm text-muted-foreground">{t("Each plan includes its monthly price and usual due day. Tags are optional and only help you organize plans.")}</p></div>
-		{plans.length ? <ul className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">{plans.map((item) => <PlanCard key={item.id} plan={item} locale={locale} onUpdated={onUpdated} />)}</ul> : <div className="rounded-lg bg-muted/50 p-4"><p className="font-medium">{t("No plans yet")}</p><p className="text-sm text-muted-foreground">{t("Create your first plan to define what members pay each month.")}</p></div>}
+		{plans.length ? <ul className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">{plans.map((item) => <PlanCard key={item.id} plan={item} onUpdated={onUpdated} />)}</ul> : <div className="rounded-lg bg-muted/50 p-4"><p className="font-medium">{t("No plans yet")}</p><p className="text-sm text-muted-foreground">{t("Create your first plan to define what members pay each month.")}</p></div>}
 
 		<form onSubmit={submit} className="grid gap-4 border-t pt-5">
 			<div><h3 className="font-semibold">{t("Add plan")}</h3><p className="text-sm text-muted-foreground">{t("You can use tags such as Football, Piano or Children to keep plans organized.")}</p></div>
 			<div className="grid gap-4 md:grid-cols-2">
 				<div className="grid gap-2"><Label htmlFor="plan-name">{t("Plan name")}</Label><Input id="plan-name" value={name} maxLength={120} required placeholder={t("For example: Children monthly plan")} onChange={(event) => setName(event.target.value)} /></div>
 				<div className="grid gap-2"><Label htmlFor="plan-description">{t("Description (optional)")}</Label><Input id="plan-description" value={description} maxLength={1000} onChange={(event) => setDescription(event.target.value)} /></div>
-				<div className="grid gap-2"><Label htmlFor="plan-amount">{t("Monthly price ({currency})", { currency: settings.currency ?? "—" })}</Label><Input id="plan-amount" type="number" min="0.01" step="0.01" value={amount} required onChange={(event) => setAmount(event.target.value)} /></div>
+				<div className="grid gap-2"><Label htmlFor="plan-amount">{t("Monthly price ({currency})", { currency: settings.currency ? currencyName(locale, settings.currency) : "—" })}</Label><Input id="plan-amount" type="number" min="0.01" step="0.01" value={amount} required onChange={(event) => setAmount(event.target.value)} /></div>
 				<div className="grid gap-2"><Label htmlFor="plan-due-day">{t("Usual due day")}</Label><Input id="plan-due-day" type="number" min="1" max="28" value={dueDay} required onChange={(event) => setDueDay(event.target.value)} /><p className="text-xs text-muted-foreground">{t("Choose a day from 1 to 28.")}</p></div>
 			</div>
 
@@ -157,7 +166,7 @@ function PlansPanel({ settings, plans, tags, onCreated, onUpdated }: { settings:
 			{multipleBranches ? <fieldset className="grid gap-2"><legend className="text-sm font-medium">{t("Available at branches")}</legend><div className="grid gap-2 sm:grid-cols-2">{shell.branches.map((branch) => <label key={branch.id} className="flex min-h-10 items-center gap-2 rounded-md border px-3"><input type="checkbox" checked={branchIds.includes(branch.id)} onChange={(event) => setBranchIds((current) => event.target.checked ? [...current, branch.id] : current.filter((id) => id !== branch.id))} />{branch.name}</label>)}</div></fieldset> : null}
 			{!settings.currency ? <p role="alert" className="text-sm">{t("Save billing settings before adding a plan.")}</p> : null}
 			{failed ? <p role="alert" className="text-sm">{t("We could not save the plan.")}</p> : null}
-			<div><Button disabled={pending || !settings.currency || !name.trim() || !amount || branchIds.length === 0}>{t(pending ? "Saving…" : "Add plan")}</Button></div>
+			<div><LoadingButton loading={pending} loadingLabel={t("Saving…")} disabled={pending || !settings.currency || !name.trim() || !amount || branchIds.length === 0}>{t("Add plan")}</LoadingButton></div>
 		</form>
 	</section>;
 }
@@ -166,8 +175,9 @@ function normalizeTag(value: string) {
 	return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en");
 }
 
-function PlanCard({ plan, locale, onUpdated }: { plan: Plan; locale: string; onUpdated: (value: Plan) => void }) {
+function PlanCard({ plan, onUpdated }: { plan: Plan; onUpdated: (value: Plan) => void }) {
 	const t = useT();
+	const { locale } = useI18n();
 	const shell = useAppShell();
 	const [editing, setEditing] = useState(false);
 	const [name, setName] = useState(plan.name);
@@ -221,17 +231,17 @@ function PlanCard({ plan, locale, onUpdated }: { plan: Plan; locale: string; onU
 		{editing ? <form onSubmit={save} className="grid gap-3">
 			<div className="grid gap-2"><Label htmlFor={`edit-plan-name-${plan.id}`}>{t("Plan name")}</Label><Input id={`edit-plan-name-${plan.id}`} value={name} maxLength={120} required onChange={(event) => setName(event.target.value)} /></div>
 			<div className="grid gap-2"><Label htmlFor={`edit-plan-description-${plan.id}`}>{t("Description (optional)")}</Label><Input id={`edit-plan-description-${plan.id}`} value={description} maxLength={1000} onChange={(event) => setDescription(event.target.value)} /></div>
-			<div className="grid grid-cols-2 gap-3"><div className="grid gap-2"><Label htmlFor={`edit-plan-amount-${plan.id}`}>{t("Monthly price ({currency})", { currency: plan.currency })}</Label><Input id={`edit-plan-amount-${plan.id}`} type="number" min="0.01" step="0.01" value={amount} required onChange={(event) => setAmount(event.target.value)} /></div><div className="grid gap-2"><Label htmlFor={`edit-plan-due-${plan.id}`}>{t("Usual due day")}</Label><Input id={`edit-plan-due-${plan.id}`} type="number" min="1" max="28" value={dueDay} required onChange={(event) => setDueDay(event.target.value)} /></div></div>
+			<div className="grid grid-cols-2 gap-3"><div className="grid gap-2"><Label htmlFor={`edit-plan-amount-${plan.id}`}>{t("Monthly price ({currency})", { currency: currencyName(locale, plan.currency) })}</Label><Input id={`edit-plan-amount-${plan.id}`} type="number" min="0.01" step="0.01" value={amount} required onChange={(event) => setAmount(event.target.value)} /></div><div className="grid gap-2"><Label htmlFor={`edit-plan-due-${plan.id}`}>{t("Usual due day")}</Label><Input id={`edit-plan-due-${plan.id}`} type="number" min="1" max="28" value={dueDay} required onChange={(event) => setDueDay(event.target.value)} /></div></div>
 			<div className="grid gap-2"><Label htmlFor={`edit-plan-tags-${plan.id}`}>{t("Tags separated by commas (optional)")}</Label><Input id={`edit-plan-tags-${plan.id}`} value={tagText} maxLength={820} placeholder={t("For example: Football, Children")} onChange={(event) => setTagText(event.target.value)} /></div>
 			{multipleBranches ? <fieldset className="grid gap-2"><legend className="text-sm font-medium">{t("Available at branches")}</legend>{shell.branches.map((branch) => <label key={branch.id} className="flex min-h-10 items-center gap-2"><input type="checkbox" checked={branchIds.includes(branch.id)} onChange={(event) => setBranchIds((current) => event.target.checked ? [...current, branch.id] : current.filter((id) => id !== branch.id))} />{branch.name}</label>)}</fieldset> : null}
 			{failed ? <p role="alert" className="text-sm">{t("We could not save the plan.")}</p> : null}
-			<div className="flex flex-wrap gap-2"><Button disabled={pending || branchIds.length === 0}>{t(pending ? "Saving…" : "Save changes")}</Button><Button type="button" variant="outline" disabled={pending} onClick={() => { reset(); setEditing(false); }}>{t("Cancel")}</Button></div>
+			<div className="flex flex-wrap gap-2"><LoadingButton loading={pending} loadingLabel={t("Saving…")} disabled={pending || branchIds.length === 0}>{t("Save changes")}</LoadingButton><Button type="button" variant="outline" disabled={pending} onClick={() => { reset(); setEditing(false); }}>{t("Cancel")}</Button></div>
 		</form> : <>
-			<div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{plan.name}</h3>{!plan.isActive ? <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{t("Inactive")}</span> : null}</div>{plan.description ? <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p> : null}</div><span className="whitespace-nowrap font-semibold">{new Intl.NumberFormat(locale, { style: "currency", currency: plan.currency }).format(plan.amountMinor / 100)}</span></div>
+			<div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{plan.name}</h3>{!plan.isActive ? <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{t("Inactive")}</span> : null}</div>{plan.description ? <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p> : null}</div><span className="whitespace-nowrap font-semibold">{formatMoney(locale, plan.amountMinor, plan.currency)}</span></div>
 			<p className="mt-3 text-sm text-muted-foreground">{t("Due on day {day}", { day: plan.defaultDueDay })}</p>
 			{plan.tags.length ? <div className="mt-3 flex flex-wrap gap-2">{plan.tags.map((tag) => <span key={tag.id} className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{tag.name}</span>)}</div> : null}
 			{failed ? <p role="alert" className="mt-3 text-sm">{t("We could not update the plan.")}</p> : null}
-			<div className="mt-4 flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={pending} onClick={() => { reset(); setEditing(true); }}>{t("Edit plan")}</Button><Button type="button" variant="outline" disabled={pending} onClick={changeStatus}>{t(plan.isActive ? "Deactivate plan" : "Activate plan")}</Button></div>
+			<div className="mt-4 flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={pending} onClick={() => { reset(); setEditing(true); }}>{t("Edit plan")}</Button><LoadingButton loading={pending} type="button" variant="outline" disabled={pending} onClick={changeStatus}>{t(plan.isActive ? "Deactivate plan" : "Activate plan")}</LoadingButton></div>
 		</>}
 	</li>;
 }

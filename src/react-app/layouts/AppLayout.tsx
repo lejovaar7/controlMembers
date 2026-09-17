@@ -1,3 +1,4 @@
+import { Loader } from "@/components/loader";
 import { useT } from "@/lib/i18n";
 import { Banknote, Building2, CalendarRange, ChartNoAxesCombined, ClipboardList, LayoutDashboard, LogOut, MapPin, Menu, X, Settings, UserRoundCheck, Users } from "lucide-react";
 import { Dialog } from "@base-ui/react/dialog";
@@ -175,7 +176,7 @@ export function AppLayout() {
 		}
 	}
 
-	if (isPending || signingOut) return <Centered>{t("Loading…")}</Centered>;
+	if (isPending || signingOut) return <Loader size="page" label={t("Loading…")} />;
 
 	if (!session) {
 		const returnTo = `${location.pathname}${location.search}`;
@@ -186,7 +187,7 @@ export function AppLayout() {
 
 	// Companies are provisioned. Unassigned or deactivated access must be
 	// restored by an administrator, never through self-service company creation.
-	if (!companies) return <Centered>{t("Loading…")}</Centered>;
+	if (!companies) return <Loader size="page" label={t("Loading…")} />;
 	if (companiesFailed || recoveryFailed) {
 		return <Centered>{t("We could not load your workspace.")}<Button variant="outline" onClick={() => window.location.reload()}>{t("Try again")}</Button></Centered>;
 	}
@@ -208,8 +209,8 @@ export function AppLayout() {
 		</div>;
 	}
 	if (selection?.kind === "activate") return <Centered>{t("Opening company…")}</Centered>;
-	if (!activeOrganizationId) return <Centered>{t("Loading workspace…")}</Centered>;
-	if (branches === null) return <Centered>{t("Loading workspace…")}</Centered>;
+	if (!activeOrganizationId) return <Loader size="page" label={t("Loading workspace…")} />;
+	if (branches === null) return <Loader size="page" label={t("Loading workspace…")} />;
 	// A failed lookup is not the same as an empty accessible list.
 	if (branchesFailed) {
 		return <Centered>{t("We could not load your workspace.")}<Button variant="outline" onClick={reload}>{t("Try again")}</Button></Centered>;
@@ -231,7 +232,7 @@ export function AppLayout() {
 	const activeBranch =
 		branches.find((branch) => branch.id === activeBranchId) ?? null;
 	if (branches.length > 0 && !activeBranch) {
-		return <Centered>{t("Loading workspace…")}</Centered>;
+		return <Loader size="page" label={t("Loading workspace…")} />;
 	}
 
 	const shell: AppShellContext = {

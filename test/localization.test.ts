@@ -1,7 +1,7 @@
 import { createExecutionContext, env } from "cloudflare:test";
 import { and, eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { createTranslator, currentPreferences, DEFAULT_LOCALE, formatDate, formatNumber, isLocale, languages, normalizeLocale, publicLocale, resolveLocale, type LocalePreferences } from "../src/shared/i18n";
+import { createTranslator, currencyName, currentPreferences, DEFAULT_LOCALE, formatDate, formatMoney, formatNumber, isLocale, languages, normalizeLocale, publicLocale, resolveLocale, type LocalePreferences } from "../src/shared/i18n";
 import { messages } from "../src/shared/i18n/en";
 import worker from "../src/worker";
 import { getAuth } from "../src/worker/auth";
@@ -13,6 +13,17 @@ import { accountSetupEmail, organizationInvitationEmail, passwordResetEmail, ver
 import { callApi, createActor, TEST_PASSWORD, type Actor } from "./helpers";
 
 describe("extensible catalogs and language resolution", () => {
+	it("names the actual currency and preserves hundredths, zero and negative balances", () => {
+		expect(currencyName("es", "COP")).toBe("Pesos colombianos");
+		expect(currencyName("es", "USD")).toBe("Dólares estadounidenses");
+		expect(currencyName("en", "COP")).toBe("Colombian pesos");
+		expect(formatMoney("es", 123456, "COP")).toBe("$\u00a01234,56");
+		expect(formatMoney("es", 0, "COP")).toBe("$\u00a00");
+		expect(formatMoney("es", -150050, "USD")).toBe("$\u00a0-1500,50");
+		expect(formatMoney("en", 1250, "USD")).toBe("$\u00a012.50");
+		expect(formatMoney("en", 120000, "USD")).toBe("$\u00a01,200");
+		expect(formatMoney("es", 120050, "EUR")).toBe("€\u00a01200,50");
+	});
 	it("requires exactly the same complete keys and interpolation variables in every catalog", () => {
 		expect(new Set(messages).size).toBe(messages.length);
 		for (const language of Object.values(languages)) {

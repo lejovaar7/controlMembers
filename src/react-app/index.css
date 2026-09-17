@@ -143,6 +143,10 @@
 }
 
 @layer components {
+  .auth-card :where(input:not([type="checkbox"]):not([type="radio"]), [data-slot="button"]) { min-height: 3rem; }
+  .auth-card form { gap: 1.25rem; }
+  .auth-card :where(input, select, textarea) { font-size: 16px; }
+  .auth-card a { text-underline-offset: 4px; }
   .page-content { min-width: 0; }
   .page-content :where(.grid > *, .flex > *) { min-width: 0; }
   .page-content :where(form, section, div).bg-card { box-shadow: 0 2px 4px rgb(25 43 66 / 2%); }
@@ -167,6 +171,10 @@
   .skip-link { position: fixed; z-index: 100; top: 1rem; left: 1rem; transform: translateY(-200%); background: var(--card); padding: 0.75rem 1rem; border-radius: var(--radius); }
   .skip-link:focus { transform: translateY(0); }
   @media (max-width: 639px) {
+    .page-actions > [data-slot="button"] { flex: 1 1 auto; }
+    :where(.page-content, .auth-card) [data-slot="button"] { min-height: 44px; height: auto; max-width: 100%; white-space: normal; overflow-wrap: anywhere; padding-block: 0.625rem; }
+    .record-row { padding: 1rem; }
+    .auth-card [data-slot="button"] { min-height: 48px; }
     .data-table, .data-table tbody { display: block; }
     .data-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     .data-table tbody tr { display: block; padding: 0.75rem 1rem; }
@@ -177,5 +185,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .content-skeleton * { animation: none !important; transition: none !important; }
+  .app-loader * { animation: none !important; transition: none !important; }
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

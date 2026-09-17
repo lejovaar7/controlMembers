@@ -1,10 +1,11 @@
+import { PasswordInput } from "@/components/password-input";
+import { LoadingButton } from "@/components/loading-button";
 import type { MessageKey } from "../../shared/i18n";
 import { useT } from "@/lib/i18n";
 import { type FormEvent, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { AuthCard, FormMessage } from "@/components/auth-card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 import { authErrorMessage } from "@/lib/auth-errors";
@@ -78,7 +79,7 @@ export function ResetPasswordPage() {
 			<form onSubmit={handleSubmit} className="flex flex-col gap-4">
 				<div className="grid gap-2">
 					<Label htmlFor="newPassword">{t("New password")}</Label>
-					<Input
+					<PasswordInput
 						id="newPassword"
 						name="newPassword"
 						type="password"
@@ -91,7 +92,7 @@ export function ResetPasswordPage() {
 
 				<div className="grid gap-2">
 					<Label htmlFor="confirmPassword">{t("Confirm new password")}</Label>
-					<Input
+					<PasswordInput
 						id="confirmPassword"
 						name="confirmPassword"
 						type="password"
@@ -103,9 +104,9 @@ export function ResetPasswordPage() {
 
 				<FormMessage id="reset-error">{error ? t(error) : null}</FormMessage>
 
-				<Button type="submit" disabled={submitting}>
-					{submitting ? t("Saving…") : t("Change password")}
-				</Button>
+				<LoadingButton loading={submitting} loadingLabel={t("Saving…")} type="submit" disabled={submitting}>
+					{t("Change password")}
+				</LoadingButton>
 			</form>
 		</AuthCard>
 	);

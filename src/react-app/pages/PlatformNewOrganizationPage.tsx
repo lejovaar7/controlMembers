@@ -1,3 +1,4 @@
+import { LoadingButton } from "@/components/loading-button";
 import { localeOptions, type MessageKey } from "../../shared/i18n";
 import { useI18n } from "@/lib/i18n";
 import { type FormEvent, useState } from "react";
@@ -103,9 +104,9 @@ export function PlatformNewOrganizationPage() {
 						<Button nativeButton={false} render={<Link to={`/platform/organizations/${result.organizationId}`} />}>{t("View company")}</Button>
 						<Button variant="outline" nativeButton={false} render={<Link to="/platform" />}>{t("Back to companies")}</Button>
 						{result.setupEmailStatus !== "not-required" ? (
-							<Button variant="outline" disabled={resending} onClick={handleResend}>
-								{resending ? t("Sending…") : t("Resend setup link")}
-							</Button>
+							<LoadingButton loading={resending} loadingLabel={t("Sending…")} variant="outline" disabled={resending} onClick={handleResend}>
+								{t("Resend setup link")}
+							</LoadingButton>
 						) : null}
 						<Button disabled={resending} onClick={() => { setResult(null); setResendState(null); setError(null); }}>
 							{t("Create another")}</Button>
@@ -157,9 +158,9 @@ export function PlatformNewOrganizationPage() {
 
 				<FormMessage id="provision-error">{error ? t(error) : null}</FormMessage>
 
-				<Button type="submit" disabled={submitting}>
-					{submitting ? t("Creating…") : t("Create company")}
-				</Button>
+				<LoadingButton loading={submitting} loadingLabel={t("Creating…")} type="submit" disabled={submitting}>
+					{t("Create company")}
+				</LoadingButton>
 			</form>
 		</PageContainer>
 	);

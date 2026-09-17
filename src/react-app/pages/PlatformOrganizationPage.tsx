@@ -1,13 +1,15 @@
+import { currencyName } from "../../shared/i18n";
+import { LoadingButton } from "@/components/loading-button";
+import { DetailSkeleton } from "@/components/content-skeleton";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
 import { ArrowLeft, ArrowUpRight, Building2 } from "lucide-react";
-import { useT } from "@/lib/i18n";
+import { useI18n, useT } from "@/lib/i18n";
 import { platformRequest, type CompanyDetail, type PlatformOwner } from "@/lib/platform";
 import { activateCompany } from "@/lib/companies";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ListSkeleton } from "@/components/list-skeleton";
 import { StatusBadge } from "@/components/status-badge";
 import type { MessageKey } from "../../shared/i18n";
 
@@ -26,13 +28,14 @@ function OwnerCard({ owner, companyId }: { owner: PlatformOwner; companyId: stri
  return <li className="space-y-3 py-4">
   <div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><p className="break-words font-medium">{owner.name}</p><p className="break-all text-sm text-muted-foreground">{owner.email}</p></div>
    <StatusBadge tone={!owner.isActive ? "neutral" : owner.setupRequired ? "warning" : "success"}>{t(!owner.isActive ? "Inactive" : owner.setupRequired ? "Account setup pending" : "Active")}</StatusBadge></div>
-  {owner.isActive && owner.setupRequired && <Button className="h-auto min-h-10 max-w-full whitespace-normal text-center" variant="outline" disabled={busy} onClick={resend}>{busy ? t("Sending…") : t("Resend setup link")}</Button>}
+  {owner.isActive && owner.setupRequired && <LoadingButton loading={busy} loadingLabel={t("Sending…")} className="h-auto min-h-10 max-w-full whitespace-normal text-center" variant="outline" disabled={busy} onClick={resend}>{t("Resend setup link")}</LoadingButton>}
   {message && <p role="status" className="text-sm">{t(message)}</p>}
  </li>;
 }
 
 function CompanyView({ initial }: { initial: CompanyDetail }) {
  const t = useT();
+ const { locale } = useI18n();
  const [company, setCompany] = useState(initial);
  const [name, setName] = useState(initial.name);
  const [saving, setSaving] = useState(false);
@@ -53,19 +56,19 @@ function CompanyView({ initial }: { initial: CompanyDetail }) {
  }
  return <>
   <PageHeader title={company.name} description={t("Company details and access")}
-   actions={company.canOpenWorkspace && <Button disabled={opening} onClick={openWorkspace}><ArrowUpRight />{t("Open company")}</Button>} />
+   actions={company.canOpenWorkspace && <LoadingButton loading={opening} disabled={opening} onClick={openWorkspace}><ArrowUpRight />{t("Open company")}</LoadingButton>} />
   {!company.canOpenWorkspace && <p className="mb-6 rounded-xl border bg-secondary p-4 text-sm leading-6">{t("To manage members, charges and payments, your account must have access to this company.")}</p>}
   <div className="grid items-start gap-6 lg:grid-cols-2">
    <section className="min-w-0 rounded-2xl border bg-card p-5 sm:p-6">
     <h2 className="mb-5 text-lg font-semibold">{t("Company information")}</h2>
     <form onSubmit={save} className="space-y-3"><label htmlFor="company-name" className="block text-sm font-medium">{t("Company name")}</label>
      <Input id="company-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={200} required />
-     <Button type="submit" disabled={saving || !name.trim() || name.trim() === company.name}>{saving ? t("Saving…") : t("Save changes")}</Button>
+     <LoadingButton loading={saving} loadingLabel={t("Saving…")} type="submit" disabled={saving || !name.trim() || name.trim() === company.name}>{t("Save changes")}</LoadingButton>
     </form>
     {message && <p role="status" className="mt-3 text-sm">{t(message)}</p>}
     <dl className="mt-6 grid grid-cols-2 gap-4 border-t pt-5 text-sm">
      <div><dt className="text-muted-foreground">{t("Company language")}</dt><dd className="mt-1 font-medium">{company.locale === "es" ? "Español" : "English"}</dd></div>
-     <div><dt className="text-muted-foreground">{t("Currency")}</dt><dd className="mt-1 font-medium">{company.currency || "—"}</dd></div>
+     <div><dt className="text-muted-foreground">{t("Currency")}</dt><dd className="mt-1 font-medium">{company.currency ? currencyName(locale, company.currency) : "—"}</dd></div>
      <div><dt className="text-muted-foreground">{t("Timezone")}</dt><dd className="mt-1 break-words font-medium">{company.timezone || "—"}</dd></div>
      <div><dt className="text-muted-foreground">{t("Active users")}</dt><dd className="mt-1 font-medium">{company.activeUserCount}</dd></div>
     </dl>
@@ -96,6 +99,6 @@ export function PlatformOrganizationPage() {
  const current = result?.key === key ? result : undefined;
  return <PageContainer>
   <Link to="/platform" className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-primary"><ArrowLeft className="size-4" />{t("Back to companies")}</Link>
-  {!current ? <ListSkeleton label={t("Loading company…")} /> : current.data ? <CompanyView key={id} initial={current.data} /> : <div className="space-y-4" role="alert"><p>{t(current.missing ? "Company not found." : "We could not load companies.")}</p>{!current.missing && <Button variant="outline" onClick={() => setRetry(retry + 1)}>{t("Try again")}</Button>}</div>}
+  {!current ? <DetailSkeleton label={t("Loading company…")} /> : current.data ? <CompanyView key={id} initial={current.data} /> : <div className="space-y-4" role="alert"><p>{t(current.missing ? "Company not found." : "We could not load companies.")}</p>{!current.missing && <Button variant="outline" onClick={() => setRetry(retry + 1)}>{t("Try again")}</Button>}</div>}
  </PageContainer>;
 }

@@ -1,9 +1,11 @@
+import { PasswordInput } from "@/components/password-input";
+import { LoadingButton } from "@/components/loading-button";
+import { Loader } from "@/components/loader";
 import type { MessageKey } from "../../shared/i18n";
 import { useT } from "@/lib/i18n";
 import { type FormEvent, useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { AuthCard, FormMessage } from "@/components/auth-card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient, useSession } from "@/lib/auth-client";
@@ -24,7 +26,7 @@ export function LoginPage() {
 	const requestedReturnTo = searchParams.get("returnTo");
 	const justReset = searchParams.get("reset") === "success";
 
-	if (sessionPending) return null;
+	if (sessionPending) return <Loader size="page" label={t("Loading…")} />;
 	if (session) return <Navigate to={authenticatedStartPath(requestedReturnTo, (session.user as { role?: unknown }).role)} replace />;
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -82,10 +84,10 @@ export function LoginPage() {
 				<div className="grid gap-2">
 					<div className="flex items-center justify-between">
 						<Label htmlFor="password">{t("Password")}</Label>
-						<Link to="/forgot-password" className="text-muted-foreground text-sm underline">
+						<Link to="/forgot-password" className="-my-2 inline-flex min-h-11 items-center text-sm font-medium text-primary underline">
 							{t("Forgot?")}</Link>
 					</div>
-					<Input
+					<PasswordInput
 						id="password"
 						name="password"
 						type="password"
@@ -103,9 +105,9 @@ export function LoginPage() {
 					</p>
 				) : null}
 
-				<Button type="submit" disabled={submitting}>
-					{submitting ? t("Signing in…") : t("Sign in")}
-				</Button>
+				<LoadingButton loading={submitting} loadingLabel={t("Signing in…")} type="submit" disabled={submitting}>
+					{t("Sign in")}
+				</LoadingButton>
 			</form>
 		</AuthCard>
 	);

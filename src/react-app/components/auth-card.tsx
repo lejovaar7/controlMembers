@@ -6,7 +6,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { Check, UsersRound } from "lucide-react";
+import { Check, ShieldCheck, UsersRound } from "lucide-react";
 import { useT } from "@/lib/i18n";
 
 export function AuthCard({
@@ -22,7 +22,7 @@ export function AuthCard({
 }) {
 	const t = useT();
 	return (
-		<div className="mx-auto grid w-full max-w-6xl items-stretch gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-14">
+		<div className="auth-layout mx-auto grid min-h-[calc(100svh-4.5rem-1px)] w-full max-w-6xl content-center items-stretch gap-8 px-4 py-8 sm:px-6 sm:py-12 lg:grid-cols-[1.05fr_0.95fr] lg:py-14">
 			<section className="relative hidden min-h-[34rem] overflow-hidden rounded-3xl bg-[var(--brand-panel)] p-10 text-white lg:flex lg:flex-col lg:justify-between">
 				<div aria-hidden="true" className="absolute -right-24 -top-24 size-96 rounded-full border-[50px] border-white/5" />
 
@@ -33,14 +33,15 @@ export function AuthCard({
 					<p className="text-lg leading-8 text-white/75">{t("Members, payments and balances. Everything in one place.")}</p>
 				</div>
 			<p className="relative flex items-center gap-2 text-sm text-sky-100"><Check className="size-4" />{t("A simpler day starts here.")}</p></section>
-			<div className="flex flex-col justify-center lg:min-h-[34rem]">
+			<div className="mx-auto flex w-full min-w-0 max-w-md flex-col justify-center lg:min-h-[34rem] lg:max-w-none">
 
-				<Card className="border bg-card py-8 shadow-sm">
-				<CardHeader className="gap-2 px-6 sm:px-8">
-					<CardTitle className="text-2xl font-semibold tracking-tight"><h1>{title}</h1></CardTitle>
-					{description ? <CardDescription>{description}</CardDescription> : null}
+				<Card className="auth-card gap-7 border border-border/80 bg-card py-7 shadow-lg shadow-primary/5 ring-0 hover:shadow-lg sm:py-9">
+				<CardHeader className="gap-3 px-5 sm:px-8">
+					<div aria-hidden="true" className="mb-2 grid size-11 place-items-center rounded-2xl bg-secondary text-primary"><ShieldCheck className="size-6" /></div>
+					<CardTitle className="text-[1.75rem] font-semibold leading-tight tracking-tight"><h1>{title}</h1></CardTitle>
+					{description ? <CardDescription className="text-sm leading-6">{description}</CardDescription> : null}
 				</CardHeader>
-				<CardContent className="px-6 sm:px-8">{children}</CardContent>
+				<CardContent className="px-5 sm:px-8">{children}</CardContent>
 			</Card>
 			{footer ? (
 				<div className="mt-4 text-center text-sm text-muted-foreground">{footer}</div>

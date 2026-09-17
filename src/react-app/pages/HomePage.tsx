@@ -1,7 +1,7 @@
+import { LoadingButton } from "@/components/loading-button";
 import { useT } from "@/lib/i18n";
 import { Link } from "react-router";
 import { PageContainer } from "@/components/page";
-import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/auth-client";
 import { authenticatedStartPath } from "@/lib/session-routing";
 import { ArrowRight, Check, ChartNoAxesCombined, UsersRound, WalletCards } from "lucide-react";
@@ -11,7 +11,7 @@ export function HomePage() {
  const { data: session, isPending } = useSession();
  const features = [
   { icon: UsersRound, title: "Organize your members", detail: "People enrolled in your academy and their current balances." },
-  { icon: WalletCards, title: "Stay on top of payments", detail: "Money received, allocations and reversals." },
+  { icon: WalletCards, title: "Stay on top of payments", detail: "Review received payments, the charges they cover and cancelled payments." },
   { icon: ChartNoAxesCombined, title: "Know where you stand", detail: "A clear view of monthly collections and outstanding balances." },
  ] as const;
  return <PageContainer className="max-w-7xl">
@@ -20,7 +20,7 @@ export function HomePage() {
     <p className="mb-6 inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-primary"><span className="size-1.5 rounded-full bg-primary" />{t("Your workspace, in order.")}</p>
     <h1 className="text-4xl font-semibold leading-[1.1] tracking-[-0.045em] sm:text-5xl xl:text-6xl">{t("Less admin. More time for your members.")}</h1>
     <p className="mt-6 max-w-md text-lg leading-8 text-muted-foreground">{t("Members, payments and balances. Everything in one place.")}</p>
-    <Button className="mt-8" size="lg" disabled={isPending} nativeButton={false} render={<Link to={session ? authenticatedStartPath(null, (session.user as { role?: unknown }).role) : "/login"} />}>{t(session ? "Open app" : "Sign in")}<ArrowRight /></Button>
+    <LoadingButton loading={isPending} className="mt-8" size="lg" disabled={isPending} nativeButton={false} render={<Link to={session ? authenticatedStartPath(null, (session.user as { role?: unknown }).role) : "/login"} />}>{t(session ? "Open app" : "Sign in")}<ArrowRight /></LoadingButton>
    </div>
    <section className="relative overflow-hidden rounded-3xl bg-[var(--brand-panel)] p-6 text-white sm:p-10">
     <div aria-hidden="true" className="absolute -right-20 -top-20 size-72 rounded-full border-[40px] border-white/5" />

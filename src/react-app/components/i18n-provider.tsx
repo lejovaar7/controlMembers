@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { createTranslator, currentPreferences, languages, normalizeLocale, publicLocale, resolveLocale, type Locale, type LocalePreferences } from "../../shared/i18n";
 import { authClient, useSession } from "@/lib/auth-client";
 import { I18nContext } from "@/lib/i18n";
+import { Loader } from "@/components/loader";
 
 const STORAGE_KEY = "app.public-language";
 
@@ -99,7 +100,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 	if (isPending || (userId && !preferences)) {
 		const fallback = createTranslator(publicLanguage);
 		return <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-6" lang={publicLanguage}>
-			<p role={failedKey === key ? "alert" : "status"}>{fallback(failedKey === key ? "We could not load language preferences." : "Loading language preferences…")}</p>
+			{failedKey === key ? <p role="alert">{fallback("We could not load language preferences.")}</p> : <Loader label={fallback("Loading language preferences…")} />}
 			{failedKey === key && <>
 				<button className="rounded-md border px-4 py-2" onClick={() => void refresh()}>{fallback("Try again")}</button>
 				<button className="underline" onClick={() => void authClient.signOut().then(() => window.location.assign("/login"))}>{fallback("Sign out")}</button>

@@ -1,10 +1,10 @@
+import { ListSkeleton } from "@/components/content-skeleton";
 import { useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
 import { Link } from "react-router";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ListSkeleton } from "@/components/list-skeleton";
 import { Building2, ChevronRight, Plus } from "lucide-react";
 import { platformRequest, type CompanyDirectory } from "@/lib/platform";
 

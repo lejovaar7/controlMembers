@@ -1,3 +1,4 @@
+import { Loader } from "@/components/loader";
 import { useT } from "@/lib/i18n";
 import { AuthCard } from "@/components/auth-card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { Navigate } from "react-router";
 export function NoCompanyPage() {
 	const t = useT();
 	const { data: session, isPending } = useSession();
-	if (isPending) return null;
+	if (isPending) return <Loader size="page" label={t("Loading…")} />;
 	if (session && isPlatformAdminRole((session.user as { role?: unknown }).role)) return <Navigate to="/platform" replace />;
 	return (
 		<AuthCard

@@ -1,3 +1,4 @@
+import { LoadingButton } from "@/components/loading-button";
 import type { MessageKey } from "../../shared/i18n";
 import { useT } from "@/lib/i18n";
 import { type FormEvent, useId, useState } from "react";
@@ -90,7 +91,7 @@ export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdm
 			{isOwner && <fieldset className="grid gap-3 rounded-lg border p-3">
 				<legend className="px-1 text-sm font-medium">{t("Financial permissions")}</legend>
 				<p className="text-sm text-muted-foreground">{t("These permissions do not expand the user's branch access.")}</p>
-				<PermissionCheckbox label={t("Can reverse payments")} checked={financialPermissions.canReversePayments} onChange={(checked) => setFinancialPermissions((current) => ({ ...current, canReversePayments: checked }))} />
+				<PermissionCheckbox label={t("Can cancel payments")} checked={financialPermissions.canReversePayments} onChange={(checked) => setFinancialPermissions((current) => ({ ...current, canReversePayments: checked }))} />
 				<PermissionCheckbox label={t("Can adjust or void charges")} checked={financialPermissions.canAdjustCharges} onChange={(checked) => setFinancialPermissions((current) => ({ ...current, canAdjustCharges: checked }))} />
 				<PermissionCheckbox label={t("Can view financial reports")} checked={financialPermissions.canViewReports} onChange={(checked) => setFinancialPermissions((current) => ({ ...current, canViewReports: checked }))} />
 				<PermissionCheckbox label={t("Can export financial data")} checked={financialPermissions.canExportFinancialData} onChange={(checked) => setFinancialPermissions((current) => ({ ...current, canExportFinancialData: checked }))} />
@@ -98,7 +99,7 @@ export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdm
 			{!member && <p className="text-sm text-muted-foreground">{t("New users receive a secure link to choose their own password. Existing accounts keep their sign-in details.")}</p>}
 		</fieldset>
 		{error && <p role="alert" className="text-sm text-destructive">{error ? t(error) : null}</p>}
-		<div className="flex flex-wrap gap-2"><Button type="submit" disabled={pending}>{pending ? t("Saving…") : member ? t("Save access") : t("Add user")}</Button><Button type="button" variant="outline" disabled={pending} onClick={onCancel}>{t("Cancel")}</Button></div>
+		<div className="flex flex-wrap gap-2"><LoadingButton loading={pending} loadingLabel={t("Saving…")} type="submit" disabled={pending}>{member ? t("Save access") : t("Add user")}</LoadingButton><Button type="button" variant="outline" disabled={pending} onClick={onCancel}>{t("Cancel")}</Button></div>
 	</form>;
 }
 
