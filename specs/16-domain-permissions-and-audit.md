@@ -18,6 +18,7 @@ engine.
 | View in-scope Members and Charges | Yes | Yes | Yes |
 | Create/edit in-scope Members | Yes | Yes | Yes |
 | Manage Plans and tags | Yes | Yes if all-Branch | No |
+| Manage company payment methods | Yes | Yes if all-Branch | No |
 | Manage Enrollments | Yes | In scope | In scope |
 | Generate Charges | Yes | In scope | No |
 | Record Payments | Yes | In scope | In scope |
@@ -55,6 +56,7 @@ The domain audit log records high-impact events:
 - Enrollment creation, pause, resume, term changes and end;
 - Charge generation batch, adjustment and void;
 - Payment posting and reversal;
+- Payment-method creation, renaming and activation changes;
 - Plan/tag activation changes;
 - CSV import and export;
 - business permission grants/revocations.

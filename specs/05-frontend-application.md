@@ -199,8 +199,10 @@ and password-manager UI use the browser's own language.
 
 `LanguagePicker` is visible in public/platform/application shells and Settings.
 After login it saves only the current person's preference. Platform-only users
-choose an explicit registered language; the company-inheritance option appears
-only with an active company and names the resolved company language. Settings
+choose an explicit registered language. Header and mobile-navigation pickers
+show only registered language names, including when the current preference is
+inherited. Settings explicitly enables the company-inheritance option with
+`allowCompanyLanguage`; it requires an active company and names its language. Settings
 also exposes the active company's language, editable only by its Owner/admin
 (including branch-scoped admins); ordinary members see a disabled selector and
 explanation.

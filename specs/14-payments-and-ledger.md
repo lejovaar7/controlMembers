@@ -17,7 +17,8 @@ A Payment stores:
 - receiving Branch ID;
 - positive `amountMinor` and Organization currency;
 - business `paidAt` timestamp;
-- method: `cash`, `bank_transfer`, `card` or `other`;
+- method: built-in `cash` or an active Organization-owned custom method;
+- immutable custom method ID and name snapshot when a custom method is used;
 - optional external reference and bounded note;
 - Organization-scoped human receipt number;
 - state: `posted` or `reversed`;
@@ -27,6 +28,34 @@ The `recordedByUserId` is always derived from the authenticated session. The
 browser cannot claim another actor. An idempotency key protects repeat submits;
 the same key and tenant returns the original result, while mismatched payloads
 are rejected.
+
+## Payment method catalog
+
+Every company starts with Cash as its only selectable method. Cash is built in,
+translated and cannot be renamed or deactivated. Settings lets Owners and admins
+with access to all Branches add, rename, deactivate and reactivate company-wide
+methods. Staff may read the catalog and record payments using active methods.
+Names are required, limited to 80 characters and unique per company after
+whitespace/case normalization, including inactive names. Cash/Efectivo is reserved.
+User-entered names are displayed verbatim, without translation.
+
+`GET /api/payment-methods` returns active methods; `?inactive=1` includes inactive
+custom methods for Settings, and `?history=1` also includes legacy method codes
+actually used in the caller's accessible payment history. `POST` creates a method
+and `PATCH /api/payment-methods/:id` updates its name or active state. Tenant and
+management permissions are enforced by the Worker; methods are never deleted.
+
+New payments reject inactive, unknown and foreign-company method IDs. Legacy
+`bank_transfer`, `card` and `other` remain readable/filterable for old records but
+are not accepted for new payments. An identical idempotent retry returns its
+original payment even when its custom method was subsequently renamed/deactivated.
+Payment history and CSV exports retain the name captured when money was recorded.
+
+Migration `0012_sudden_bruce_banner.sql` adds the catalog and nullable method ID/name
+columns without rewriting payments. The existing internal `method` enum remains
+for compatibility: custom payments store `other` plus their ID/name snapshot. API
+responses expose the custom ID as `method`; filtering `other` selects only legacy
+records without a custom ID. Apply migration 0012 before running this version.
 
 ## Allocations
 

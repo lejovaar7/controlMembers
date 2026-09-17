@@ -504,6 +504,13 @@ checks and dependency-audit results. The 2026-09-02 dependency remediation leave
 both the full and production-only audits at zero reported vulnerabilities.
 No production deployment is part of this completion.
 
+Company payment methods are managed in **Settings → Payment methods** by an
+Owner or administrator with access to all Branches. Cash is the sole built-in
+option; custom methods can be added, renamed, deactivated and reactivated. Old
+payments keep their recorded method names. Migration `0012_sudden_bruce_banner.sql`
+must be applied before using this version against an existing database; it adds
+the catalog and optional payment columns without deleting financial history.
+
 Start at [specs/README.md](specs/README.md) for the single specification index.
 Each numbered file owns one module's contract and status. Delivery order lives in
 [`planning/DELIVERY_PLAN.md`](planning/DELIVERY_PLAN.md).

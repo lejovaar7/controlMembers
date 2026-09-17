@@ -1,5 +1,104 @@
 # ControlMembers Verification Record
 
+## 2026-09-17 — Settings page organization and header action
+
+- Reorganized Settings into a company summary, paired language cards on desktop,
+  a payment-method catalog and a billing-settings card linking eligible managers
+  to Plans. Used consistent surfaces, spacing and responsive stacking.
+- Moved Add payment method to the catalog's top-right corner beside its title;
+  its description spans the row below. Mobile places the full-width action after
+  the description. Method status uses badges; row actions remain grouped.
+- Browser QA rendered the actual Settings page with synthetic company preferences
+  and Cash/custom active/inactive methods. Verified desktop placement, the 390px
+  mobile layout, Add opening its dialog, Cancel restoring focus and company
+  language saving with translated success feedback. No real settings were changed.
+- All quality-gate stages passed: typecheck, lint, Node checks, 198 Worker tests
+  with two workers, and dev/production/local builds and deployment dry runs.
+  Browser console had no warnings/errors. Removed the preview and verified the
+  existing LAN development server returned HTTP 200 with database status `ok`.
+
+## 2026-09-17 — Payment-method Settings action placement
+
+- Matched the payment-method card to the language-settings width and moved Add
+  below the list into a separated footer. The button aligns left on desktop and
+  fills the available width on mobile.
+- Browser QA rendered the real Settings page with a synthetic cash-only catalog.
+  Verified desktop/mobile placement, popup opening and Cancel returning focus to
+  Add; no console warnings/errors. Removed the temporary preview. The existing
+  development server remained available with HTTP 200 application/database health.
+- Typecheck, lint and Node checks passed. The first Worker run hit the existing
+  access-control setup timeout; rerunning with two workers passed all 198 tests.
+  All three environment builds and deployment dry runs passed afterward.
+
+## 2026-09-17 — Company payment methods
+
+- Cash is the sole default for new payments. Settings provides company-scoped
+  custom methods with creation, rename, deactivation and reactivation. Management
+  requires Owner or all-Branch admin permissions. Historical payments and CSV
+  exports retain the original method-name snapshot; legacy methods remain
+  available only for existing-history filters and idempotent retries.
+- Generated migration `0012_sudden_bruce_banner.sql` with Drizzle and reviewed its
+  additive table/index/two-column changes. Applied it successfully to local D1
+  and the configured remote **dev** D1. No production migration or deployment.
+- `npm run check` passed with 198 Worker tests, catalog/form/environment checks
+  and all three target builds/dry runs. Six new Worker tests cover defaults,
+  authorization, tenant isolation, duplicate names, inactive/foreign-method
+  rejection, name snapshots, exports, legacy history and idempotent retries.
+  Rechecked typecheck/lint after the final presentation adjustments.
+- Browser QA used actual Settings, Member and Payments pages against isolated
+  in-memory HTTP fixtures. Created Nequi, recorded a test payment, renamed and
+  deactivated the method, verified only Cash remained for new payments, and
+  filtered the historic payment while retaining its original Nequi label.
+  Checked the shared creation popup at 390px and blank-name submission blocking;
+  browser console had no warnings/errors. Removed the temporary preview; no real
+  member/payment records were created or changed by these QA fixtures.
+- Restarted the unavailable development server with `npm run dev`; its LAN
+  health endpoint returned HTTP 200 with application/database status `ok`.
+
+## 2026-09-17 — Member profile editing popup
+
+- "Edit member" opens the existing profile form in the shared centered dialog
+  with prefilled values, Cancel/Close controls and responsive scrolling. Saving
+  blocks repeat submissions and dismissal; failures preserve the form. Date
+  popovers now remain above the dialog without changing generated UI components.
+- Browser QA used the actual detail page and API client against isolated,
+  in-memory HTTP fixtures. Verified prefilled fields, date selection, disabled
+  controls while saving, retained values after a simulated error, successful
+  retry, automatic closure and refreshed profile. Cancel discarded unsaved edits
+  and returned focus to Edit member. At 390px, the form scrolled vertically with
+  no horizontal overflow. No real member data was modified; removed the preview.
+- `npm run check` passed: 192 Worker tests, environment/catalog/form checks,
+  typecheck, lint and all three environment builds/dry runs.
+
+## 2026-09-17 — Popup headers without decorative icons
+
+- Removed the decorative message/warning badges from `CenteredDialog`, shared
+  by Member/User creation and Member, Payment, Charge and other action popups.
+  Headers start at the title with space reserved for Close. Destructive actions
+  retain their confirmation button styling.
+- Browser QA rendered the real shared components with synthetic callbacks.
+  Verified the action header on desktop and creation header at 390px: no badge,
+  no horizontal overflow, a working Close button and restored trigger focus.
+  The creation popup contained only the functional Close icon, and the browser
+  reported no warnings or errors. Removed the temporary preview.
+- `npm run check` passed, including typecheck, lint, tests and all three target
+  builds/dry runs. The existing development server remained running; its health
+  endpoint returned HTTP 200 with application and database status `ok`.
+
+## 2026-09-17 — Simplified header language options
+
+- Header and mobile-navigation pickers now offer only English and Español.
+  Inherited preferences display their resolved language without a company
+  suffix. Settings alone opts into the company-inheritance choice through
+  `allowCompanyLanguage`; personal preference persistence is unchanged.
+- Browser QA used the real LanguagePicker with a synthetic authenticated
+  context inheriting Spanish. The compact trigger displayed Español and its
+  popup contained exactly two options. Selecting English and Español called
+  the save handler with `en` and `es` respectively. No real account was changed,
+  and the browser reported no warnings or errors. Removed the temporary preview.
+- `npm run check` passed, including 192 Worker tests, catalog/form/environment
+  checks, typecheck, lint and all three environment builds/dry runs.
+
 ## 2026-09-17 — Member and User creation popups
 
 - "Add member" and "Add user" now open their feature forms in a centered

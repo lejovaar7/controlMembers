@@ -59,8 +59,9 @@ A soft right-side shadow separates navigation from the workspace without a hard
 vertical border. The company header groups a prominent company name with its
 branch below. Desktop account controls use a compact language selector, initials
 avatar, user name and company role; smaller screens retain these controls in the
-navigation drawer. The compact inherited-language option names the language and
-company source without clipping a long instruction.
+navigation drawer. These compact selectors offer only registered languages
+(English and Español), displaying the resolved language without a company
+suffix. The explicit company-inheritance option remains in personal settings.
 
 Dashboard cards use one column below 380 pixels, two on larger mobile screens
 and four on wide desktops. Amounts show the currency symbol first, with a shared
@@ -261,8 +262,16 @@ rules, submit handlers and error state. Their close/cancel controls are disabled
 while saving; a successful creation closes the popup and refreshes the directory.
 Editing existing User access retains its inline form.
 
+"Edit member" opens the existing profile fields in `CenteredDialog`, prefilled
+from the member record. Cancel/Close discards unsaved edits; successful saves
+close the dialog and refresh the profile. Failed saves retain the entered values.
+Saving disables fields and dismissal and guards against duplicate submissions.
+Date popovers sit above the dialog and below their nested month/year selects.
+
 The shared Base UI dialog is centered above a dimmed backdrop, has a translated
-title and consequence, and identifies its confirmation action explicitly. Gather
+title and consequence, and identifies its confirmation action explicitly. The
+header starts directly with the title, without decorative icon badges, and
+reserves space for the Close button beside it. Gather
 related fields in one form rather than a sequence of prompts. Reason fields are
 required, trimmed and limited to 500 characters; numeric fields retain domain
 bounds. The payment confirmation repeats its amount and allocation breakdown,
@@ -278,6 +287,20 @@ fits the dynamic viewport, scrolls vertically on short screens and stacks its
 actions on mobile. Reduced motion disables its entrance/exit transitions.
 
 ### Forms and actions
+
+Settings uses a consistent-width company summary, paired personal/company
+language cards on desktop, the payment-method catalog and a billing-settings
+card linking to Plans. Sections stack on mobile. Personal language changes save
+automatically; company language has an explicit save action enabled for changes.
+The payment-method Add action sits at the top-right of its card beside the title
+on desktop. Its description spans the next row; on mobile the action follows
+the description at full width. Method rows use translated status badges and
+keep management actions separate from their names. Cash is the only built-in
+choice; authorized company-wide administrators manage custom names in the shared
+dialog and deactivate/reactivate them through action confirmations. The payment
+composer loads active methods, exposes load failures and links managers to
+Settings. History filters include inactive and previously used legacy methods;
+payment rows display the recorded name snapshot rather than a later catalog name.
 
 - One primary action per page region.
 - Every Button or LoadingButton inside a form declares its `type`: save actions
