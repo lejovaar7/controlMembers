@@ -246,6 +246,10 @@ inactive records remain discoverable.
 ## Interaction rules
 
 - One primary action per page region.
+- Every Button or LoadingButton inside a form declares its `type`: save actions
+  use `submit`, while secondary actions use `button`. Base UI's default is
+  `button`, so an omitted type silently prevents form submission. The
+  `test:forms` check guards this convention without changing primitive defaults.
 - Destructive/reversal actions use explicit confirmation naming subject and
   consequence; confirmation language does not rely on button color.
 - Pending submits disable duplicates and expose an accessible status.

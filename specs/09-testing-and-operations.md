@@ -4,6 +4,11 @@
 
 ## Workers-runtime tests
 
+`npm run test:forms` checks explicit button types inside frontend forms and runs
+as part of `npm test` and `npm run check`. It prevents save actions from silently
+inheriting Base UI's non-submit default. Interactive browser checks still verify
+actual submission, list refresh and validation.
+
 Vitest uses `@cloudflare/vitest-plugin`. Tests run in a Workers-compatible
 runtime with Cloudflare bindings rather than a Node-only API simulation.
 
