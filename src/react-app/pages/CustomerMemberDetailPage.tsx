@@ -1,4 +1,6 @@
+import { paymentMethodLabel, usePaymentMethods } from "@/hooks/use-payment-methods";
 import { SelectField } from "@/components/select-field";
+import { CenteredDialog, type DialogReturnFocus } from "@/components/centered-dialog";
 import { useActionDialog } from "@/hooks/use-action-dialog";
 import { DatePicker } from "@/components/date-picker";
 import { dateValue } from "@/lib/calendar-dates";
@@ -7,7 +9,7 @@ import { formatMoney, currencyName } from "../../shared/i18n";
 import { LoadingButton } from "@/components/loading-button";
 import { DetailSkeleton } from "@/components/content-skeleton";
 import { StatusBadge } from "@/components/status-badge";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
@@ -19,6 +21,7 @@ import { controlMembersApi, type MemberDetail } from "@/lib/controlmembers";
 import { useI18n, useT } from "@/lib/i18n";
 
 export function CustomerMemberDetailPage() {
+	const editButtonRef = useRef<HTMLButtonElement>(null);
 	const { dialog, openDialog } = useActionDialog();
 	const { id = "" } = useParams();
 	const t = useT();
@@ -44,8 +47,8 @@ export function CustomerMemberDetailPage() {
 		<PageHeader title={detail.member.displayName} description={t("Member profile, enrollments and payment history.")} />
 		<CurrencyLabel currency={currency} />
 		<div className="grid gap-3 sm:grid-cols-3"><Metric label={t("Outstanding")} value={money(detail.summary.grossOutstandingMinor)} /><Metric label={t("Available credit")} value={money(detail.summary.creditMinor)} /><Metric label={t("Net balance")} value={money(detail.summary.netMinor)} /></div>
-		<div className="flex flex-wrap items-center gap-2"><StatusBadge tone={detail.member.status === "active" ? "success" : detail.member.status === "paused" ? "warning" : "neutral"}>{t(detail.member.status === "active" ? "Active" : detail.member.status === "paused" ? "Paused" : "Inactive")}</StatusBadge><Button variant="outline" onClick={() => setEditing((value) => !value)}>{t(editing ? "Close form" : "Edit member")}</Button>{detail.member.status === "active" ? <><Button variant="outline" onClick={() => void changeStatus("paused")}>{t("Pause member")}</Button><Button variant="outline" onClick={() => void changeStatus("inactive")}>{t("Deactivate member")}</Button></> : <Button variant="outline" onClick={() => void changeStatus("active")}>{t("Reactivate member")}</Button>}</div>
-		{editing ? <MemberProfileForm member={detail.member} onSaved={() => { setEditing(false); reload(); }} /> : null}
+		<div className="flex flex-wrap items-center gap-2"><StatusBadge tone={detail.member.status === "active" ? "success" : detail.member.status === "paused" ? "warning" : "neutral"}>{t(detail.member.status === "active" ? "Active" : detail.member.status === "paused" ? "Paused" : "Inactive")}</StatusBadge><Button ref={editButtonRef} variant="outline" onClick={() => setEditing(true)}>{t("Edit member")}</Button>{detail.member.status === "active" ? <><Button variant="outline" onClick={() => void changeStatus("paused")}>{t("Pause member")}</Button><Button variant="outline" onClick={() => void changeStatus("inactive")}>{t("Deactivate member")}</Button></> : <Button variant="outline" onClick={() => void changeStatus("active")}>{t("Reactivate member")}</Button>}</div>
+		{editing ? <MemberProfileForm member={detail.member} onCancel={() => setEditing(false)} returnFocus={editButtonRef} onSaved={() => { setEditing(false); reload(); }} /> : null}
 		<div className="grid gap-6 xl:grid-cols-2"><EnrollmentSection memberId={id} memberBranchId={detail.member.primaryBranchId} plans={plans} enrollments={detail.enrollments} onChanged={reload} /><PaymentSection memberId={id} branchId={detail.member.primaryBranchId} payments={detail.payments} currency={currency} onChanged={reload} /></div>
 		<div className="grid gap-6 xl:grid-cols-2"><ContactSection memberId={id} contacts={detail.contacts} onChanged={reload} /><FinancialSection detail={detail} money={money} /></div>
 	</PageContainer>;
@@ -63,18 +66,23 @@ export function CustomerMemberDetailPage() {
 	}
 }
 
-function MemberProfileForm({ member, onSaved }: { member: MemberDetail["member"]; onSaved: () => void }) {
+function MemberProfileForm({ member, onSaved, onCancel, returnFocus }: { member: MemberDetail["member"]; onSaved: () => void; onCancel: () => void; returnFocus: DialogReturnFocus }) {
 	const t = useT(); const shell = useAppShell(); const [pending, setPending] = useState(false); const [failed, setFailed] = useState(false);
+	const busyRef = useRef(false);
 	async function submit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault(); setPending(true); setFailed(false);
+		event.preventDefault();
+		if (busyRef.current) return;
 		const form = new FormData(event.currentTarget);
+		if (!String(form.get("displayName") ?? "").trim()) return;
+		busyRef.current = true; setPending(true); setFailed(false);
 		try {
 			await controlMembersApi.updateMember(shell.organizationId, member.id, { displayName: form.get("displayName"), primaryBranchId: form.get("primaryBranchId"), documentType: form.get("documentType"), documentNumber: form.get("documentNumber"), birthDate: form.get("birthDate"), email: form.get("email"), phoneE164: form.get("phoneE164"), notes: form.get("notes") });
 			onSaved();
-		} catch { setFailed(true); } finally { setPending(false); }
+		} catch { setFailed(true); } finally { busyRef.current = false; setPending(false); }
 	}
-	return <form onSubmit={submit} className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2">
-		<h2 className="font-semibold sm:col-span-2">{t("Edit member")}</h2>
+	return <CenteredDialog open title={t("Edit member")} description={t("Update this member's personal and contact information.")} pending={pending} onClose={onCancel} returnFocus={returnFocus} wide>
+		<form onSubmit={submit} className="space-y-5 px-5 pt-5 sm:px-7" aria-label={t("Edit member")} aria-busy={pending}>
+		<fieldset disabled={pending} className="grid min-w-0 gap-4 sm:grid-cols-2">
 		<Field label={t("Name")} name="displayName" defaultValue={member.displayName} required />
 		{shell.branches.length > 1 ? <div className="grid gap-2"><Label htmlFor="member-branch">{t("Branch")}</Label><SelectField id="member-branch" name="primaryBranchId" defaultValue={member.primaryBranchId} className="h-11 rounded-md border bg-background px-3" options={[...shell.branches.map((branch) => ({ value: branch.id, label: branch.name }))]} /></div> : <input type="hidden" name="primaryBranchId" value={member.primaryBranchId} />}
 		<Field label={t("Document type")} name="documentType" defaultValue={member.documentType ?? ""} />
@@ -83,9 +91,11 @@ function MemberProfileForm({ member, onSaved }: { member: MemberDetail["member"]
 		<Field label={t("Email")} name="email" defaultValue={member.email ?? ""} type="email" />
 		<Field label={t("Phone")} name="phoneE164" defaultValue={member.phoneE164 ?? ""} />
 		<div className="grid gap-2 sm:col-span-2"><Label htmlFor="member-notes">{t("Notes")}</Label><textarea id="member-notes" name="notes" defaultValue={member.notes ?? ""} maxLength={2000} className="min-h-24 rounded-md border bg-background p-3" /></div>
-		{failed ? <p role="alert" className="text-sm text-destructive sm:col-span-2">{t("We could not update this member.")}</p> : null}
-		<div className="sm:col-span-2"><LoadingButton type="submit" loading={pending} loadingLabel={t("Saving…")} disabled={pending}>{t("Save member")}</LoadingButton></div>
-	</form>;
+		</fieldset>
+		{failed ? <p role="alert" className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">{t("We could not update this member.")}</p> : null}
+		<div className="-mx-5 flex flex-col-reverse gap-2 border-t bg-muted/30 px-5 py-4 sm:-mx-7 sm:flex-row sm:justify-end sm:px-7"><Button type="button" variant="outline" disabled={pending} onClick={onCancel}>{t("Cancel")}</Button><LoadingButton type="submit" loading={pending} loadingLabel={t("Saving…")} disabled={pending}>{t("Save member")}</LoadingButton></div>
+		</form>
+	</CenteredDialog>;
 }
 
 function Field({ label, name, defaultValue, required, type = "text" }: { label: string; name: string; defaultValue: string; required?: boolean; type?: string }) {
@@ -130,13 +140,15 @@ function EnrollmentSection({ memberId, memberBranchId, plans, enrollments, onCha
 function PaymentSection({ memberId, branchId, payments, currency, onChanged }: { memberId: string; branchId: string; payments: MemberDetail["payments"]; currency: string; onChanged: () => void }) {
 	const { dialog, openDialog } = useActionDialog();
 	const t = useT(); const { locale } = useI18n(); const shell = useAppShell();
+	const paymentMethods = usePaymentMethods(shell.organizationId);
 	const [amount, setAmount] = useState(""); const [method, setMethod] = useState("cash"); const [pending, setPending] = useState(false); const [failed, setFailed] = useState(false); const [receipt, setReceipt] = useState<string | null>(null); const [previewState, setPreview] = useState<{ amountMinor: number; allocations: Array<{ chargeId: string; amountMinor: number; dueDate: string; planName: string }>; allocatedMinor: number; creditMinor: number } | null>(null); const currentAmountMinor = Math.round(Number(amount) * 100); const preview = previewState?.amountMinor === currentAmountMinor ? previewState : null;
 	useEffect(() => { const amountMinor = Math.round(Number(amount) * 100); if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) return; const timer = window.setTimeout(() => { void controlMembersApi.paymentPreview(shell.organizationId, memberId, amountMinor).then((result) => setPreview({ amountMinor, ...result })).catch(() => setPreview(null)); }, 250); return () => window.clearTimeout(timer); }, [amount, memberId, shell.organizationId]);
+	const availableMethod = paymentMethods.methods.some((item) => item.id === method && item.isActive);
 	function changeAllocation(chargeId: string, value: string) { if (!preview) return; const allocations = preview.allocations.map((item) => item.chargeId === chargeId ? { ...item, amountMinor: Math.max(0, Math.round(Number(value) * 100) || 0) } : item); const allocatedMinor = allocations.reduce((sum, item) => sum + item.amountMinor, 0); setPreview({ ...preview, allocations, allocatedMinor, creditMinor: Math.max(0, preview.amountMinor - allocatedMinor) }); }
 	function submit(event: FormEvent) {
 		event.preventDefault();
 		const amountMinor = Math.round(Number(amount) * 100);
-		if (!preview || preview.allocatedMinor > amountMinor) return;
+		if (!preview || preview.allocatedMinor > amountMinor || !availableMethod || paymentMethods.failed) return;
 		const idempotencyKey = crypto.randomUUID();
 		const paidAt = new Date().toISOString();
 		openDialog({ title: t("Record payment"), description: t("Record this payment with the allocation shown below?"), confirmLabel: t("Record payment"),
@@ -148,7 +160,7 @@ function PaymentSection({ memberId, branchId, payments, currency, onChanged }: {
 			},
 		});
 	}
-	return <section className="space-y-5 rounded-xl border bg-card p-5 sm:p-6">{dialog}<div><h2 className="font-semibold">{t("Record payment")}</h2><p className="text-sm text-muted-foreground">{t("Payments are applied to the oldest outstanding charges first. You can adjust the distribution before saving.")}</p></div><form onSubmit={submit} className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="payment-amount">{t("Amount ({currency})", { currency: currencyName(locale, currency) })}</Label><Input id="payment-amount" type="number" min="0.01" step="0.01" value={amount} required onChange={(event) => setAmount(event.target.value)} /></div><div className="grid gap-2"><Label htmlFor="payment-method">{t("Payment method")}</Label><SelectField id="payment-method" className="h-11 rounded-md border bg-background px-3" value={method} onValueChange={(value) => setMethod(value)} options={[{ value: "cash", label: t("Cash") }, { value: "bank_transfer", label: t("Bank transfer") }, { value: "card", label: t("Card") }, { value: "other", label: t("Other") }]} /></div>{preview ? <div className="rounded-lg bg-muted/60 p-3 text-sm sm:col-span-2"><p className="font-medium">{t("How this payment will be used")}</p>{preview.allocations.length ? <ul className="mt-2 grid gap-2">{preview.allocations.map((item) => <li key={item.chargeId} className="grid gap-2 sm:grid-cols-[1fr_8rem] sm:items-center"><span>{item.planName} · {item.dueDate}</span><Input aria-label={t("Amount applied to {plan}", { plan: item.planName })} type="number" min="0" step="0.01" value={item.amountMinor / 100} onChange={(event) => changeAllocation(item.chargeId, event.target.value)} /></li>)}</ul> : <p className="mt-1 text-muted-foreground">{t("No open charges. The payment will remain as credit.")}</p>}{preview.allocatedMinor > preview.amountMinor ? <p role="alert" className="mt-2 text-destructive">{t("Allocated amount cannot exceed the payment.")}</p> : null}{preview.creditMinor > 0 ? <p className="mt-2">{t("Credit after payment: {amount}", { amount: formatMoney(locale, preview.creditMinor, currency) })}</p> : null}</div> : null}{failed ? <p role="alert" className="text-sm sm:col-span-2">{t("We could not record the payment. Reload balances and try again.")}</p> : null}{receipt ? <p role="status" className="text-sm sm:col-span-2">{t("Payment recorded. Receipt: {receipt}", { receipt })}</p> : null}<div className="sm:col-span-2"><LoadingButton type="submit" loading={pending} loadingLabel={t("Recording…")} disabled={pending || !amount || !preview || preview.allocatedMinor > preview.amountMinor}>{t("Review and record payment")}</LoadingButton></div></form>{payments.length ? <div className="border-t pt-3"><h3 className="text-sm font-medium">{t("Recent payments")}</h3><ul className="mt-2 grid gap-2">{payments.slice(0, 5).map((item) => <li key={item.id} className="flex justify-between text-sm"><span>{item.receiptNumber}</span><span>{item.status === "reversed" ? t("Cancelled") : t("Posted")}</span></li>)}</ul></div> : null}</section>;
+	return <section className="space-y-5 rounded-xl border bg-card p-5 sm:p-6">{dialog}<div><h2 className="font-semibold">{t("Record payment")}</h2><p className="text-sm text-muted-foreground">{t("Payments are applied to the oldest outstanding charges first. You can adjust the distribution before saving.")}</p></div><form onSubmit={submit} className="grid gap-3 sm:grid-cols-2"><div className="grid gap-2"><Label htmlFor="payment-amount">{t("Amount ({currency})", { currency: currencyName(locale, currency) })}</Label><Input id="payment-amount" type="number" min="0.01" step="0.01" value={amount} required onChange={(event) => setAmount(event.target.value)} /></div><div className="grid gap-2"><Label htmlFor="payment-method">{t("Payment method")}</Label><SelectField id="payment-method" className="h-11 rounded-md border bg-background px-3" value={method} onValueChange={(value) => setMethod(value)} disabled={pending || paymentMethods.loading || paymentMethods.failed} options={paymentMethods.loading || paymentMethods.failed ? [{ value: "cash", label: t("Cash") }] : paymentMethods.methods.map((item) => ({ value: item.id, label: paymentMethodLabel(item, t) }))} />{paymentMethods.failed ? <div role="alert" className="text-sm"><p>{t("We could not load payment methods.")}</p><Button type="button" variant="outline" onClick={paymentMethods.reload}>{t("Try again")}</Button></div> : null}{paymentMethods.canManage ? <Link to="/app/settings" className="text-sm font-medium underline">{t("Manage payment methods")}</Link> : null}</div>{preview ? <div className="rounded-lg bg-muted/60 p-3 text-sm sm:col-span-2"><p className="font-medium">{t("How this payment will be used")}</p>{preview.allocations.length ? <ul className="mt-2 grid gap-2">{preview.allocations.map((item) => <li key={item.chargeId} className="grid gap-2 sm:grid-cols-[1fr_8rem] sm:items-center"><span>{item.planName} · {item.dueDate}</span><Input aria-label={t("Amount applied to {plan}", { plan: item.planName })} type="number" min="0" step="0.01" value={item.amountMinor / 100} onChange={(event) => changeAllocation(item.chargeId, event.target.value)} /></li>)}</ul> : <p className="mt-1 text-muted-foreground">{t("No open charges. The payment will remain as credit.")}</p>}{preview.allocatedMinor > preview.amountMinor ? <p role="alert" className="mt-2 text-destructive">{t("Allocated amount cannot exceed the payment.")}</p> : null}{preview.creditMinor > 0 ? <p className="mt-2">{t("Credit after payment: {amount}", { amount: formatMoney(locale, preview.creditMinor, currency) })}</p> : null}</div> : null}{failed ? <p role="alert" className="text-sm sm:col-span-2">{t("We could not record the payment. Reload balances and try again.")}</p> : null}{receipt ? <p role="status" className="text-sm sm:col-span-2">{t("Payment recorded. Receipt: {receipt}", { receipt })}</p> : null}<div className="sm:col-span-2"><LoadingButton type="submit" loading={pending} loadingLabel={t("Recording…")} disabled={pending || !amount || !preview || preview.allocatedMinor > preview.amountMinor || !availableMethod || paymentMethods.failed}>{t("Review and record payment")}</LoadingButton></div></form>{payments.length ? <div className="border-t pt-3"><h3 className="text-sm font-medium">{t("Recent payments")}</h3><ul className="mt-2 grid gap-2">{payments.slice(0, 5).map((item) => <li key={item.id} className="flex justify-between text-sm"><span>{item.receiptNumber}</span><span>{item.status === "reversed" ? t("Cancelled") : t("Posted")}</span></li>)}</ul></div> : null}</section>;
 }
 
 function ContactSection({ memberId, contacts, onChanged }: { memberId: string; contacts: MemberDetail["contacts"]; onChanged: () => void }) {

@@ -47,6 +47,8 @@ export type Charge = {
 	paymentState: "paid" | "partial" | "overdue" | "pending" | "void";
 };
 
+export type PaymentMethod = { id: string; name: string | null; isActive: boolean; readOnly: boolean };
+
 export type Payment = {
 	id: string;
 	memberId: string;
@@ -55,7 +57,9 @@ export type Payment = {
 	amountMinor: number;
 	currency: string;
 	paidAt: string;
-	method: "cash" | "bank_transfer" | "card" | "other";
+	method: string;
+	methodName: string | null;
+	paymentMethodId: string | null;
 	receiptNumber: string;
 	status: "posted" | "reversed";
 	allocatedMinor: number;
@@ -87,6 +91,9 @@ async function requestJson<T>(path: string, organizationId: string, init?: Reque
 const write = (method: "POST" | "PATCH", body: unknown): RequestInit => ({ method, body: JSON.stringify(body) });
 
 export const controlMembersApi = {
+	paymentMethods: (organizationId: string, mode: "active" | "inactive" | "history" = "active") => requestJson<{ methods: PaymentMethod[]; canManage: boolean }>(`/api/payment-methods?${mode}=1`, organizationId),
+	createPaymentMethod: (organizationId: string, name: string) => requestJson<PaymentMethod>("/api/payment-methods", organizationId, write("POST", { name })),
+	updatePaymentMethod: (organizationId: string, id: string, input: { name?: string; isActive?: boolean }) => requestJson<PaymentMethod>(`/api/payment-methods/${encodeURIComponent(id)}`, organizationId, write("PATCH", input)),
 	members: (organizationId: string, search = "", status = "", offset = 0) => requestJson<{ members: CustomerMember[]; nextOffset: number | null; currency: string | null }>(`/api/customer-members?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&offset=${offset}`, organizationId),
 	createMember: (organizationId: string, input: Record<string, unknown>) => requestJson<CustomerMember>("/api/customer-members", organizationId, write("POST", input)),
 	member: (organizationId: string, id: string) => requestJson<MemberDetail>(`/api/customer-members/${encodeURIComponent(id)}`, organizationId),

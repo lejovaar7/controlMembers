@@ -56,7 +56,7 @@ export function ActionDialog({ options, open, onClose, returnFocus }: {
 		finally { busyRef.current = false; setPending(false); }
 	}
 
-	return <CenteredDialog title={options.title} description={options.description} open={open} pending={pending} destructive={options.destructive} onClose={onClose} returnFocus={returnFocus}>
+	return <CenteredDialog title={options.title} description={options.description} open={open} pending={pending} onClose={onClose} returnFocus={returnFocus}>
 		<form onSubmit={submit} aria-busy={pending}>
 			<div className="space-y-4 px-5 py-5 sm:px-7">
 				{options.summary ? <div className="rounded-xl border bg-muted/40 p-4 text-sm">{options.summary}</div> : null}
