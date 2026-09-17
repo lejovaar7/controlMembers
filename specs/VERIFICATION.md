@@ -1,5 +1,65 @@
 # ControlMembers Verification Record
 
+## 2026-09-17 — Navigation and dashboard caption cleanup
+
+- Removed the visible workspace caption from desktop/mobile navigation and the
+  currency caption above dashboard metrics. Kept the mobile drawer's accessible
+  title visually hidden and adjusted navigation padding below the logo.
+- Browser QA rendered the real AppLayout and DashboardPage with synthetic
+  session, company, branch and metrics data. Verified desktop and 390px layouts,
+  mobile drawer opening/closing, retained currency symbols and no console errors.
+- Typecheck, lint, Node checks, all 198 Worker tests with two workers and all
+  three environment builds/deployment dry runs passed. Removed the isolated
+  preview and confirmed LAN development health returned HTTP 200/database `ok`.
+
+## 2026-09-17 — Native selected-text drag mitigation
+
+- Added TextDragGuard at the application root to cancel native drags starting
+  from selected non-editable text, including dialog portals. Kept selection/copy,
+  input editing and explicit draggable controls available; no global click,
+  pointer, selection or overlay-state resets were introduced.
+- The reported Chrome loss of clicks after text selection resembles
+  [Chromium issue 560371177](https://issuetracker.google.com/issues/560371177).
+  The user's blocked Chrome tab was not connected to the browser tools, so this
+  is a mitigation of the suspected trigger, not a confirmed reproduction or a
+  recovery of that existing browser state.
+- Browser QA with real shared components and synthetic text confirmed dragstart
+  cancellation for selected page/dialog text, working clicks afterward, normal
+  popup opening/backdrop dismissal, select changes and allowed input-text drags.
+  The isolated preview disabled HMR during the final checks to avoid unrelated
+  concurrent landing updates resetting fixture state. No console warnings/errors.
+- Typecheck, lint, 27 environment checks, two catalog checks, two form checks,
+  198 Worker tests with two workers and all three environment builds/deployment
+  dry runs passed. No database writes, email sends or deployments were performed.
+
+## 2026-09-17 — Public landing redesign
+
+- Reworked the public home with a navy/blue editorial hero, an explicitly
+  fictional interactive preview, product benefits, workflow, FAQs and contact
+  links to MagdaSystems. Preserved the closed provisioning model and both catalogs.
+- Browser QA covered desktop and narrow layouts (312 and 390 CSS pixels),
+  English/Spanish switching, mouse and arrow-key preview tabs, section anchors,
+  native FAQ expansion, the external contact destination and the login route.
+  No horizontal page overflow was observed. Corrected a decorative note that
+  overlapped the fictional-data caption on mobile and rechecked its bounds.
+- Typecheck, ESLint, 31 Node checks and all 198 Worker tests passed. The local
+  optimized build passed; Vite retained its existing large-chunk warning.
+  No remote deployment or business-data mutation was performed.
+
+## 2026-09-17 — Shared dialog backdrop dismissal
+
+- Enabled backdrop dismissal in CenteredDialog whenever no save is pending.
+  All consumers inherit the behavior; pending saves continue to block dismissal.
+- Browser QA used the real shared dialog and select with synthetic form state.
+  Verified backdrop dismissal on desktop and at 390px, focus restoration, no
+  save on dismissal, inside clicks and nested selection keeping the dialog open,
+  and backdrop clicks remaining blocked during a simulated pending save.
+- All quality-gate stages passed: typecheck, lint, 27 environment checks, two
+  catalog checks, two form checks, 198 Worker tests with two workers, and all
+  three environment builds/deployment dry runs. Browser console had no warnings
+  or errors. Removed the isolated preview; the existing LAN development server
+  returned HTTP 200 with database status `ok`.
+
 ## 2026-09-17 — Settings page organization and header action
 
 - Reorganized Settings into a company summary, paired language cards on desktop,

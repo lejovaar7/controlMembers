@@ -55,6 +55,8 @@ to desktop width. Language and sign-out controls remain available in the drawer.
 Main content has a keyboard skip link and shared focusable page headings.
 The logo belongs to the sidebar navigation, without a horizontal separator
 under it, and links to the dashboard or member list according to report access.
+Navigation starts below the logo without a visible workspace caption; the mobile
+drawer retains a visually hidden accessible title.
 A soft right-side shadow separates navigation from the workspace without a hard
 vertical border. The company header groups a prominent company name with its
 branch below. Desktop account controls use a compact language selector, initials
@@ -64,8 +66,8 @@ navigation drawer. These compact selectors offer only registered languages
 suffix. The explicit company-inheritance option remains in personal settings.
 
 Dashboard cards use one column below 380 pixels, two on larger mobile screens
-and four on wide desktops. Amounts show the currency symbol first, with a shared
-currency caption above the cards to preserve legibility. The
+and four on wide desktops. Amounts show the currency symbol first without a
+separate currency caption above the dashboard cards. The
 collection visualization uses the API collection rate, with an explicit unknown
 state rather than inventing zero. Its accessible label includes the value.
 Period changes discard stale dashboard results, with structural skeletons and retry feedback.
@@ -76,6 +78,22 @@ column headers. Inputs and selects are at least 44 pixels tall; small shared
 buttons are at least 40 pixels. Reduced-motion preferences disable decoration
 and loading animations. Public, authentication, platform and tenant screens
 share the same surface, typography and control tokens.
+
+### Public landing page
+
+The public home uses an editorial layout with a large navy/blue headline,
+generous section spacing, a product overview, a three-step workflow, native
+expandable FAQs and a contact panel. Its styles are scoped to the landing;
+authentication and operational screens retain their existing presentation.
+Desktop and compact navigation link to the product, workflow and sign-in.
+Contact actions link to the MagdaSystems project contact section. There is no
+public signup or claim that online payment processing is available.
+
+An explicitly labeled fictional product preview lets visitors switch between
+overview, member and payment examples without reading or writing business data.
+Tabs support arrow keys, Home/End and selected-panel semantics. FAQs use native
+keyboard-operable disclosure controls. All copy is catalog-backed in English
+and Spanish, and decorative entrance motion respects reduced-motion settings.
 
 ### Date selection and focus convention
 
@@ -268,6 +286,12 @@ close the dialog and refresh the profile. Failed saves retain the entered values
 Saving disables fields and dismissal and guards against duplicate submissions.
 Date popovers sit above the dialog and below their nested month/year selects.
 
+`TextDragGuard` prevents native dragging of selected, non-editable page text,
+including text in dialog portals, to mitigate Chromium losing mouse input after
+selection drags. Selection and copying remain available. Inputs, textareas,
+contenteditable regions and explicitly draggable widgets retain native dragging.
+The guard does not suppress pointer/click events or change overlay focus rules.
+
 The shared Base UI dialog is centered above a dimmed backdrop, has a translated
 title and consequence, and identifies its confirmation action explicitly. The
 header starts directly with the title, without decorative icon badges, and
@@ -277,8 +301,9 @@ required, trimmed and limited to 500 characters; numeric fields retain domain
 bounds. The payment confirmation repeats its amount and allocation breakdown,
 and retries within the dialog retain the same idempotency key and timestamp.
 
-Cancel, Close and Escape dismiss without saving. Outside clicks do not discard
-an unfinished form. While saving, all fields and dismissal actions are disabled,
+Cancel, Close, Escape and clicking the backdrop dismiss without saving. Clicking
+inside the dialog or its nested controls keeps it open. While saving, all fields
+and dismissal actions, including backdrop clicks, are disabled,
 and the shared LoadingButton prevents duplicate submissions. Failed saves retain
 the form and show translated feedback inside the dialog. Base UI traps focus;
 opening focuses the heading to avoid immediately opening a mobile keyboard,
