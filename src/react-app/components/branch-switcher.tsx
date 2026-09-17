@@ -45,7 +45,7 @@ export function BranchSwitcher({
 				{t("Branch")}</label>
 			<select
 				id="branch-switcher"
-				className="border-input bg-background focus-visible:ring-ring h-8 min-w-0 max-w-full rounded-md border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+				className="focus-visible:ring-ring h-11 min-w-0 max-w-full rounded-lg border border-transparent bg-muted/50 px-2 text-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:outline-none"
 				value={activeBranchId ?? ""}
 				disabled={switching}
 				onChange={(event) => void handleChange(event.target.value)}

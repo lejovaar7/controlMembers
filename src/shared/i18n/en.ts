@@ -1,5 +1,6 @@
 /** English source messages are also stable, typed catalog keys. No user data here. */
 export const messages = [
+	"{language} · Company",
 	"Open the template in Excel or Google Sheets. Keep its column names and save it as CSV (comma-separated, .csv), not as an Excel workbook (.xlsx).",
 	"We could not add the members. Please try again.",
 	"Show password", "Hide password", "Loading reports…",

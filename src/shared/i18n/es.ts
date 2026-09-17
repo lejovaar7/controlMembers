@@ -1,6 +1,7 @@
 import type { Catalog } from "./en";
 
 export const es = {
+	"{language} · Company": "{language} · Empresa",
 	"Open the template in Excel or Google Sheets. Keep its column names and save it as CSV (comma-separated, .csv), not as an Excel workbook (.xlsx).": "Abre la plantilla en Excel o Google Sheets. Conserva los nombres de las columnas y guárdala como CSV (separado por comas, .csv), no como libro de Excel (.xlsx).",
 	"We could not add the members. Please try again.": "No pudimos agregar los miembros. Inténtalo de nuevo.",
 	"Show password": "Mostrar contraseña",

@@ -1,5 +1,29 @@
 # ControlMembers Verification Record
 
+## 2026-09-17 — Sidebar branding and company header refinement
+
+- Integrated the linked logo into the sidebar without a separator, added a soft
+  sidebar shadow and clearer active navigation styling. Header identity now
+  stacks company and branch; account controls include initials, name, role and
+  a compact inherited-language label. Mobile drawer controls retain access to
+  language and sign-out, with 44-pixel menu and close targets.
+- `npm run check` passed with 189 Worker tests and all target build/dry runs.
+- An interactive, isolated preview reused the actual shell presentation and
+  components with fixture company data. Desktop appearance was reviewed at 1440
+  pixels; long names produced no horizontal overflow at 320, 768, 1024 and 1440
+  pixels. The drawer opened at 390 pixels, showed its account controls, closed
+  with Escape and restored focus. No browser errors were recorded. The preview
+  did not test remote switching or sign-out and was removed afterward.
+
+## 2026-09-17 — Continuous company header
+
+- Removed the desktop sidebar's right border and matched the company header to
+  its opaque background. Navigation and responsive behavior are unchanged.
+- An isolated render of the actual shell presentation confirmed a zero-width
+  sidebar border and matching backgrounds at 1440 pixels, with no horizontal
+  overflow at 390 pixels. The temporary preview was removed afterward.
+- `npm run check` passed, including 189 Worker tests and all target dry runs.
+
 ## 2026-09-17 — Currency symbol before the amount
 
 - The shared money formatter now places the actual currency symbol first,

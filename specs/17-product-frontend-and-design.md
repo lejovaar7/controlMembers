@@ -53,6 +53,14 @@ breakpoint, a Base UI modal navigation drawer provides focus trapping, Escape
 handling and focus restoration. It closes after navigation and when switching
 to desktop width. Language and sign-out controls remain available in the drawer.
 Main content has a keyboard skip link and shared focusable page headings.
+The logo belongs to the sidebar navigation, without a horizontal separator
+under it, and links to the dashboard or member list according to report access.
+A soft right-side shadow separates navigation from the workspace without a hard
+vertical border. The company header groups a prominent company name with its
+branch below. Desktop account controls use a compact language selector, initials
+avatar, user name and company role; smaller screens retain these controls in the
+navigation drawer. The compact inherited-language option names the language and
+company source without clipping a long instruction.
 
 Dashboard cards use one column below 380 pixels, two on larger mobile screens
 and four on wide desktops. Amounts show the currency symbol first, with a shared
