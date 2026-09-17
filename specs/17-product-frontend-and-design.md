@@ -76,6 +76,46 @@ buttons are at least 40 pixels. Reduced-motion preferences disable decoration
 and loading animations. Public, authentication, platform and tenant screens
 share the same surface, typography and control tokens.
 
+### Date selection and focus convention
+
+Use the shared `components/date-picker.tsx` controls for month, individual date
+and date-range selection. Daily calendars use React DayPicker through shadcn's
+Calendar; all three controls use the existing Base UI Popover. Month filters
+show a twelve-month grid with year navigation and a current-month shortcut.
+Dashboard, Charges and Reports share MonthPicker; Payments uses DateRangePicker;
+Member birth dates and enrollment start dates use DatePicker.
+
+Payment ranges are drafts until "Apply dates". Escape and outside dismissal
+discard the draft. Clearing either endpoint preserves open-ended filtering;
+clearing both restores all dates. Single-date form controls submit a hidden
+date-only value. Preserve `YYYY-MM` and `YYYY-MM-DD` API values using local
+calendar fields rather than UTC conversion. Calendar captions, weekday names,
+navigation and accessible labels follow the app language.
+
+Popovers fit the viewport and scroll vertically when space is limited. Calendar
+days have 40-pixel targets; keyboard arrows move the active day, and closing
+returns focus to the trigger. Reuse stable DayPicker components in the wrapper
+to preserve its keyboard focus behavior across selection updates.
+
+Focus and hover borders use neutral gray tokens, including select triggers.
+Keyboard focus remains visible; pointer-only focus does not add a browser
+outline. Selected dates and primary actions retain the brand accent.
+
+### Dropdown convention
+
+Use `components/select-field.tsx`, backed by the existing Base UI Select, for
+single-choice dropdowns. Do not render native select menus in product pages.
+This includes filters, form fields, company/branch/language switching and the
+calendar's month/year menus. Pass explicit value/label options and use
+`onValueChange`; labels follow the existing translation catalog.
+
+The popup sits below its trigger when space permits, with a rounded surface,
+soft shadow, neutral highlighted rows and a check beside the selected option.
+Long labels wrap inside the popup while the trigger truncates within its layout.
+Lists scroll within available viewport space. Preserve keyboard arrows,
+typeahead, Escape, visible keyboard focus, disabled options, required validation
+and named form values through Base UI; selection must not submit the form.
+
 ### Loading convention
 
 Use the existing shadcn/ui Skeleton primitive for content with a known layout.

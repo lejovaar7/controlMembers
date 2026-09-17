@@ -1,5 +1,53 @@
 # ControlMembers Verification Record
 
+## 2026-09-17 — Styled dropdowns throughout the application
+
+- Replaced 20 native select fields with a shared Base UI Select wrapper. Filters,
+  forms and company/branch/language switching retain their value handlers,
+  conditional options, disabled states and form names. Calendar month/year
+  selectors also use the wrapper. The native blue option highlight is replaced
+  by neutral rows, a selection check, rounded corners and a soft popup shadow.
+- `npm run check` passed, including 192 Worker tests, catalog checks and all
+  environment builds/dry runs. Browser QA used the actual Charges page with
+  fixture read responses, plus shared form/calendar controls, without real writes.
+  At 1440 and 320 pixels, inspected popup styling, long-label wrapping and no
+  horizontal overflow. Verified arrow-key and typeahead selection updates the
+  Charges URL, required empty values block submission, named form values submit,
+  disabled controls/options remain disabled, and Escape restores trigger focus.
+- Calendar testing found its absolute navigation bar intercepting clicks on the
+  new month/year triggers. Relative positioning fixed the hit target. Mouse
+  selection of April 2025 and a day returned the expected `2025-04-01` value.
+  No browser warnings or errors were recorded in the final preview.
+
+## 2026-09-17 — Shared date pickers and neutral focus borders
+
+- Added pinned React DayPicker 10.0.1/date-fns 4.4.0 with shadcn Calendar and
+  Base UI Popover. Shared month, single-date and range wrappers replace native
+  date/month inputs in Dashboard, Charges, Reports, Payments and Member detail.
+  Payments applies draft ranges explicitly and retains open-ended filters.
+- Neutral focus tokens replace blue outlines, including native selects; shared
+  Button/Input hover borders also use neutral tokens. Keyboard focus remains
+  visible. Calendar values serialize local fields without UTC date shifts.
+- `npm run check` passed: 27 environment/bootstrap checks, 2 catalog checks,
+  192 Worker-runtime tests and all three build/dry runs. Three new tests cover
+  calendar serialization, invalid dates, leap days and billing periods. After
+  browser-discovered width and keyboard fixes, typecheck, lint and the local
+  production build passed again. Both npm audits reported zero vulnerabilities.
+  Vite still reports the existing main-chunk size advisory; this change adds
+  calendar code to that shared bundle.
+- An isolated interactive preview used the actual date components and compiled
+  application CSS. Verified month/year selection, range apply/clear, an
+  end-only range, draft cancellation, English/Spanish labels, birth-date form
+  serialization and keyboard arrows/Enter/Escape with trigger focus restoration.
+  Reviewed desktop at 1440 pixels and mobile at 390 and 320 pixels. At 320,
+  popup scrollWidth equals clientWidth and the page has no horizontal overflow.
+  Computed native-select focus color is neutral `rgb(115, 115, 115)`.
+  No browser errors were recorded after the fixes. No real records were changed;
+  this preview does not replace an authenticated end-to-end payment filter test.
+- Restarted the existing development server after dependency installation left
+  its old client blank. The actual login page then rendered successfully at
+  `http://192.168.1.235:5173/login` with no browser errors.
+
 ## 2026-09-17 — Sidebar branding and company header refinement
 
 - Integrated the linked logo into the sidebar without a separator, added a soft
