@@ -1,5 +1,23 @@
 /** English source messages are also stable, typed catalog keys. No user data here. */
 export const messages = [
+	"Choose a month",
+	"Previous year",
+	"Next year",
+	"This month",
+	"Choose a date",
+	"Clear date",
+	"Today",
+	"From {date}",
+	"Until {date}",
+	"All dates",
+	"Date range",
+	"Choose the first and last day.",
+	"No limit",
+	"Clear start date",
+	"Clear end date",
+	"Clear dates",
+	"Apply dates",
+
 	"{language} · Company",
 	"Open the template in Excel or Google Sheets. Keep its column names and save it as CSV (comma-separated, .csv), not as an Excel workbook (.xlsx).",
 	"We could not add the members. Please try again.",

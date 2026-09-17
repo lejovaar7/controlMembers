@@ -1,3 +1,4 @@
+import { MonthPicker } from "@/components/date-picker";
 import { CurrencyLabel } from "@/components/currency-label";
 import { formatMoney } from "../../shared/i18n";
 import { DashboardSkeleton } from "@/components/content-skeleton";
@@ -6,7 +7,6 @@ import { Link, Navigate } from "react-router";
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, CalendarClock, CircleCheckBig, Clock3, Plus, UsersRound, WalletCards } from "lucide-react";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppShell } from "@/hooks/use-app-shell";
 import { controlMembersApi, currentPeriod } from "@/lib/controlmembers";
@@ -37,7 +37,7 @@ export function DashboardPage() {
  const rate = metrics?.collectionRate;
  const percent = rate == null ? "—" : new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 }).format(rate);
  return <PageContainer className="space-y-6">
-  <PageHeader title={t("Dashboard")} description={t("A clear view of monthly collections and outstanding balances.")} actions={<div className="grid gap-1.5"><Label htmlFor="dashboard-period">{t("Period")}</Label><Input className="w-60 max-w-full" id="dashboard-period" type="month" required value={period} onChange={(event) => { if (event.target.value) { setFailed(false); setPeriod(event.target.value); } }} /></div>} />
+  <PageHeader title={t("Dashboard")} description={t("A clear view of monthly collections and outstanding balances.")} actions={<div className="grid gap-1.5"><Label htmlFor="dashboard-period">{t("Period")}</Label><MonthPicker className="w-60 max-w-full" id="dashboard-period" label={t("Period")} value={period} onChange={(value) => { setFailed(false); setPeriod(value); }} /></div>} />
   {failed ? <div role="alert" className="flex flex-wrap items-center justify-between gap-3">{t("We could not load the dashboard.")}<Button variant="outline" onClick={() => { setFailed(false); setRevision((value) => value + 1); }}>{t("Try again")}</Button></div> : null}
   {!metrics && !failed ? <DashboardSkeleton label={t("Loading dashboard…")} /> : null}
   {metrics && !failed ? <>

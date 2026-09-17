@@ -1,3 +1,4 @@
+import { SelectField } from "@/components/select-field";
 import { LoadingButton } from "@/components/loading-button";
 import { localeOptions, type MessageKey } from "../../shared/i18n";
 import { useI18n } from "@/lib/i18n";
@@ -125,9 +126,7 @@ export function PlatformNewOrganizationPage() {
 			<form onSubmit={handleSubmit} className="flex max-w-xl flex-col gap-5 rounded-xl border bg-card p-5 sm:p-7">
 				<div className="grid gap-2">
 					<Label htmlFor="locale">{t("Company language")}</Label>
-					<select id="locale" name="locale" defaultValue={locale} required className="h-10 min-w-0 rounded-md border bg-background px-3">
-						{localeOptions.map((option) => <option key={option.value} value={option.value} lang={option.value}>{option.name}</option>)}
-					</select>
+					<SelectField id="locale" name="locale" defaultValue={locale} required className="h-11 min-w-0 rounded-md border bg-background px-3" options={[...localeOptions.map((option) => ({ value: option.value, lang: option.value, label: option.name }))]} />
 				</div>
 				<div className="grid gap-2">
 					<Label htmlFor="companyName">{t("Company name")}</Label>

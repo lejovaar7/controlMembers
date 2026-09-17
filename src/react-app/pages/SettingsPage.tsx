@@ -1,3 +1,4 @@
+import { SelectField } from "@/components/select-field";
 import { LoadingButton } from "@/components/loading-button";
 import { PageContainer, PageHeader } from "@/components/page";
 import { useAppShell } from "@/hooks/use-app-shell";
@@ -47,10 +48,7 @@ function CompanyLanguageForm({ company }: { company: NonNullable<LocalePreferenc
 	return <form onSubmit={submit} className="grid max-w-3xl gap-4 rounded-xl border bg-card p-6">
 		<label htmlFor="company-language" className="font-medium">{t("Company language")}</label>
 		<p className="text-sm text-muted-foreground">{t("This language is used by people who have not chosen a personal language. Names and other entered data are not translated.")}</p>
-		<select id="company-language" value={selection} required className="h-10 min-w-0 rounded-md border bg-background px-3" disabled={pending || !company.canEdit}
-			onChange={(event) => { if (isLocale(event.target.value)) setDraft(event.target.value); setFeedback(null); }}>
-			{localeOptions.map((option) => <option key={option.value} value={option.value} lang={option.value}>{option.name}</option>)}
-		</select>
+		<SelectField id="company-language" value={selection} required className="h-11 min-w-0 rounded-md border bg-background px-3" disabled={pending || !company.canEdit} onValueChange={(value) => { if (isLocale(value)) setDraft(value); setFeedback(null); }} options={[...localeOptions.map((option) => ({ value: option.value, lang: option.value, label: option.name }))]} />
 		{company.canEdit ? <LoadingButton loading={pending} loadingLabel={t("Saving…")} type="submit" disabled={pending}>{t("Save company language")}</LoadingButton>
 			: <p className="text-sm text-muted-foreground">{t("Only a company owner or administrator can change the company language.")}</p>}
 		{feedback && <p role={feedback === "failed" ? "alert" : "status"} className="text-sm">{t(feedback === "saved" ? "Company language saved." : "We could not save the language. Please try again.")}</p>}

@@ -1,3 +1,4 @@
+import { SelectField } from "@/components/select-field";
 import { LoadingButton } from "@/components/loading-button";
 import type { MessageKey } from "../../shared/i18n";
 import { useT } from "@/lib/i18n";
@@ -67,15 +68,11 @@ export function MemberForm({ branches, member, allBranchesAllowed, canAppointAdm
 			</>}
 			<div className="grid gap-2">
 				<Label htmlFor={`${id}-role`}>{t("Company role")}</Label>
-				<select id={`${id}-role`} autoFocus={Boolean(member)} className="h-10 rounded-md border bg-background px-3 focus-visible:outline-2 focus-visible:outline-ring" value={role} onChange={(event) => setRole(event.target.value as "member" | "admin")}>
-					<option value="member">{t("User")}</option>{canAppointAdmins && <option value="admin">{t("Admin")}</option>}
-				</select>
+				<SelectField id={`${id}-role`} autoFocus={Boolean(member)} className="h-11 rounded-md border bg-background px-3 " value={role} onValueChange={(value) => setRole(value as "member" | "admin")} options={[{ value: "member", label: t("User") }, ...(canAppointAdmins ? [{ value: "admin", label: t("Admin") }] : [])]} />
 			</div>
 			{role === "admin" && allBranchesAllowed && <div className="grid gap-2">
 				<Label htmlFor={`${id}-scope`}>{t("Branch access")}</Label>
-				<select id={`${id}-scope`} className="h-10 rounded-md border bg-background px-3 focus-visible:outline-2 focus-visible:outline-ring" value={allBranches ? "all" : "assigned"} onChange={(event) => setAllBranches(event.target.value === "all")}>
-					<option value="all">{t("All current and future branches")}</option><option value="assigned">{t("Selected branches only")}</option>
-				</select>
+				<SelectField id={`${id}-scope`} className="h-11 rounded-md border bg-background px-3 " value={allBranches ? "all" : "assigned"} onValueChange={(value) => setAllBranches(value === "all")} options={[{ value: "all", label: t("All current and future branches") }, { value: "assigned", label: t("Selected branches only") }]} />
 			</div>}
 			{role === "admin" && allBranches ? <p className="text-sm text-muted-foreground">{t("Access includes every current and future branch in this company.")}</p> : <fieldset className="grid gap-2" aria-describedby={`${id}-branches-help`}>
 				<legend className="mb-2 font-medium text-sm">{t("Branches")}</legend>

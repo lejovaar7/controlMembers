@@ -1,6 +1,24 @@
 import type { Catalog } from "./en";
 
 export const es = {
+	"Choose a month": "Elige un mes",
+	"Previous year": "Año anterior",
+	"Next year": "Año siguiente",
+	"This month": "Este mes",
+	"Choose a date": "Elige una fecha",
+	"Clear date": "Borrar fecha",
+	"Today": "Hoy",
+	"From {date}": "Desde {date}",
+	"Until {date}": "Hasta {date}",
+	"All dates": "Todas las fechas",
+	"Date range": "Rango de fechas",
+	"Choose the first and last day.": "Elige el día de inicio y el de fin.",
+	"No limit": "Sin límite",
+	"Clear start date": "Borrar fecha de inicio",
+	"Clear end date": "Borrar fecha de fin",
+	"Clear dates": "Borrar fechas",
+	"Apply dates": "Aplicar fechas",
+
 	"{language} · Company": "{language} · Empresa",
 	"Open the template in Excel or Google Sheets. Keep its column names and save it as CSV (comma-separated, .csv), not as an Excel workbook (.xlsx).": "Abre la plantilla en Excel o Google Sheets. Conserva los nombres de las columnas y guárdala como CSV (separado por comas, .csv), no como libro de Excel (.xlsx).",
 	"We could not add the members. Please try again.": "No pudimos agregar los miembros. Inténtalo de nuevo.",

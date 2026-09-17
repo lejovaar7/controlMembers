@@ -1,3 +1,4 @@
+import { SelectField } from "@/components/select-field";
 import { useId, useState } from "react";
 import { Globe2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,11 +27,7 @@ export function LanguagePicker({ compact = false }: { compact?: boolean }) {
 		<label htmlFor={id} className="sr-only">{t(authenticated ? "My language" : "Language")}</label>
 		<div className="relative min-w-0">
 		{compact && <Globe2 aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />}
-		<select id={id} className={cn("h-10 min-w-0 w-full max-w-full rounded-md border bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", compact ? "h-11 rounded-xl border-transparent bg-muted/50 pl-9 pr-3 hover:bg-muted" : "lg:max-w-48")} disabled={pending}
-			value={authenticated ? preferences?.userLocale ?? (canUseCompanyLanguage ? "" : locale) : locale} onChange={(event) => void change(event.target.value)}>
-			{canUseCompanyLanguage && <option value="">{t(compact ? "{language} · Company" : "Use company language ({language})", { language: languages[companyLocale].name })}</option>}
-			{localeOptions.map((option) => <option key={option.value} value={option.value} lang={option.value}>{option.name}</option>)}
-		</select>
+		<SelectField id={id} className={cn("h-11 min-w-0 w-full max-w-full rounded-md border bg-background px-2 text-sm ", compact ? "h-11 rounded-xl border-transparent bg-muted/50 pl-9 pr-3 hover:bg-muted" : "lg:max-w-48")} disabled={pending} value={authenticated ? preferences?.userLocale ?? (canUseCompanyLanguage ? "" : locale) : locale} onValueChange={(value) => void change(value)} options={[...(canUseCompanyLanguage ? [{ value: "", label: t(compact ? "{language} · Company" : "Use company language ({language})", { language: languages[companyLocale].name }) }] : []), ...localeOptions.map((option) => ({ value: option.value, lang: option.value, label: option.name }))]} />
 		</div>
 		{pending && <Loader size="inline" label={t("Saving…")} />}
 		{failed && <p role="alert" className="text-sm text-destructive">{t("We could not save the language. Please try again.")}</p>}

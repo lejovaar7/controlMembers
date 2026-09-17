@@ -1,3 +1,4 @@
+import { SelectField } from "@/components/select-field";
 import { formatMoney, currencyName } from "../../shared/i18n";
 import { LoadingButton } from "@/components/loading-button";
 import { FormSkeleton } from "@/components/content-skeleton";
@@ -90,7 +91,7 @@ function SettingsForm({ settings, onSaved }: { settings: BillingSettings; onSave
 	}
 	return <form onSubmit={submit} className="grid gap-4 rounded-xl border bg-card p-4 sm:grid-cols-2">
 		<div className="sm:col-span-2"><h2 className="text-lg font-semibold">{t("Billing settings")}</h2><p className="text-sm text-muted-foreground">{t("Choose the currency and timezone used for billing.")}</p></div>
-		<div className="grid min-w-0 gap-2"><Label htmlFor="billing-currency">{t("Currency")}</Label><select id="billing-currency" className="h-11 w-full min-w-0 rounded-md border bg-background px-3" value={currency} onChange={(event) => setCurrency(event.target.value)} required>{availableCurrencies(currency).map((code) => ({ code, name: currencyName(locale, code) })).sort((a, b) => a.name.localeCompare(b.name, locale)).map(({ code, name }) => <option key={code} value={code}>{name}</option>)}</select></div>
+		<div className="grid min-w-0 gap-2"><Label htmlFor="billing-currency">{t("Currency")}</Label><SelectField id="billing-currency" className="h-11 w-full min-w-0 rounded-md border bg-background px-3" value={currency} onValueChange={(value) => setCurrency(value)} required options={[...availableCurrencies(currency).map((code) => ({ code, name: currencyName(locale, code) })).sort((a, b) => a.name.localeCompare(b.name, locale)).map(({ code, name }) => ({ value: code, label: name }))]} /></div>
 		<div className="grid gap-2"><Label htmlFor="billing-timezone">{t("Timezone")}</Label><Input id="billing-timezone" value={timezone} maxLength={100} onChange={(event) => setTimezone(event.target.value)} required /></div>
 		<div className="flex flex-wrap items-center gap-3 sm:col-span-2"><LoadingButton loading={pending} loadingLabel={t("Saving…")} disabled={pending}>{t("Save billing settings")}</LoadingButton>{feedback ? <span role={feedback === "failed" ? "alert" : "status"} className="text-sm">{t(feedback === "saved" ? "Billing settings saved." : "We could not save billing settings.")}</span> : null}</div>
 	</form>;

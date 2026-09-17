@@ -1,10 +1,10 @@
+import { MonthPicker } from "@/components/date-picker";
 import { CurrencyLabel } from "@/components/currency-label";
 import { formatMoney } from "../../shared/i18n";
 import { useEffect, useState } from "react";
 import { DashboardSkeleton } from "@/components/content-skeleton";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppShell } from "@/hooks/use-app-shell";
 import { controlMembersApi, currentPeriod } from "@/lib/controlmembers";
@@ -33,7 +33,7 @@ export function ReportsPage() {
 	const download = (kind: string) => window.open(`/api/exports/${kind}${["receivables", "payments"].includes(kind) ? `?period=${encodeURIComponent(period)}` : ""}`, "_blank", "noopener,noreferrer");
 	return <PageContainer className="space-y-6">
 		<PageHeader title={t("Reports")} description={t("Review balances and export lists of members, charges and payments.")} />
-		<div className="flex flex-wrap items-end gap-4 rounded-xl border bg-card p-5"><div className="grid gap-2"><Label htmlFor="report-period">{t("Period")}</Label><Input id="report-period" type="month" value={period} onChange={(event) => setPeriod(event.target.value)} /></div>{shell.canExportFinancialData ? <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => download("members")}>{t("Export members")}</Button><Button variant="outline" onClick={() => download("member-balances")}>{t("Export balances")}</Button><Button variant="outline" onClick={() => download("receivables")}>{t("Export receivables")}</Button><Button variant="outline" onClick={() => download("payments")}>{t("Export payments")}</Button></div> : null}</div>
+		<div className="flex flex-wrap items-end gap-4 rounded-xl border bg-card p-5"><div className="grid gap-2"><Label htmlFor="report-period">{t("Period")}</Label><MonthPicker id="report-period" label={t("Period")} value={period} onChange={setPeriod} /></div>{shell.canExportFinancialData ? <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => download("members")}>{t("Export members")}</Button><Button variant="outline" onClick={() => download("member-balances")}>{t("Export balances")}</Button><Button variant="outline" onClick={() => download("receivables")}>{t("Export receivables")}</Button><Button variant="outline" onClick={() => download("payments")}>{t("Export payments")}</Button></div> : null}</div>
 		{failed ? <p role="alert">{t("We could not load reports.")}</p> : null}
 		{loading ? <DashboardSkeleton label={t("Loading reports…")} /> : null}
 		{!loading && !failed && summary ? <>

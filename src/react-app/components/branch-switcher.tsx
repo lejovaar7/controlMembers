@@ -1,3 +1,4 @@
+import { SelectField } from "@/components/select-field";
 import { useT } from "@/lib/i18n";
 import { Loader } from "@/components/loader";
 import { useState } from "react";
@@ -43,19 +44,9 @@ export function BranchSwitcher({
 		<div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
 			<label htmlFor="branch-switcher" className="sr-only">
 				{t("Branch")}</label>
-			<select
-				id="branch-switcher"
-				className="focus-visible:ring-ring h-11 min-w-0 max-w-full rounded-lg border border-transparent bg-muted/50 px-2 text-sm text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:outline-none"
-				value={activeBranchId ?? ""}
-				disabled={switching}
-				onChange={(event) => void handleChange(event.target.value)}
-			>
-				{branches.map((branch) => (
-					<option key={branch.id} value={branch.id}>
-						{branch.name}
-					</option>
-				))}
-			</select>
+			<SelectField id="branch-switcher" className="h-11 min-w-0 max-w-full rounded-lg border border-transparent bg-muted/50 px-2 text-sm text-muted-foreground hover:bg-muted " value={activeBranchId ?? ""} disabled={switching} onValueChange={(value) => void handleChange(value)} options={[...branches.map((branch) => (
+					({ value: branch.id, label: branch.name })
+				))]} />
 			{switching && <Loader size="inline" label={t("Loading workspace…")} />}
 			{failed ? <span role="alert" className="text-destructive text-sm">{t("Could not switch branch. Try again.")}</span> : null}
 		</div>
