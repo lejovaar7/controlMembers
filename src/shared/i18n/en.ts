@@ -119,7 +119,6 @@ export const messages = [
 	"If you were not expecting this invitation, you can ignore this email.", "Finish setting up your account",
 	"You have been given access to the application. Use this secure link to confirm your address and choose a password.",
 	"Set up my account", "If you were not expecting this, you can ignore this email.",
-	"If the link does not work, copy this URL into your browser:",
 	"Manage companies, owners and access from one place.",
 	"Search companies",
 	"Company name or owner email",

@@ -169,8 +169,9 @@ describe("recipient-based transactional email", () => {
 			expect(result.subject).not.toBe(builder("https://example.invalid/").subject);
 			expect(result.text).toContain("puedes ignorar este correo");
 			expect(result.html).toContain('lang="es"');
-			expect(result.html).toContain("Si el enlace no funciona");
-			expect(result.html).toContain("a=1&amp;b=2");
+			expect(result.html).toContain('href="https://example.invalid/?a=1&amp;b=2"');
+			expect(result.html.replace(/<[^>]*>/g, "")).not.toContain("https://");
+			expect(result.text).toContain("https://example.invalid/?a=1&b=2");
 		}
 		const invitation = organizationInvitationEmail("<img src=x>", "<script>bad()</script>", "https://example.invalid/", "es");
 		expect(invitation.subject).toBe("Acceso a <img src=x>");

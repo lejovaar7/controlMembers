@@ -450,7 +450,6 @@ export const es = {
 	"You have been given access to the application. Use this secure link to confirm your address and choose a password.": "Se te ha concedido acceso a la aplicación. Usa este enlace seguro para confirmar tu correo y elegir una contraseña.",
 	"Set up my account": "Configurar mi cuenta",
 	"If you were not expecting this, you can ignore this email.": "Si no esperabas este mensaje, puedes ignorar este correo.",
-	"If the link does not work, copy this URL into your browser:": "Si el enlace no funciona, copia esta dirección en tu navegador:",
 	"Manage companies, owners and access from one place.": "Administra empresas, propietarios y accesos desde un solo lugar.",
 	"Search companies": "Buscar empresas",
 	"Company name or owner email": "Nombre de empresa o correo del propietario",

@@ -77,8 +77,10 @@ Invitations precede membership, so that future server-only hook resolves the
 recipient preference and the Organization already authorized by Better Auth.
 The sender/administrator's personal language never chooses someone else's email.
 
-All templates share the UI catalogs: subject, text, HTML, actions, alternative
-link instructions and footer. HTML escapes interpolated names/URLs after
+All templates share a branded layout and a localized action link styled as a
+button. HTML does not display raw URLs; the plain-text alternative retains the
+full link for mail clients that cannot render HTML. Subjects, body copy, actions
+and footers share the UI catalogs. HTML escapes interpolated names/URLs after
 translation and declares language/direction. Callback URLs carry the resolved
 `lang` without changing Better Auth tokens or existing flags. It preserves the
 activation-page language before company selection but grants no authority and

@@ -5,6 +5,23 @@ production deployment. The latest repository checkpoint is recorded first; earli
 localization, environment, Starter v1 and dependency-remediation evidence from
 the inherited foundation is preserved below.
 
+## 2026-09-17: Branded email action links
+
+Updated the shared transactional email layout with ControlMembers branding,
+spacing and an action link styled as a button. Removed visible raw URLs from
+HTML while preserving the full destination in the link and plain-text fallback.
+Removed the obsolete fallback instruction from both language catalogs. Existing
+localization checks now verify the escaped destination and absence of visible
+URLs while retaining a usable plain-text link.
+
+`npm run check` passed: typecheck, lint, 27 environment/bootstrap tests, two i18n
+checks, 188 Workers tests and all three build/dry-runs. `git diff --check` passed.
+The running development health endpoint returned HTTP 200. Subsequent
+operator-requested preview messages using this layout were accepted by Cloudflare
+Email Sending. Rendering in the recipient's mail client still requires recipient
+confirmation. Temporary sending scripts were removed. The existing client
+chunk-size warning remains.
+
 ## 2026-09-17: Operator-requested remote dev data reset
 
 Exported `controlmembers-dev-db` to an ignored backup before clearing all 23
