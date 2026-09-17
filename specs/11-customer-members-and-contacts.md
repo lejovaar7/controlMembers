@@ -95,6 +95,12 @@ List inputs include bounded cursor/page size, normalized search, status,
 accessible Branch and receivables state. Receivables filtering may delegate to
 the ledger query specified in 14 rather than duplicating balance logic.
 
+Each listed Member includes the outstanding balance of open Charges, subtracting
+only allocations from posted Payments. Aggregate allocations per Charge before
+adding Member totals so multiple Payments cannot multiply a Charge's amount.
+Voided Charges and reversed Payments do not contribute; Members without Charges
+have a zero balance. Resolve balances only for Members on the authorized page.
+
 ## Frontend target
 
 - Searchable Member list with distinct loading, empty and failure states.
@@ -108,6 +114,9 @@ the ledger query specified in 14 rather than duplicating balance logic.
 ## Acceptance checks
 
 - Creating a Member never creates a Better Auth user or Organization membership.
+- A newly created Member appears in the next list request even without financial
+  history. List balances remain consistent after partial Payments, reversals,
+  Charge adjustments/voids and multiple Payments against the same Charge.
 - Identical names are permitted; opaque IDs and normalized identifiers prevent
   accidental record selection.
 - Contact relationships support siblings without duplicating the Contact.

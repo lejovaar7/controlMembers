@@ -82,9 +82,19 @@ export async function listCustomerMembers(env: Env, request: Request) {
 	const ids = visible.map((row) => row.id);
 	const balances = ids.length ? await db.select({
 		memberId: charge.memberId,
-		outstandingMinor: sql<number>`coalesce(sum(case when ${charge.status} = 'open' then ${charge.totalMinor} - coalesce((select sum(${allocation.amountMinor}) from ${allocation} inner join ${payment} on ${payment.id} = ${allocation.paymentId} where ${allocation.chargeId} = ${charge.id} and ${payment.status} = 'posted'), 0) else 0 end), 0)`,
-	}).from(charge).where(and(eq(charge.organizationId, tenant.organizationId), inArray(charge.memberId, ids))).groupBy(charge.memberId) : [];
-	const byMember = new Map(balances.map((row) => [row.memberId, Number(row.outstandingMinor)]));
+		totalMinor: charge.totalMinor,
+		paidMinor: sql<number>`coalesce(sum(case when ${payment.status} = 'posted' then ${allocation.amountMinor} else 0 end), 0)`,
+	}).from(charge)
+		.leftJoin(allocation, eq(allocation.chargeId, charge.id))
+		.leftJoin(payment, eq(payment.id, allocation.paymentId))
+		.where(and(eq(charge.organizationId, tenant.organizationId), inArray(charge.memberId, ids), eq(charge.status, "open")))
+		.groupBy(charge.id, charge.memberId, charge.totalMinor) : [];
+	// Aggregate each charge first so multiple allocations do not multiply its total.
+	const byMember = new Map<string, number>();
+	for (const row of balances) {
+		const outstandingMinor = Math.max(0, row.totalMinor - Number(row.paidMinor));
+		byMember.set(row.memberId, (byMember.get(row.memberId) ?? 0) + outstandingMinor);
+	}
 	return { members: visible.map((row) => ({ ...row, outstandingMinor: byMember.get(row.id) ?? 0 })), nextOffset: rows.length > limit ? offset + limit : null, currency: tenant.currency };
 }
 

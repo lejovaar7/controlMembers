@@ -18,6 +18,12 @@ let planId: string;
 let januaryChargeId: string;
 let paymentId: string;
 
+async function expectMemberBalance(outstandingMinor: number) {
+	const response = await callApi("/api/customer-members?search=Ana&limit=1", staff);
+	expect(response.status).toBe(200);
+	expect(await response.json()).toMatchObject({ members: [{ id: customerId, outstandingMinor }], nextOffset: null, currency: "COP" });
+}
+
 beforeAll(async () => {
 	owner = await createActor("mvp-owner@test.invalid");
 	staff = await createActor("mvp-staff@test.invalid");
@@ -48,6 +54,9 @@ describe("ControlMembers MVP workflow", () => {
 		expect(created).toMatchObject({ status: "active", outstandingMinor: 0 });
 		const [stored] = await getDb(env).select().from(customerMember).where(eq(customerMember.id, customerId));
 		expect(stored).toMatchObject({ organizationId, displayName: "Ana Pérez", normalizedDocument: "1001" });
+		const list = await callApi("/api/customer-members?search=&status=&offset=0", owner);
+		expect(list.status).toBe(200);
+		expect(await list.json()).toMatchObject({ members: [{ id: customerId, outstandingMinor: 0 }] });
 		expect((await callApi("/api/customer-members", owner, { displayName: "Foreign", primaryBranchId: foreignBranchId })).status).toBe(404);
 	});
 
@@ -78,6 +87,7 @@ describe("ControlMembers MVP workflow", () => {
 		const body = await list.json() as { charges: Array<{ id: string; paymentState: string; outstandingMinor: number }> };
 		januaryChargeId = body.charges[0]!.id;
 		expect(body.charges[0]).toMatchObject({ paymentState: "overdue", outstandingMinor: 10000 });
+		await expectMemberBalance(10000);
 	});
 
 	it("posts a partial Payment once and preserves Member credit math", async () => {
@@ -92,6 +102,7 @@ describe("ControlMembers MVP workflow", () => {
 		expect((await retry.json() as { id: string }).id).toBe(paymentId);
 		const chargeList = await callApi("/api/charges?period=2026-01", owner);
 		expect((await chargeList.json() as { charges: Array<{ paymentState: string; outstandingMinor: number }> }).charges[0]).toMatchObject({ paymentState: "partial", outstandingMinor: 6000 });
+		await expectMemberBalance(6000);
 	});
 
 	it("requires permission to reverse and restores the Charge balance", async () => {
@@ -99,6 +110,7 @@ describe("ControlMembers MVP workflow", () => {
 		expect((await callApi(`/api/payments/${paymentId}/reverse`, owner, { reason: "Wrong amount" }, "PATCH")).status).toBe(200);
 		const list = await callApi("/api/charges?period=2026-01", owner);
 		expect((await list.json() as { charges: Array<{ outstandingMinor: number }> }).charges[0]!.outstandingMinor).toBe(10000);
+		await expectMemberBalance(10000);
 	});
 
 	it("adjusts and voids an unallocated Charge with audit evidence", async () => {
@@ -106,14 +118,19 @@ describe("ControlMembers MVP workflow", () => {
 		const list = await callApi("/api/charges?period=2026-02", owner);
 		const chargeId = (await list.json() as { charges: Array<{ id: string }> }).charges[0]!.id;
 		expect((await callApi(`/api/charges/${chargeId}/adjust`, owner, { adjustmentMinor: 1000, reason: "Equipment fee" }, "PATCH")).status).toBe(200);
+		await expectMemberBalance(21000);
 		expect((await callApi(`/api/charges/${chargeId}/void`, owner, { reason: "Created by mistake" }, "PATCH")).status).toBe(200);
+		await expectMemberBalance(10000);
 		const events = await getDb(env).select().from(auditEvent).where(and(eq(auditEvent.organizationId, organizationId), eq(auditEvent.subjectId, chargeId)));
 		expect(events.map((event) => event.eventType)).toEqual(expect.arrayContaining(["charge.adjusted", "charge.voided"]));
 	});
 
-	it("reconciles dashboard metrics after a full replacement Payment", async () => {
-		const payment = await callApi("/api/payments", owner, { memberId: customerId, branchId, amountMinor: 10000, method: "bank_transfer", paidAt: "2026-01-20T12:00:00.000Z", idempotencyKey: "pay-full-1", allocations: [{ chargeId: januaryChargeId, amountMinor: 10000 }] });
-		expect(payment.status).toBe(201);
+	it("reconciles member balances and dashboard metrics after multiple replacement Payments", async () => {
+		for (const amountMinor of [6000, 4000]) {
+			const payment = await callApi("/api/payments", owner, { memberId: customerId, branchId, amountMinor, method: "bank_transfer", paidAt: "2026-01-20T12:00:00.000Z", idempotencyKey: `pay-replacement-${amountMinor}`, allocations: [{ chargeId: januaryChargeId, amountMinor }] });
+			expect(payment.status).toBe(201);
+			await expectMemberBalance(amountMinor === 6000 ? 4000 : 0);
+		}
 		const dashboard = await callApi("/api/dashboard?period=2026-01", owner);
 		expect(await dashboard.json()).toMatchObject({ expectedMinor: 10000, collectedMinor: 10000, allocatedMinor: 10000, outstandingMinor: 0, overdueMembers: 0, collectionRate: 1 });
 	});
