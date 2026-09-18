@@ -9,7 +9,7 @@ import { formatMoney } from "../../shared/i18n";
 export function MembersTable({ members, currency, loading = false }: { members: CustomerMember[]; currency: string; loading?: boolean }) {
 	const { locale, t } = useI18n();
 	const navigate = useNavigate();
-	const headers = [t("Member"), t("Document number"), t("Contact details"), t("Status"), t("Outstanding")];
+	const headers = [t("Member"), t("Phone"), t("Email"), t("Status"), t("Outstanding")];
 	return <div className="member-directory rounded-2xl border bg-card shadow-sm" aria-busy={loading}>
 		{loading ? <span role="status" className="sr-only">{t("Loading members…")}</span> : null}
 		<table className="members-table" role="table">
@@ -24,8 +24,8 @@ export function MembersTable({ members, currency, loading = false }: { members: 
 					navigate("/app/customer-members/" + member.id);
 				}}>
 					<td role="cell" data-label={headers[0]} className="member-name"><Link to={`/app/customer-members/${member.id}`} className="member-name-link">{member.displayName}</Link></td>
-					<td role="cell" data-label={headers[1]}><span className={member.documentNumber ? "tabular-nums" : "text-muted-foreground"}>{member.documentNumber || t("Not provided")}</span></td>
-					<td role="cell" data-label={headers[2]}><div className="member-contact">{member.phoneE164 ? <span className="tabular-nums">{member.phoneE164}</span> : null}{member.email ? <span className="text-muted-foreground">{member.email}</span> : null}{!member.phoneE164 && !member.email ? <span className="text-muted-foreground">{t("Not provided")}</span> : null}</div></td>
+					<td role="cell" data-label={headers[1]}><span className={member.phoneE164 ? "tabular-nums" : "text-muted-foreground"}>{member.phoneE164 || t("Not provided")}</span></td>
+					<td role="cell" data-label={headers[2]}><div className="member-contact"><span className="text-muted-foreground">{member.email || t("Not provided")}</span></div></td>
 					<td role="cell" data-label={headers[3]}><StatusBadge tone={member.status === "active" ? "success" : member.status === "paused" ? "warning" : "neutral"}>{t(member.status === "active" ? "Active" : member.status === "paused" ? "Paused" : "Inactive")}</StatusBadge></td>
 					<td role="cell" data-label={headers[4]} className="member-balance"><span className="font-semibold tabular-nums">{formatMoney(locale, member.outstandingMinor, currency)}</span></td>
 
