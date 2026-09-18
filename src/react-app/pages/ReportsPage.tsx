@@ -1,5 +1,4 @@
 import { MonthPicker } from "@/components/date-picker";
-import { CurrencyLabel } from "@/components/currency-label";
 import { formatMoney } from "../../shared/i18n";
 import { useEffect, useState } from "react";
 import { DashboardSkeleton } from "@/components/content-skeleton";
@@ -37,7 +36,7 @@ export function ReportsPage() {
 		{failed ? <p role="alert">{t("We could not load reports.")}</p> : null}
 		{loading ? <DashboardSkeleton label={t("Loading reports…")} /> : null}
 		{!loading && !failed && summary ? <>
-			<CurrencyLabel currency={currency} />
+
 			<section className="space-y-3"><div><h2 className="font-semibold">{t("Balances by days overdue")}</h2><p className="text-sm text-muted-foreground">{t("Outstanding balances grouped by days past due.")}</p></div><div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5"><Metric label={t("Current")} value={money(summary.aging.current)} /><Metric label={t("1–30 days")} value={money(summary.aging.days1To30)} /><Metric label={t("31–60 days")} value={money(summary.aging.days31To60)} /><Metric label={t("61–90 days")} value={money(summary.aging.days61To90)} /><Metric label={t("90+ days")} value={money(summary.aging.days90Plus)} /></div></section>
 			<SummaryTable title={t("Period charges by plan")} rows={summary.plans} money={money} />
 			<SummaryTable title={t("Branch summary")} rows={summary.branches} money={money} />

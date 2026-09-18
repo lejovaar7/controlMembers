@@ -175,6 +175,63 @@
   .data-table :where(th, td) { padding: 1rem; overflow-wrap: anywhere; }
   .data-table td { font-variant-numeric: tabular-nums; }
   .data-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 35%, var(--card)); }
+  .member-directory { container-type: inline-size; overflow: hidden; }
+  .members-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 0.875rem; }
+  .members-table th { padding: 0.875rem 1rem; background: var(--muted); color: var(--muted-foreground); text-align: left; font-size: 0.75rem; font-weight: 600; }
+  .members-table th:nth-child(1) { width: 26%; }
+  .members-table th:nth-child(2) { width: 17%; }
+  .members-table th:nth-child(3) { width: 25%; }
+  .members-table th:nth-child(4) { width: 14%; }
+  .members-table th:nth-child(5) { width: 18%; }
+  .members-table td { padding: 1rem; vertical-align: middle; overflow-wrap: anywhere; }
+  .members-table tbody tr { border-top: 1px solid var(--border); }
+  .members-table tbody tr:hover, .members-table tbody tr:focus-within { background: color-mix(in srgb, var(--accent) 30%, var(--card)); }
+  .members-table .member-balance { text-align: right; }
+  .member-clickable-row { cursor: pointer; }
+  .member-name-link { display: inline-flex; align-items: center; min-height: 40px; max-width: 100%; font-weight: 600; line-height: 1.5; }
+  .member-name-link:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
+  .member-contact { display: grid; gap: 0.25rem; line-height: 1.5; font-size: 0.8125rem; }
+  .charges-table th:nth-child(1) { width: 26%; }
+  .charges-table th:nth-child(2) { width: 22%; }
+  .charges-table th:nth-child(3) { width: 17%; }
+  .charges-table th:nth-child(4) { width: 17%; }
+  .charges-table th:nth-child(5) { width: 18%; }
+  .charges-table-actions th:nth-child(1) { width: 20%; }
+  .charges-table-actions th:nth-child(2) { width: 15%; }
+  .charges-table-actions th:nth-child(3) { width: 14%; }
+  .charges-table-actions th:nth-child(4) { width: 17%; }
+  .charges-table-actions th:nth-child(5) { width: 16%; }
+  .charges-table-actions th:nth-child(6) { width: 18%; }
+  .charges-table .charge-actions { text-align: right; }
+  .payments-table th:nth-child(1) { width: 26%; }
+  .payments-table th:nth-child(2) { width: 18%; }
+  .payments-table th:nth-child(3) { width: 20%; }
+  .payments-table th:nth-child(4) { width: 17%; }
+  .payments-table th:nth-child(5) { width: 19%; }
+  .payments-table-actions th:nth-child(1) { width: 24%; }
+  .payments-table-actions th:nth-child(2) { width: 14%; }
+  .payments-table-actions th:nth-child(3) { width: 14%; }
+  .payments-table-actions th:nth-child(4) { width: 16%; }
+  .payments-table-actions th:nth-child(5) { width: 16%; }
+  .payments-table-actions th:nth-child(6) { width: 16%; }
+  .payments-table .payment-actions { text-align: right; }
+  @container (max-width: 800px) {
+    .members-table, .members-table tbody { display: block; }
+    .members-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .members-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.25rem 1rem; padding: 1rem; }
+    .members-table tbody tr:first-child { border-top: 0; }
+    .members-table td { display: flex; grid-column: 1 / -1; align-items: start; justify-content: space-between; gap: 1rem; padding: 0.375rem 0; text-align: right; }
+    .members-table td::before { content: attr(data-label); flex-shrink: 0; max-width: 45%; color: var(--muted-foreground); text-align: left; font-size: 0.75rem; }
+    .members-table td > * { min-width: 0; }
+    .members-table .member-name { grid-column: 1; grid-row: 1; align-items: center; text-align: left; }
+    .members-table .member-name::before, .members-table td:nth-child(4)::before { display: none; }
+    .members-table td:nth-child(4) { grid-column: 2; grid-row: 1; align-items: center; }
+    .members-table .member-balance { margin-top: 0.5rem; padding-top: 0.875rem; border-top: 1px solid var(--border); align-items: center; }
+    .charges-table .charge-actions { justify-content: flex-end; }
+    .charges-table .charge-actions::before { display: none; }
+    .payments-table .payment-actions { justify-content: flex-end; }
+    .payments-table .payment-actions::before { display: none; }
+  }
   .skip-link { position: fixed; z-index: 100; top: 1rem; left: 1rem; transform: translateY(-200%); background: var(--card); padding: 0.75rem 1rem; border-radius: var(--radius); }
   .skip-link:focus { transform: translateY(0); }
   @media (max-width: 639px) {

@@ -1,3 +1,4 @@
+import { MoneyInput } from "@/components/money-input";
 import { SelectField } from "@/components/select-field";
 import { useActionDialog } from "@/hooks/use-action-dialog";
 import { formatMoney, currencyName } from "../../shared/i18n";
@@ -25,7 +26,7 @@ export function BillingSetupPage() {
 	if (!(shell.organizationRole === "owner" || (shell.organizationRole === "admin" && shell.allBranches))) {
 		return <Navigate to="/app/dashboard" replace />;
 	}
-	return <BillingSetupWorkspace key={shell.organizationId} />;
+	return <BillingSetupWorkspace key={`${shell.organizationId}:${shell.activeBranch?.id}`} />;
 }
 
 function BillingSetupWorkspace() {
@@ -53,7 +54,7 @@ function BillingSetupWorkspace() {
 			<SettingsForm settings={workspace.settings} onSaved={(settings) => setWorkspace({ ...workspace, settings })} />
 			<PlansPanel
 				settings={workspace.settings}
-				plans={workspace.plans}
+				plans={workspace.plans.filter((plan) => plan.branchIds.includes(shell.activeBranch?.id ?? ""))}
 				tags={workspace.tags}
 				onCreated={(created) => setWorkspace({
 					...workspace,
@@ -106,7 +107,7 @@ function PlansPanel({ settings, plans, tags, onCreated, onUpdated }: { settings:
 	const [description, setDescription] = useState("");
 	const [amount, setAmount] = useState("");
 	const [dueDay, setDueDay] = useState("5");
-	const [branchIds, setBranchIds] = useState(() => shell.branches.map((branch) => branch.id));
+	const [branchIds, setBranchIds] = useState(() => shell.activeBranch ? [shell.activeBranch.id] : []);
 	const [tagNames, setTagNames] = useState<string[]>([]);
 	const [tagInput, setTagInput] = useState("");
 	const [pending, setPending] = useState(false);
@@ -138,7 +139,7 @@ function PlansPanel({ settings, plans, tags, onCreated, onUpdated }: { settings:
 		setPending(true); setFailed(false);
 		try {
 			const created = await billingSetupApi.createPlan(shell.organizationId, { name, description, amountMinor, defaultDueDay: Number(dueDay), branchIds, tagNames: submittedTags });
-			onCreated(created); setName(""); setDescription(""); setAmount(""); setTagNames([]); setTagInput("");
+			onCreated(created); setName(""); setDescription(""); setAmount(""); setTagNames([]); setTagInput(""); setBranchIds(shell.activeBranch ? [shell.activeBranch.id] : []);
 		} catch { setFailed(true); }
 		finally { setPending(false); }
 	}
@@ -152,7 +153,7 @@ function PlansPanel({ settings, plans, tags, onCreated, onUpdated }: { settings:
 			<div className="grid gap-4 md:grid-cols-2">
 				<div className="grid gap-2"><Label htmlFor="plan-name">{t("Plan name")}</Label><Input id="plan-name" value={name} maxLength={120} required placeholder={t("For example: Children monthly plan")} onChange={(event) => setName(event.target.value)} /></div>
 				<div className="grid gap-2"><Label htmlFor="plan-description">{t("Description (optional)")}</Label><Input id="plan-description" value={description} maxLength={1000} onChange={(event) => setDescription(event.target.value)} /></div>
-				<div className="grid gap-2"><Label htmlFor="plan-amount">{t("Monthly price ({currency})", { currency: settings.currency ? currencyName(locale, settings.currency) : "—" })}</Label><Input id="plan-amount" type="number" min="0.01" step="0.01" value={amount} required onChange={(event) => setAmount(event.target.value)} /></div>
+				<div className="grid gap-2"><Label htmlFor="plan-amount">{t("Monthly price ({currency})", { currency: settings.currency ? currencyName(locale, settings.currency) : "—" })}</Label><MoneyInput id="plan-amount" min={0.01} value={amount} required onValueChange={setAmount} /></div>
 				<div className="grid gap-2"><Label htmlFor="plan-due-day">{t("Usual due day")}</Label><Input id="plan-due-day" type="number" min="1" max="28" value={dueDay} required onChange={(event) => setDueDay(event.target.value)} /><p className="text-xs text-muted-foreground">{t("Choose a day from 1 to 28.")}</p></div>
 			</div>
 
@@ -240,7 +241,7 @@ function PlanCard({ plan, onUpdated }: { plan: Plan; onUpdated: (value: Plan) =>
 		{editing ? <form onSubmit={save} className="grid gap-3">
 			<div className="grid gap-2"><Label htmlFor={`edit-plan-name-${plan.id}`}>{t("Plan name")}</Label><Input id={`edit-plan-name-${plan.id}`} value={name} maxLength={120} required onChange={(event) => setName(event.target.value)} /></div>
 			<div className="grid gap-2"><Label htmlFor={`edit-plan-description-${plan.id}`}>{t("Description (optional)")}</Label><Input id={`edit-plan-description-${plan.id}`} value={description} maxLength={1000} onChange={(event) => setDescription(event.target.value)} /></div>
-			<div className="grid grid-cols-2 gap-3"><div className="grid gap-2"><Label htmlFor={`edit-plan-amount-${plan.id}`}>{t("Monthly price ({currency})", { currency: currencyName(locale, plan.currency) })}</Label><Input id={`edit-plan-amount-${plan.id}`} type="number" min="0.01" step="0.01" value={amount} required onChange={(event) => setAmount(event.target.value)} /></div><div className="grid gap-2"><Label htmlFor={`edit-plan-due-${plan.id}`}>{t("Usual due day")}</Label><Input id={`edit-plan-due-${plan.id}`} type="number" min="1" max="28" value={dueDay} required onChange={(event) => setDueDay(event.target.value)} /></div></div>
+			<div className="grid grid-cols-2 gap-3"><div className="grid gap-2"><Label htmlFor={`edit-plan-amount-${plan.id}`}>{t("Monthly price ({currency})", { currency: currencyName(locale, plan.currency) })}</Label><MoneyInput id={`edit-plan-amount-${plan.id}`} min={0.01} value={amount} required onValueChange={setAmount} /></div><div className="grid gap-2"><Label htmlFor={`edit-plan-due-${plan.id}`}>{t("Usual due day")}</Label><Input id={`edit-plan-due-${plan.id}`} type="number" min="1" max="28" value={dueDay} required onChange={(event) => setDueDay(event.target.value)} /></div></div>
 			<div className="grid gap-2"><Label htmlFor={`edit-plan-tags-${plan.id}`}>{t("Tags separated by commas (optional)")}</Label><Input id={`edit-plan-tags-${plan.id}`} value={tagText} maxLength={820} placeholder={t("For example: Football, Children")} onChange={(event) => setTagText(event.target.value)} /></div>
 			{multipleBranches ? <fieldset className="grid gap-2"><legend className="text-sm font-medium">{t("Available at branches")}</legend>{shell.branches.map((branch) => <label key={branch.id} className="flex min-h-10 items-center gap-2"><input type="checkbox" checked={branchIds.includes(branch.id)} onChange={(event) => setBranchIds((current) => event.target.checked ? [...current, branch.id] : current.filter((id) => id !== branch.id))} />{branch.name}</label>)}</fieldset> : null}
 			{failed ? <p role="alert" className="text-sm">{t("We could not save the plan.")}</p> : null}
@@ -248,6 +249,7 @@ function PlanCard({ plan, onUpdated }: { plan: Plan; onUpdated: (value: Plan) =>
 		</form> : <>
 			<div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{plan.name}</h3>{!plan.isActive ? <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium">{t("Inactive")}</span> : null}</div>{plan.description ? <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p> : null}</div><span className="whitespace-nowrap font-semibold">{formatMoney(locale, plan.amountMinor, plan.currency)}</span></div>
 			<p className="mt-3 text-sm text-muted-foreground">{t("Due on day {day}", { day: plan.defaultDueDay })}</p>
+			<p className="mt-1 text-sm text-muted-foreground">{t("Available at branches")}: {shell.branches.filter((branch) => plan.branchIds.includes(branch.id)).map((branch) => branch.name).join(", ")}</p>
 			{plan.tags.length ? <div className="mt-3 flex flex-wrap gap-2">{plan.tags.map((tag) => <span key={tag.id} className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{tag.name}</span>)}</div> : null}
 			{failed ? <p role="alert" className="mt-3 text-sm">{t("We could not update the plan.")}</p> : null}
 			<div className="mt-4 flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={pending} onClick={() => { reset(); setEditing(true); }}>{t("Edit plan")}</Button><LoadingButton loading={pending} type="button" variant="outline" disabled={pending} onClick={changeStatus}>{t(plan.isActive ? "Deactivate plan" : "Activate plan")}</LoadingButton></div>

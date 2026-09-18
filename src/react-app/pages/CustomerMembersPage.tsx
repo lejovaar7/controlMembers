@@ -1,25 +1,21 @@
 import { SelectField } from "@/components/select-field";
 import { CenteredDialog, type DialogReturnFocus } from "@/components/centered-dialog";
-import { CurrencyLabel } from "@/components/currency-label";
-import { formatMoney } from "../../shared/i18n";
+import { MembersTable } from "@/components/members-table";
 import { LoadingButton } from "@/components/loading-button";
-import { ListSkeleton } from "@/components/content-skeleton";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Link } from "react-router";
-import { ArrowUpRight, Plus, Search, Upload } from "lucide-react";
-import { StatusBadge } from "@/components/status-badge";
+import { Plus, Search, Upload } from "lucide-react";
 import { PageContainer, PageHeader } from "@/components/page";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppShell } from "@/hooks/use-app-shell";
+import { createIdempotencyKey } from "@/lib/idempotency-key";
 import { controlMembersApi, type CustomerMember } from "@/lib/controlmembers";
-import { useI18n, useT } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
 
 export function CustomerMembersPage() {
 	const createButtonRef = useRef<HTMLButtonElement>(null);
 	const t = useT();
-	const { locale } = useI18n();
 	const shell = useAppShell();
 	const [members, setMembers] = useState<CustomerMember[]>([]);
 	const [currency, setCurrency] = useState("COP");
@@ -52,17 +48,12 @@ export function CustomerMembersPage() {
 			<div className="grid gap-2"><Label htmlFor="member-status">{t("Status")}</Label><SelectField id="member-status" className="h-11 rounded-md border bg-background px-3" value={status} onValueChange={(value) => setStatus(value)} options={[{ value: "", label: t("All statuses") }, { value: "active", label: t("Active") }, { value: "paused", label: t("Paused") }, { value: "inactive", label: t("Inactive") }]} /></div>
 		</div>
 		{failed ? <p role="alert">{t("We could not load members.")}</p> : null}
-		{loading ? <ListSkeleton label={t("Loading members…")} /> : null}
+		{loading ? <MembersTable members={[]} currency={currency} loading /> : null}
 		{!loading && !failed && !members.length ? <div className="rounded-xl border border-dashed p-8 text-center"><h2 className="font-semibold">{t("No members found")}</h2><p className="mt-1 text-sm text-muted-foreground">{t("Add your first member to begin tracking monthly payments.")}</p></div> : null}
-		{!loading && !failed ? <CurrencyLabel currency={currency} /> : null}
-		{!loading && !failed && members.length ? <ul className="record-list">{members.map((member) => <li key={member.id}><Link to={`/app/customer-members/${member.id}`} className="record-row grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center"><div className="flex items-center gap-3"><span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full bg-secondary text-sm font-semibold text-primary">{member.displayName.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toLocaleUpperCase(locale)}</span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="text-sm font-semibold">{member.displayName}</h2><Status value={member.status} /></div><p className="mt-1 break-words text-sm text-muted-foreground">{member.documentNumber || member.email || member.phoneE164 || t("No contact information")}</p></div></div><div className="flex items-center justify-between gap-5 border-t pt-3 sm:border-0 sm:pt-0"><div className="sm:text-right"><p className="text-xs text-muted-foreground">{t("Outstanding")}</p><p className="mt-1 font-semibold tabular-nums">{formatMoney(locale, member.outstandingMinor, currency)}</p></div><ArrowUpRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" /></div></Link></li>)}</ul> : null}
+
+		{!loading && !failed && members.length ? <MembersTable members={members} currency={currency} /> : null}
 		{nextOffset !== null && !loading ? <Button variant="outline" onClick={() => void loadMore()}>{t("Load more")}</Button> : null}
 	</PageContainer>;
-}
-
-function Status({ value }: { value: string }) {
-	const t = useT();
-	return <StatusBadge tone={value === "active" ? "success" : value === "paused" ? "warning" : "neutral"}>{t(value === "active" ? "Active" : value === "paused" ? "Paused" : "Inactive")}</StatusBadge>;
 }
 
 function CreateMemberForm({ onCreated, onCancel, returnFocus }: { onCreated: () => void; onCancel: () => void; returnFocus: DialogReturnFocus }) {
@@ -72,7 +63,7 @@ function CreateMemberForm({ onCreated, onCancel, returnFocus }: { onCreated: () 
 	const [documentNumber, setDocumentNumber] = useState("");
 	const [email, setEmail] = useState("");
 	const [phone, setPhone] = useState("");
-	const [branchId, setBranchId] = useState(shell.branches[0]?.id ?? "");
+	const [branchId, setBranchId] = useState(shell.activeBranch?.id ?? "");
 	const [pending, setPending] = useState(false);
 	const [failed, setFailed] = useState(false);
 	async function submit(event: FormEvent) {
@@ -102,6 +93,6 @@ function ImportMembers({ onDone }: { onDone: () => void }) {
 	const [failed, setFailed] = useState<"read" | "save" | null>(null);
 	async function loadFile(file?: File) { if (file) { setCsv(await file.text()); setPreview(null); } }
 	async function runPreview() { setPending(true); setFailed(null); try { setPreview(await controlMembersApi.previewImport(shell.organizationId, csv)); } catch { setFailed("read"); } finally { setPending(false); } }
-	async function confirm() { setPending(true); setFailed(null); try { await controlMembersApi.confirmImport(shell.organizationId, csv, crypto.randomUUID()); onDone(); } catch { setFailed("save"); } finally { setPending(false); } }
+	async function confirm() { setPending(true); setFailed(null); try { await controlMembersApi.confirmImport(shell.organizationId, csv, createIdempotencyKey()); onDone(); } catch { setFailed("save"); } finally { setPending(false); } }
 	return <section className="space-y-4 rounded-xl border bg-card p-4"><div><h2 className="font-semibold">{t("Import members")}</h2><p className="text-sm text-muted-foreground">{t("Download the template, add up to 50 members and review the file before saving.")}</p></div><a className="text-sm font-medium underline" href="/api/imports/members/template">{t("Download CSV template")}</a><div className="grid gap-2"><Label htmlFor="member-csv">{t("CSV file")}</Label><Input id="member-csv" aria-describedby="member-file-help" type="file" accept=".csv,text/csv" onChange={(event) => void loadFile(event.target.files?.[0])} /><p id="member-file-help" className="text-sm leading-6 text-muted-foreground">{t("Open the template in Excel or Google Sheets. Keep its column names and save it as CSV (comma-separated, .csv), not as an Excel workbook (.xlsx).")}</p></div>{preview ? <p role="status" className="text-sm">{t("Ready to add: {valid}. With warnings: {warnings}. Need corrections: {invalid}.", { valid: preview.validCount, warnings: preview.warningCount, invalid: preview.invalidCount })}</p> : null}{failed ? <p role="alert" className="text-sm">{t(failed === "save" ? "We could not add the members. Please try again." : "We could not read this file. Use the template and save it as a comma-separated CSV file (.csv).")}</p> : null}<div className="flex flex-wrap gap-2"><LoadingButton loading={pending} type="button" variant="outline" disabled={pending || !csv} onClick={() => void runPreview()}>{t("Preview import")}</LoadingButton>{preview && preview.validCount > 0 ? <LoadingButton loading={pending} type="button" disabled={pending} onClick={() => void confirm()}>{t("Import valid rows")}</LoadingButton> : null}</div></section>;
 }
