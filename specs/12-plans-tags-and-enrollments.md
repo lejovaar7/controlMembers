@@ -35,6 +35,18 @@ Branch linked to the Plan and accessible to the actor. When an Organization has
 one Branch, the UI assigns it automatically and does not show a selector. With
 multiple Branches, the form exposes an explicit selection.
 
+The list is filtered by the active session Branch, including for Owners. A Plan
+appears in several workspaces only when those Branches are explicitly linked.
+New forms initially select only the active Branch and reset to it after saving.
+Cards show their assigned Branch names. Editing a shared Plan retains its full
+authorized Branch list; removing the current Branch removes it from that list
+immediately. Existing assignments are preserved, never inferred or rewritten.
+
+A Member with explicit Enrollments in several Branches is visible in those
+workspaces, but each workspace shows only its own Enrollments and ledger. An
+authorized explicit Enrollment can link the Member to the current Branch;
+merely creating a Plan shared across Branches does not share all Members.
+
 ## Tags
 
 Tags are optional Organization-owned labels such as `Football`, `Music`,

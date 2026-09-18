@@ -48,7 +48,13 @@ Charge cannot accept new allocations.
 
 ## Generation
 
-Generation accepts a target period and optional accessible Branch filter. It:
+Generation accepts a target period and optional accessible Branch filter.
+
+In an active workspace, preview and generation default to that Branch only.
+Explicit filters cannot include another Branch; switch workspace first.
+Charge lists and adjustments/voids follow the same active-Branch boundary.
+
+Generation:
 
 1. resolves the tenant and actor scope;
 2. selects eligible active Enrollments for the period;
@@ -88,6 +94,10 @@ and reason.
 - Charge list filtered by period, Branch, Plan, tag, state and Member search.
 - Charge detail showing the formula, allocations and audit events.
 - Authorized adjust/void actions with reasons and impact warnings.
+- The directory matches the Member table design, including responsive labeled
+  rows and loading placeholders. It exposes Member, Plan, due date, payment state,
+  outstanding/original total and permitted actions. Row navigation opens the
+  Member profile; adjusting or voiding stays in the Charge confirmation flow.
 
 ## Acceptance checks
 

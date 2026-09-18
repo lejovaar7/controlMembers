@@ -1,5 +1,225 @@
 # ControlMembers Verification Record
 
+## 2026-09-18 — Payments table and development server recovery
+
+- Payments now shares the Member directory table styling, responsive labeled
+  fields, clickable rows and initial skeletons. Member/receipt, date, method,
+  status, amount/credit and permitted cancellation actions remain visible.
+- Isolated browser checks with synthetic payments covered desktop (1440px),
+  mobile (390px), English read-only mode (900px), long names/custom methods,
+  posted/cancelled payments and unapplied credit. No horizontal overflow or
+  browser errors were observed. Verified cancellation with a reason updates the
+  fixture row without navigation, paging adds the next record, clicking a method
+  cell opens the Member profile, and unmatched search shows the empty state.
+  Read-only users have no Actions column or cancellation buttons.
+- Typecheck, lint, environment/i18n/form checks and all 212 Workers tests passed,
+  followed by dev, production and local build/deployment dry runs. No deployment
+  or real payment mutation occurred. Temporary browser fixtures were removed.
+- Investigated a reported ERR_CONNECTION_REFUSED: no process was listening on
+  port 5173 and the previous development process was absent. The retained log
+  did not establish the termination cause. Restarted the normal local-dev
+  command in a hidden background process, retaining remote dev D1 and real email.
+  The LAN health endpoint returned HTTP 200 with database ok and the actual home
+  page rendered in the browser. No database reset was needed.
+
+## 2026-09-18 — Charges directory table
+
+- Replaced the Charges record list with a semantic table using the existing
+  Member directory styles, row hover, border, header and responsive layout.
+  Columns show Member, Plan, localized due date, payment state, outstanding/original
+  total and authorized actions. Initial loading uses matching skeleton rows.
+- Browser checks with synthetic data covered desktop (1440px), intermediate
+  width (900px) and mobile (390px), all five payment states, long names/Plans,
+  Spanish/English and read-only permissions. No horizontal overflow or browser
+  errors were observed. Mobile rows retain labeled fields and usable actions.
+- Verified row and keyboard-link navigation to Member profiles, payment-state
+  filtering, search with no results, adjustment confirmation updating a fixture
+  balance from 80,000 to 79,000, and opening/cancelling the void dialog without
+  navigating away. Paid, partially paid and void rows omit mutation buttons;
+  users without adjustment permission have no Actions column.
+- Typecheck, lint, 27 environment checks, 2 i18n checks, 2 form checks and all
+  212 Workers tests (19 files) passed. Dev, production and local build/deployment
+  dry runs passed; no deployment was performed. The existing bundle-size advisory
+  remains. Temporary fixtures were removed, no real records were changed, and
+  the running LAN development server returned HTTP 200 with database status ok.
+
+## 2026-09-18 — Grouped monetary inputs
+
+- Added exact react-number-format 5.4.5 behind MoneyInput, using the existing
+  Input styling. Payment amount/allocation, plan creation/editing, future monthly
+  terms/discount and signed charge adjustments use localized grouping while
+  keeping unformatted decimal strings in state and form submission. Ordinary
+  numbers, including due days, retain their original behavior. Required, bounds,
+  two-decimal precision and safe minor-unit validation remain enforced.
+- Browser fixtures exercised the real payment and future-terms dialogs plus
+  the shared input in a native form. Typed 80000 displayed 80.000; middle edits
+  retained caret behavior; pasting 80.000,50 recorded 8000050 minor units with
+  0.50 credit. A 1.000 discount reduced an 80.000 monthly fee to 79.000. Allocation
+  40.000,25 left exactly 39.999,75 in credit. Signed -12.500,25 submitted canonical
+  -12500.25; invalid min/max amounts blocked submission. English 80,000.50 also
+  submitted 80000.50. Verified 390x844 layout and decimal input mode for payments.
+  No browser errors/warnings or real business writes occurred. Temporary preview
+  artifacts/server were removed and the viewport reset.
+- Four regression cases cover Spanish/English grouping, four-digit values,
+  cents, signed values, limits and invalid/unsafe canonical amounts.
+  Drizzle generation reported no schema changes, and its migration check passed.
+- Typecheck, lint, 27 environment checks, two catalog checks, two form checks,
+  all 212 Worker tests and all three environment builds/deployment dry runs
+  passed. Both npm audits reported zero vulnerabilities; the existing bundle
+  size advisory remains. Live dev health returned HTTP 200/database `ok`.
+
+## 2026-09-18 — Prefilled Member payment amount
+
+- Opening Record payment now snapshots a suggested amount from the oldest open
+  charge's remaining balance in the current Branch, or active agreed fees less
+  discounts if no pending charge exists. Other Branches, paused/ended fees and
+  void/paid charges do not contribute. Without an eligible source, it stays
+  blank. Manual changes persist while editing; cancellation/reopening refreshes
+  the default. Preview and final confirmation remain required.
+- Added four regression cases covering partial/oldest charges, ignored charges,
+  Branch separation, discounts, multiple active fees and missing fees. The pure
+  calculation stays independent of browser transport types.
+- Browser QA used the real detail page with synthetic responses: a 20,000 fee
+  with a 5,000 discount opened at 15,000; editing to 5,000 updated the preview;
+  cancel/reopen restored 15,000. A partially paid charge opened at 7,500.50 and
+  confirmed that exact amount, updating its receipt and balance. Keyboard
+  clearing left the field blank and disabled submission; a Member with no fees
+  opened blank. No browser errors/warnings or real payment writes occurred.
+  Temporary fixtures/server were removed. Live dev health returned HTTP 200
+  with database status `ok`.
+- Typecheck, lint, 27 environment checks, two catalog checks, two form checks,
+  all 208 Worker tests and all three environment builds/deployment dry runs
+  passed. The existing bundle-size advisory remains.
+
+## 2026-09-18 — Open Member profiles from the whole row
+
+- Removed the separate View member action and column; rebalanced the five
+  remaining columns. Row clicks now navigate to the Member, with a selection
+  guard to avoid navigation after copying text. The name remains a native link
+  for keyboard access and standard browser link gestures.
+- Verified clicks on a document cell on desktop and a balance on mobile,
+  plus Enter on the Member name, using a synthetic two-Member fixture. Each
+  reached the correct profile; no browser warnings/errors occurred. Removed
+  the temporary fixture/server and reset the viewport. Typecheck, lint and
+  scoped diff checks passed.
+
+## 2026-09-18 — Responsive Member directory table
+
+- Replaced the Member record list with a semantic table: name, document,
+  phone/email, status, outstanding balance and an explicitly named profile link.
+  Added matching skeleton rows, subtle row boundaries and hover/focus treatment.
+  Narrow containers stack labeled fields without horizontal scrolling; initials
+  avatars and standalone currency captions remain absent.
+- Browser QA used the actual directory with isolated, synthetic API responses.
+  Verified desktop at 1440px, a 768px viewport and mobile at 390x844, including
+  long names/emails, missing fields, all Member states, zero/fractional balances,
+  search, status filtering, Load more, loading/empty states and keyboard profile
+  navigation. English and Spanish labels were checked. No browser errors or
+  warnings occurred; no real records were modified. Removed the temporary
+  fixture and preview server and reset the viewport afterward.
+- Typecheck, lint, 27 environment checks, two catalog checks, two form checks,
+  all 204 Worker tests and all three environment build/deployment dry runs
+  passed. The existing bundle-size advisory remains. Live dev health returned
+  HTTP 200 with database status `ok`; the user's server remained running.
+
+## 2026-09-18 — Removed standalone currency captions
+
+- Removed the currency caption from Members, Charges, Payments and Reports and
+  deleted the now-unused CurrencyLabel component. Currency selectors, amount
+  field labels and shared monetary formatting remain available.
+- Source search confirmed no remaining component references or standalone
+  currency captions. Typecheck, lint and scoped diff checks passed.
+
+## 2026-09-18 — Member detail layout and focused forms
+
+- Reorganized Member detail into Summary, Payment history and Personal
+  information. Identity, current Branch, status and Edit/Record payment actions
+  lead the page; three distinct balance cards preserve ledger meaning. Mobile
+  groups the secondary cards, wraps actions and stacks content without overflow.
+- Enrollment cards show monthly price and state; charge cards show readable
+  periods, due dates, payment state and outstanding amounts. Payment history
+  includes every returned receipt with amount, date, method and state. Personal
+  information groups profile fields, notes, status actions and linked contacts.
+- Enrollment, contact and payment forms now open in CenteredDialog. Payment
+  review retains the nested confirmation and LAN-compatible idempotency helper.
+  Preview lookup has a loader, explicit retry and stale-response cleanup.
+  Successful posting closes both dialogs and selects the refreshed history.
+- Browser QA used the actual page with isolated in-memory API fixtures on LAN
+  HTTP. Checked desktop and 390x844, Spanish and English, populated/empty states,
+  enrollment/contact creation, profile dialog, outside dismissal, Escape and
+  focus return. A simulated preview failure recovered via retry; a simulated
+  save failure retained confirmation and retry produced a receipt, zero balance
+  and history entry. Browser error/warning logs were empty. No real business
+  records or payments were created. Removed the temporary fixture and server.
+- Typecheck, lint, 27 environment checks, two catalog checks, two form checks
+  and 204 Worker tests passed. Dev, production and local builds/deployment dry
+  runs passed; the existing bundle-size advisory remains. The live dev server
+  stayed running and returned HTTP 200 with database status `ok`.
+
+## 2026-09-18 — Payment confirmation on LAN HTTP
+
+- Reproduced the reported inactive payment button in the real
+  CustomerMemberDetailPage with synthetic data on the LAN HTTP address. The
+  browser reported `crypto.randomUUID is not a function` before opening the
+  confirmation; its context was non-secure and that method was undefined.
+- Replaced direct browser randomUUID calls in payment review and Member import
+  with a shared opaque key generated from 16 cryptographically random bytes.
+  Added a regression test with crypto.randomUUID absent. Worker-generated IDs
+  and the payment API's existing idempotency behavior remain unchanged.
+- Repeated browser QA on the same LAN origin: review opened the shared dialog,
+  a simulated failed save retained the confirmation, retry reused the same key,
+  and success displayed one receipt, a recent payment and an updated zero
+  balance. All payment responses were in-memory fixtures; no real payments or
+  business records were created. Removed the isolated preview afterward.
+- Typecheck, lint, 27 environment checks, two catalog checks, two form checks
+  and all 204 Worker tests passed. All three environment builds/deployment dry
+  runs passed, retaining the existing client bundle-size advisory.
+  The live development health endpoint returned
+  HTTP 200/database `ok`; its server remained running throughout the fix.
+
+## 2026-09-18 — Active Branch product workspace isolation
+
+- Fixed the Plans directory loading every company Plan and creation selecting
+  every Branch by default. Catalog reads now use the validated session Branch,
+  preserve full authorized links for shared-Plan editing, and cards show Branch
+  assignments. Defaults select only the active Branch; route content remounts
+  after switching to discard previous data and unsaved form state.
+- Applied the same workspace boundary to Members, Enrollments, Charges,
+  generation, Payments, dashboard, reports and exports. Explicit Enrollment
+  links retain shared/historical Member visibility; ledger queries still separate
+  each Branch. Member-detail forms use the current Branch for enrollment/payment.
+  Company administration/catalog settings retain their Organization scope.
+- Added five Worker/D1 regression cases covering exclusive/shared/empty Plan
+  catalogs, preserved edit links, Branch switching, Member lists/detail, ledger
+  and dashboard totals, reports/exports, rejected cross-Branch overrides, scoped
+  generation and a moved/shared Member's separate history and payable charges.
+  All 203 Worker tests passed with two workers, along with typecheck, lint,
+  27 environment checks, two catalog checks and two form checks. Dev, production
+  and local builds/deployment dry runs all passed; the existing Vite client
+  bundle-size advisory remains.
+- Browser QA rendered the real BillingSetupPage with a synthetic shell and
+  in-memory API responses in an isolated preview. Verified creation in Vida B
+  without appearing in Main, shared-Plan editing, immediate removal after
+  unassigning the current Branch, reset form defaults, an empty Branch and a
+  390px layout. No browser warnings/errors; temporary preview removed.
+- The real LAN login rendered without errors and `/api/health` returned HTTP
+  200/database `ok`. No remote business records, schema changes, emails or
+  deployments were performed. Existing saved Branch assignments are preserved.
+
+## 2026-09-18 — Shared language selector flags
+
+- Added pinned flag-icons 7.5.0 with direct Spain/United States SVG imports to
+  LanguagePicker. Both selected values and menu options retain language names;
+  flags are decorative and non-draggable. The menu has enough width for labels
+  and selection indicators without changing other select menus.
+- Browser QA on the live public home and login verified compact and regular
+  selectors, desktop and 390px layouts, mouse language switching and keyboard
+  typeahead/selection. Restored Spanish after testing. No console warnings/errors.
+- Typecheck, lint, 27 environment checks, two catalog checks, two form checks,
+  all 198 Worker tests with two workers and all three environment builds/deployment
+  dry runs passed. Production dependency audit reported zero vulnerabilities.
+  No business records, emails or deployments were created by this verification.
+
 ## 2026-09-17 — Navigation and dashboard caption cleanup
 
 - Removed the visible workspace caption from desktop/mobile navigation and the

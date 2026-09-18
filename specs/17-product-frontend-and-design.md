@@ -64,6 +64,22 @@ avatar, user name and company role; smaller screens retain these controls in the
 navigation drawer. These compact selectors offer only registered languages
 (English and Español), displaying the resolved language without a company
 suffix. The explicit company-inheritance option remains in personal settings.
+The shared LanguagePicker displays decorative Spain and United States flags
+alongside Español and English in both the trigger and options. Import only the
+two SVG assets from the pinned flag-icons package; retain the language names
+as accessible text. The inheritance option uses the resolved company language's
+flag. Keep the dropdown wide enough for a flag, full language name and checkmark.
+
+The header Branch switcher is the operational scope
+for Plans, Members, Charges, Payments and reports. Route content remounts on
+Branch changes; do not keep a second independent all-Branches filter in a page.
+New Plan and Member forms default to the current Branch.
+
+Browser request identifiers use `lib/idempotency-key.ts`, including payment
+review and Member import. These actions must work at the documented LAN HTTP
+development URL as well as localhost and HTTPS. Do not call `crypto.randomUUID`
+directly from these flows; its absence on a LAN origin can prevent a dialog
+from opening before any request reaches the Worker.
 
 Dashboard cards use one column below 380 pixels, two on larger mobile screens
 and four on wide desktops. Amounts show the currency symbol first without a
@@ -186,9 +202,20 @@ stops counting toward charges and credit and does not issue a refund.
 Use shared `currencyName` and `formatMoney` helpers for visible currency names
 and amounts. Amounts always place the currency symbol first, followed by a
 nonbreaking space and the localized number (for example, `$ 0`). They omit decimals for whole
-values and preserve hundredths otherwise. Dashboard, member pages, charges, payments and reports
-show a shared `CurrencyLabel` once above the data, rather than repeating a long
-currency name in every figure. Currency labels use capitalized, plural names.
+values and preserve hundredths otherwise. Dashboard, member pages, charges,
+payments and reports omit standalone currency captions above the data.
+Currency names in form labels use capitalized, plural names.
+All editable monetary amounts use the shared MoneyInput, backed by
+react-number-format 5.4.5 and the existing Input presentation. Spanish input
+groups thousands with periods and separates cents with a comma (80.000,50);
+English follows its own separators (80,000.50). The input preserves editing,
+caret movement and paste, allows at most two decimal places and emits canonical
+ungrouped decimal strings to form state. Named fields submit that canonical
+value, never their formatted display. Required/min/max and safe minor-unit
+validation remain enforced. Negative values are enabled only for signed
+adjustments. Ordinary counts, due days, documents and phone numbers keep their
+existing input behavior. ActionDialog money fields explicitly opt into this
+component, separately from ordinary numeric fields.
 Billing settings select currencies by their readable names while retaining their
 original codes in requests. Money remains stored in hundredths; language never
 selects a currency or changes financial calculations.
@@ -237,9 +264,39 @@ setup states provide one next action.
 
 ### Members
 
-Search and high-value filters remain visible. Desktop may use a table; mobile
-uses compact rows/cards without horizontal dependence. Selecting a Member opens
-a full page with overview, contacts, enrollments and financial activity.
+Search and high-value filters remain visible. The Member directory uses a
+semantic table with Member, document number, contact details, status, outstanding
+balance columns. Clicking anywhere in a Member row opens the profile, while
+selecting text does not navigate. The name remains a native link for keyboard
+navigation and normal link gestures; there is no separate View member button.
+Status badges include text, balances align right, and missing fields say Not
+provided. Initials avatars and standalone currency captions are omitted.
+The table has matching loading placeholders and preserves filtering and paging.
+Below 800px of available content width, each row becomes labeled fields with
+name/status first and balance last, without horizontal scrolling.
+Selecting a Member opens
+a full page with three switchable sections: Summary, Payment history and
+Personal information. The header keeps identity, current Branch, status, Edit
+member and the primary Record payment action visible. Gross outstanding,
+available credit and net position remain separate; mobile places the two
+secondary balances side by side below outstanding.
+
+Summary contains enrollment cards with monthly price and state, alongside
+charges with readable periods, due dates, payment state and outstanding amount.
+Payment history shows all payments returned by the Member endpoint with receipt,
+date, method, amount and state. Personal information groups profile fields,
+notes, Member status actions and linked contacts.
+
+Adding an enrollment or contact and composing a payment use CenteredDialog,
+instead of permanently expanded forms. Payment posting retains a nested final
+review, its idempotency key and retry behavior. Preview failures have an explicit
+retry action; closing the composer invalidates its preview. Success closes the
+dialogs, refreshes balances, selects Payment history and shows the receipt.
+Outside-click/Escape dismissal and focus return use the shared dialog wrapper.
+The payment amount is prefilled on opening, using the oldest pending charge's
+remaining balance or, if none exists, active agreed monthly fees after discounts
+in the current Branch. The field stays editable and each new opening refreshes
+the suggestion. No amount is invented when there are no eligible fees/charges.
 
 ### Charges
 
@@ -247,7 +304,26 @@ Period and payment-state filters lead. Bulk generation is a distinct confirmed
 action and never shares placement with destructive actions. Balance and due date
 are more prominent than internal identifiers.
 
+The Charges directory reuses the Member table styling: Member, Plan, due date,
+payment state and outstanding balance (with the original total underneath).
+Authorized users have a separate Actions column; only open, unpaid Charges
+offer Adjust/Void, using the existing confirmation dialogs. Row clicks open the
+Member profile while links, action buttons and text selection retain their own
+behavior. Localized dates preserve their calendar day. Matching skeleton rows
+cover initial loading, and narrow containers stack labeled fields without
+horizontal scrolling, with name/state first and balance/actions last.
+
 ### Payments
+
+The Payments directory shares the Member table styling and responsive layout.
+Columns show Member (with receipt number), payment date, method, status, amount
+and permitted actions. Unapplied credit stays visible below the amount. Row clicks
+open the Member profile; native links, text selection and cancellation buttons
+retain their own behavior. Only authorized users see cancellation actions, and
+only posted payments offer them. Matching skeleton rows cover initial loading.
+Narrow containers stack labeled fields with name/status first and amount/actions
+last, without horizontal scrolling. Search, date, method and state filters and
+paging remain available.
 
 The composer shows Member, amount, method, date and allocation preview. It
 requires a final review before posting. A successful result shows receipt number

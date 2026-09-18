@@ -29,6 +29,19 @@ browser cannot claim another actor. An idempotency key protects repeat submits;
 the same key and tenant returns the original result, while mismatched payloads
 are rejected.
 
+The browser creates opaque 128-bit random idempotency keys with the shared
+`createIdempotencyKey` helper. It uses `crypto.getRandomValues`, which is also
+available on LAN HTTP development origins; payment review must not depend on
+the secure-context-only `crypto.randomUUID`. A confirmation keeps its captured
+key when retried. The same helper is used by Member CSV import confirmation.
+
+## Branch ledger isolation
+
+Payment lists, previews, recording and reversals respect the active workspace.
+Allocations must belong to the receiving Branch as well as the same Member and
+Organization. A Member shared between Branches has separate Branch balances;
+sharing their identity never combines receivables or credit between workspaces.
+
 ## Payment method catalog
 
 Every company starts with Cash as its only selectable method. Cash is built in,
@@ -107,8 +120,24 @@ Reports must not call allocated value “cash collected.”
 - Open-Charge allocation preview with manual adjustments.
 - Payment receipt/detail with allocations and audit metadata.
 - Payment history filters by date, Branch, method, Member and state.
+- The Payments directory uses the responsive Member table design, with Member
+  and receipt number, payment date, method, state, amount, available credit and
+  permitted cancellation actions. Row clicks open the Member profile; cancel
+  buttons open the existing reason/confirmation dialog without navigating away.
 - Reversal dialog naming amount, Member and consequences.
 - Member profile shows gross outstanding, available credit and net position.
+- Member detail opens the payment composer from its header. Distribution lookup
+  failures show a retry action without discarding the amount; stale lookup
+  responses are ignored. Successful posting selects the receipt history and
+  refreshes the visible Branch balance after the final confirmation.
+- Opening the Member composer prefills the outstanding amount of the oldest
+  open Charge in the current Branch. When none exists, it suggests the sum of
+  active enrollment agreed amounts minus discounts in that Branch. Paused or
+  ended enrollments and other Branches do not contribute. With neither source,
+  the field remains empty. Staff can edit or clear the suggestion; reopening
+  recomputes it from the current detail instead of retaining an abandoned edit.
+  This is only a form default: previews, credit handling and explicit final
+  confirmation still govern recording the payment.
 
 ## Concurrency
 

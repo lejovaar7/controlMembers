@@ -14,7 +14,11 @@ revenue and receivables without creating a separate analytics truth.
 Dashboard and reports accept an Organization-local period plus authorized
 Branches, Plans and optional tags. The server constrains requested Branches to the
 actor's accessible scope. Changing active Organization discards filters and
-results from the previous tenant.
+results from the previous tenant. Selecting a Branch also discards prior page
+state and constrains dashboard, reports and exports to that Branch, including
+for Owners. The dashboard labels this scope as the current Branch. Member
+balance queries filter both Charges and Payments, so moving or sharing a Member
+does not bring another Branch's ledger into the current totals.
 
 ## Dashboard metrics
 

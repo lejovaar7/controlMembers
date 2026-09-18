@@ -120,6 +120,22 @@ The inherited foundation provides `owner`, `admin` and `member` Organization
 roles. ControlMembers layers only the explicit business grants in specification
 16 over those roles; they never replace or widen the Organization/Branch boundary.
 
+## Product workspace selection
+
+The session's active Team narrows product data independently of administrative
+permissions. `requireWorkspaceTenant` validates it with the existing Branch
+authorization helper; `workspaceCondition` applies it to ledger queries.
+Owners retain company administration and explicit Plan sharing rights, but
+their selected workspace does not aggregate other Branches. Invalid active
+Teams fail closed. Requests without an active Team retain the authorized API
+scope; the application shell resolves a Branch before displaying product pages.
+
+Plans, Members, Enrollments, Charges, Payments, dashboard, reports and exports
+respect this workspace. Branch switching remounts route content to discard
+previous results, pending dialogs and form defaults. Company settings, identity,
+staff permissions, tags and payment-method catalogs remain Organization-owned.
+See `test/workspace-isolation.test.ts` for real Worker/D1 regression coverage.
+
 ## Acceptance checks
 
 - Membership in company A never grants reads or writes in company B.

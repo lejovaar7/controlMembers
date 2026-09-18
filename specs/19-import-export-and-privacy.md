@@ -37,6 +37,10 @@ Exports are generated server-side from the actor's current authorized scope and
 active filters. MVP supports Member directory, Member balances, receivables and
 Payments received. Each export includes an `asOf` time and stable documented
 columns. CSV output prevents spreadsheet formula injection in text fields.
+When a session Branch is active, directory and financial exports are limited to
+that Branch. A shared Member's exported balance includes only that Branch's
+Charges and Payments. CSV import retains its explicit authorized per-row Branch
+assignment and does not silently reassign imported records.
 
 Export requires the permission in spec 16 and creates an audit event containing
 filters/count, not the exported personal rows.

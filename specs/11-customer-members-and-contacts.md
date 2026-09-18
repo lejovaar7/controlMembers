@@ -69,10 +69,16 @@ The same Contact may be billing contact for several Members.
 
 ## Authorization and Branch visibility
 
-- Every query begins with `requireTenant()` and scopes by `organizationId`.
-- Owners and all-Branch administrators can read/write all Members.
-- Limited administrators and ordinary staff can only read Members whose primary
-  Branch they may access, subject to the business permission matrix in spec 16.
+- Product queries use `requireWorkspaceTenant()` and scope by `organizationId`.
+- Owners and all-Branch administrators can access every Branch by switching
+  workspace; their directory is not automatically company-wide.
+- In a selected workspace, a Member appears through their primary Branch or
+  an explicit Enrollment in that Branch. Historical Enrollments retain access
+  to old receivables after a primary-Branch move. Enrollments, Charges, Payments
+  and balances are filtered separately by the selected Branch.
+- Without an active workspace, the existing authorized primary-Branch scope
+  applies. New Enrollment links require authority over the Member and target
+  Branch, subject to the business permission matrix in spec 16.
 - A submitted Branch ID is loaded inside the validated tenant and checked with
   the inherited Branch authorization helpers.
 - Cross-tenant IDs return the same not-found response as unknown IDs.
