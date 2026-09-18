@@ -98,7 +98,7 @@ export async function listCharges(env: Env, request: Request) {
 		return { ...row, paidMinor, outstandingMinor, paymentState: chargeState({ lifecycle: row.lifecycle, totalMinor: row.totalMinor, paidMinor, dueDate: row.dueDate }, today) };
 	});
 	const state = url.searchParams.get("state");
-	const filtered = state ? normalized.filter((item) => item.paymentState === state) : normalized;
+	const filtered = state === "unpaid" ? normalized.filter((item) => item.lifecycle === "open" && item.outstandingMinor > 0) : state ? normalized.filter((item) => item.paymentState === state) : normalized;
 	return { charges: filtered.slice(offset, offset + limit), nextOffset: filtered.length > offset + limit ? offset + limit : null, asOf: new Date().toISOString(), appliedFilters: { period, branchId: requestedBranch, planId: requestedPlan, tag: requestedTag || null, search: search || null, state } };
 }
 

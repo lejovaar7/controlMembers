@@ -60,7 +60,7 @@ function LocalCalendar(props: ComponentProps<typeof Calendar>) {
 		className="p-0 min-[350px]:p-1 [--cell-size:2.5rem]" components={calendarComponents} {...props} />;
 }
 
-export function MonthPicker({ id, label, value, onChange, className }: { id: string; label: string; value: string; onChange: (value: string) => void; className?: string }) {
+export function MonthPicker({ id, label, value, onChange, className, emptyLabel }: { id: string; label: string; value: string; onChange: (value: string) => void; className?: string; emptyLabel?: string }) {
 	const { locale, t } = useI18n();
 	const selected = parseMonth(value);
 	const [open, setOpen] = useState(false);
@@ -68,7 +68,7 @@ export function MonthPicker({ id, label, value, onChange, className }: { id: str
 	const monthName = (date: Date, full = false) => new Intl.DateTimeFormat(languages[locale].intl, { month: full ? "long" : "short", ...(full ? { year: "numeric" } as const : {}) }).format(date);
 	function choose(date: Date) { onChange(dateValue(date).slice(0, 7)); setOpen(false); }
 	return <Popover open={open} onOpenChange={(next) => { if (next) setYear((selected ?? new Date()).getFullYear()); setOpen(next); }}>
-		<PickerTrigger id={id} label={`${label}: ${selected ? monthName(selected, true) : t("Choose a month")}`} className={className}>{selected ? monthName(selected, true) : t("Choose a month")}</PickerTrigger>
+		<PickerTrigger id={id} label={`${label}: ${selected ? monthName(selected, true) : emptyLabel ?? t("Choose a month")}`} className={className}>{selected ? monthName(selected, true) : emptyLabel ?? t("Choose a month")}</PickerTrigger>
 		<PopoverContent align="start" sideOffset={8} className={cn(popupClass, "w-72 p-3")}>
 			<PopoverTitle className="sr-only">{label}</PopoverTitle>
 			<div className="flex items-center justify-between pb-3">

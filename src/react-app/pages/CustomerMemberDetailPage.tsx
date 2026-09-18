@@ -1,15 +1,12 @@
-import { MoneyInput } from "@/components/money-input";
-import { paymentMethodLabel, usePaymentMethods } from "@/hooks/use-payment-methods";
+import { PaymentDialog } from "@/components/payment-dialog";
+import { paymentMethodLabel } from "@/hooks/use-payment-methods";
 import { SelectField } from "@/components/select-field";
 import { CenteredDialog, type DialogReturnFocus } from "@/components/centered-dialog";
 import { useActionDialog } from "@/hooks/use-action-dialog";
 import { DatePicker } from "@/components/date-picker";
 import { dateValue } from "@/lib/calendar-dates";
-import { memberPaymentDefault } from "@/lib/member-payment-default";
-import { createIdempotencyKey } from "@/lib/idempotency-key";
 import { ArrowLeft, ArrowUpRight, CalendarDays, CreditCard, Mail, MapPin, Pencil, Phone, Plus, UserRound } from "lucide-react";
 import { formatMoney, currencyName, formatDate } from "../../shared/i18n";
-import { Loader } from "@/components/loader";
 import { LoadingButton } from "@/components/loading-button";
 import { DetailSkeleton } from "@/components/content-skeleton";
 import { StatusBadge } from "@/components/status-badge";
@@ -26,6 +23,11 @@ import { controlMembersApi, type MemberDetail } from "@/lib/controlmembers";
 import { useI18n, useT } from "@/lib/i18n";
 
 export function CustomerMemberDetailPage() {
+	const shell = useAppShell(); const { id } = useParams();
+	return <MemberDetailWorkspace key={`${shell.organizationId}:${shell.activeBranch?.id}:${id}`} />;
+}
+
+function MemberDetailWorkspace() {
 	const editButtonRef = useRef<HTMLButtonElement>(null);
 	const paymentButtonRef = useRef<HTMLButtonElement>(null);
 	const { dialog, openDialog } = useActionDialog();
@@ -39,12 +41,14 @@ export function CustomerMemberDetailPage() {
 	const [revision, setRevision] = useState(0);
 	const [editing, setEditing] = useState(false);
 	const [paymentOpen, setPaymentOpen] = useState(false);
-	const [paymentAmountMinor, setPaymentAmountMinor] = useState(0);
+	const [receipt, setReceipt] = useState<string | null>(null);
 	const [section, setSection] = useState<"overview" | "payments" | "profile">("overview");
 	useEffect(() => {
+		let active = true;
 		void Promise.all([controlMembersApi.member(shell.organizationId, id), billingSetupApi.plans(shell.organizationId)])
-			.then(([member, catalog]) => { setDetail(member); setPlans(catalog.plans.filter((plan) => plan.isActive)); setFailed(false); })
-			.catch(() => setFailed(true));
+			.then(([member, catalog]) => { if (active) { setDetail(member); setPlans(catalog.plans.filter((plan) => plan.isActive)); setFailed(false); } })
+			.catch(() => { if (active) setFailed(true); });
+		return () => { active = false; };
 	}, [id, revision, shell.organizationId]);
 	if (failed) return <PageContainer><p role="alert">{t("We could not load this member.")}</p></PageContainer>;
 	if (!detail) return <PageContainer><DetailSkeleton label={t("Loading member…")} /></PageContainer>;
@@ -59,7 +63,7 @@ export function CustomerMemberDetailPage() {
 					<p className="flex items-center gap-1.5 text-sm text-muted-foreground"><MapPin className="size-3.5 shrink-0" />{shell.activeBranch?.name ?? shell.branches.find((branch) => branch.id === detail.member.primaryBranchId)?.name}</p>
 				</div>
 			</div>
-			<div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 lg:flex"><Button ref={editButtonRef} variant="outline" onClick={() => setEditing(true)}><Pencil className="size-4" />{t("Edit member")}</Button><Button ref={paymentButtonRef} onClick={() => { setPaymentAmountMinor(memberPaymentDefault(detail, shell.activeBranch?.id ?? detail.member.primaryBranchId)); setPaymentOpen(true); }}><Plus className="size-4" />{t("Review and record payment")}</Button></div>
+			<div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-2 lg:flex"><Button ref={editButtonRef} variant="outline" onClick={() => setEditing(true)}><Pencil className="size-4" />{t("Edit member")}</Button><Button ref={paymentButtonRef} onClick={() => { setReceipt(null); setPaymentOpen(true); }}><Plus className="size-4" />{t("Review and record payment")}</Button></div>
 		</header>
 		<div className="grid grid-cols-2 gap-3 sm:grid-cols-3"><Metric label={t("Outstanding")} value={money(detail.summary.grossOutstandingMinor)} description={t("Charges still to be paid")} prominent /><Metric label={t("Available credit")} value={money(detail.summary.creditMinor)} description={t("Money available in this branch")} /><Metric label={t("Net balance")} value={money(detail.summary.netMinor)} description={t("Outstanding minus available credit")} /></div>
 		<div role="group" aria-label={t("Member details")} className="flex w-full gap-1 rounded-xl border bg-muted/40 p-1 sm:w-fit">
@@ -67,7 +71,9 @@ export function CustomerMemberDetailPage() {
 		</div>
 		{editing ? <MemberProfileForm member={detail.member} onCancel={() => setEditing(false)} returnFocus={editButtonRef} onSaved={() => { setEditing(false); reload(); }} /> : null}
 		<div id="member-overview" hidden={section !== "overview"}><div className="grid items-start gap-5 xl:grid-cols-[1fr_1.15fr]"><EnrollmentSection memberId={id} memberBranchId={shell.activeBranch?.id ?? detail.member.primaryBranchId} plans={plans} enrollments={detail.enrollments} onChanged={reload} /><FinancialSection detail={detail} money={money} /></div></div>
-		<PaymentSection memberId={id} branchId={shell.activeBranch?.id ?? detail.member.primaryBranchId} payments={detail.payments} currency={currency} onChanged={() => { reload(); setSection("payments"); }} open={paymentOpen} initialAmountMinor={paymentAmountMinor} onClose={() => setPaymentOpen(false)} returnFocus={paymentButtonRef} showHistory={section === "payments"} />
+		{receipt ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{t("Payment recorded. Receipt: {receipt}", { receipt })}</p> : null}
+		{paymentOpen ? <PaymentDialog memberId={id} returnFocus={paymentButtonRef} onClose={() => setPaymentOpen(false)} onSaved={(result) => { setReceipt(result.receiptNumber); setPaymentOpen(false); reload(); setSection("payments"); }} /> : null}
+		<PaymentHistory payments={detail.payments} showHistory={section === "payments"} />
 		<div id="member-profile" hidden={section !== "profile"}><div className="grid items-start gap-5 xl:grid-cols-2">
 			<section className="space-y-5 rounded-2xl border bg-card p-5 sm:p-6"><SectionHeading title={t("Personal information")} description={t("The member's details and contact information.")} /><dl className="grid gap-5 sm:grid-cols-2"><Info label={t("Document number")} value={[detail.member.documentType, detail.member.documentNumber].filter(Boolean).join(" ")} /><Info label={t("Birth date")} value={detail.member.birthDate ? formatDate(locale, new Date(detail.member.birthDate), { dateStyle: "medium", timeZone: "UTC" }) : null} /><Info label={t("Email")} value={detail.member.email} icon={<Mail className="size-4" />} /><Info label={t("Phone")} value={detail.member.phoneE164} icon={<Phone className="size-4" />} /></dl>{detail.member.notes ? <div className="rounded-xl bg-muted/40 p-4"><p className="mb-1 text-sm font-medium">{t("Notes")}</p><p className="text-sm leading-6 whitespace-pre-wrap break-words text-muted-foreground">{detail.member.notes}</p></div> : null}<div className="border-t pt-5"><h3 className="mb-3 text-sm font-medium">{t("Member status")}</h3><div className="flex flex-wrap gap-2">{detail.member.status === "active" ? <><Button variant="outline" onClick={() => void changeStatus("paused")}>{t("Pause member")}</Button><Button variant="outline" onClick={() => void changeStatus("inactive")}>{t("Deactivate member")}</Button></> : <Button variant="outline" onClick={() => void changeStatus("active")}>{t("Reactivate member")}</Button>}</div></div></section>
 			<ContactSection memberId={id} contacts={detail.contacts} onChanged={reload} />
@@ -183,57 +189,9 @@ function EnrollmentSection({ memberId, memberBranchId, plans, enrollments, onCha
 	</section>;
 }
 
-function PaymentSection({ memberId, branchId, payments, currency, onChanged, open, initialAmountMinor, onClose, returnFocus, showHistory }: { memberId: string; branchId: string; payments: MemberDetail["payments"]; currency: string; onChanged: () => void; open: boolean; initialAmountMinor: number; onClose: () => void; returnFocus: DialogReturnFocus; showHistory: boolean }) {
-	const { dialog, openDialog } = useActionDialog();
-	const t = useT(); const { locale } = useI18n(); const shell = useAppShell();
-	const paymentMethods = usePaymentMethods(shell.organizationId);
-	const [editedAmount, setAmount] = useState<string | null>(null);
-	const amount = editedAmount ?? (initialAmountMinor > 0 ? String(initialAmountMinor / 100) : "");
-	const [method, setMethod] = useState("cash"); const [pending, setPending] = useState(false); const [failed, setFailed] = useState(false); const [receipt, setReceipt] = useState<string | null>(null); const [previewState, setPreview] = useState<{ amountMinor: number; allocations: Array<{ chargeId: string; amountMinor: number; dueDate: string; planName: string }>; allocatedMinor: number; creditMinor: number } | null>(null); const currentAmountMinor = Math.round(Number(amount) * 100); const preview = previewState?.amountMinor === currentAmountMinor ? previewState : null;
-	const [previewRevision, setPreviewRevision] = useState(0);
-	useEffect(() => {
-		const amountMinor = Math.round(Number(amount) * 100);
-		if (!open || !Number.isSafeInteger(amountMinor) || amountMinor <= 0) return;
-		let active = true;
-		const timer = window.setTimeout(() => {
-			void controlMembersApi.paymentPreview(shell.organizationId, memberId, amountMinor)
-				.then((result) => { if (active) { setPreview({ amountMinor, ...result }); setFailed(false); } })
-				.catch(() => { if (active) { setPreview(null); setFailed(true); } });
-		}, 250);
-		return () => { active = false; window.clearTimeout(timer); };
-	}, [amount, memberId, shell.organizationId, open, previewRevision]);
-	const availableMethod = paymentMethods.methods.some((item) => item.id === method && item.isActive);
-	function changeAllocation(chargeId: string, value: string) { if (!preview) return; const allocations = preview.allocations.map((item) => item.chargeId === chargeId ? { ...item, amountMinor: Math.max(0, Math.round(Number(value) * 100) || 0) } : item); const allocatedMinor = allocations.reduce((sum, item) => sum + item.amountMinor, 0); setPreview({ ...preview, allocations, allocatedMinor, creditMinor: Math.max(0, preview.amountMinor - allocatedMinor) }); }
-	function submit(event: FormEvent) {
-		event.preventDefault();
-		const amountMinor = Math.round(Number(amount) * 100);
-		if (!preview || preview.allocatedMinor > amountMinor || !availableMethod || paymentMethods.failed) return;
-		const idempotencyKey = createIdempotencyKey();
-		const paidAt = new Date().toISOString();
-		openDialog({ title: t("Record payment"), description: t("Record this payment with the allocation shown below?"), confirmLabel: t("Record payment"),
-			summary: <div className="space-y-3"><p className="text-xl font-semibold tabular-nums">{formatMoney(locale, amountMinor, currency)}</p>{preview.allocations.filter((item) => item.amountMinor > 0).map((item) => <p key={item.chargeId} className="flex flex-wrap justify-between gap-2"><span>{item.planName} · {item.dueDate}</span><strong className="tabular-nums">{formatMoney(locale, item.amountMinor, currency)}</strong></p>)}{preview.creditMinor > 0 ? <p>{t("Credit after payment: {amount}", { amount: formatMoney(locale, preview.creditMinor, currency) })}</p> : null}</div>,
-			onConfirm: async () => {
-				setPending(true); setFailed(false);
-				try { const result = await controlMembersApi.createPayment(shell.organizationId, { memberId, branchId, amountMinor, method, paidAt, allocations: preview.allocations.filter((item) => item.amountMinor > 0).map(({ chargeId, amountMinor: allocated }) => ({ chargeId, amountMinor: allocated })), idempotencyKey }); setReceipt(result.receiptNumber); setAmount(null); setPreview(null); onClose(); onChanged(); }
-				finally { setPending(false); }
-			},
-		});
-	}
-	return <>
-		{receipt ? <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"><p>{t("Payment recorded. Receipt: {receipt}", { receipt })}</p><Button variant="ghost" onClick={() => setReceipt(null)}>{t("Dismiss")}</Button></div> : null}
-		{open ? <CenteredDialog open title={t("Review and record payment")} description={t("Payments are applied to the oldest outstanding charges first. You can adjust the distribution before saving.")} pending={pending} onClose={() => { setAmount(null); setPreview(null); setFailed(false); onClose(); }} returnFocus={returnFocus} wide>
-			{dialog}
-			<form onSubmit={submit} className="space-y-5 p-5 sm:p-7"><fieldset disabled={pending} className="grid gap-4 sm:grid-cols-2">
-				<div className="grid content-start gap-2"><Label htmlFor="payment-amount">{t("Amount ({currency})", { currency: currencyName(locale, currency) })}</Label><MoneyInput id="payment-amount" min={0.01} value={amount} required onValueChange={(value) => { setAmount(value); setPreview(null); setFailed(false); }} /></div>
-				<div className="grid gap-2"><Label htmlFor="payment-method">{t("Payment method")}</Label><SelectField id="payment-method" value={method} onValueChange={setMethod} disabled={paymentMethods.loading || paymentMethods.failed} options={paymentMethods.loading || paymentMethods.failed ? [{ value: "cash", label: t("Cash") }] : paymentMethods.methods.map((item) => ({ value: item.id, label: paymentMethodLabel(item, t) }))} />{paymentMethods.failed ? <div role="alert" className="text-sm"><p>{t("We could not load payment methods.")}</p><Button type="button" variant="outline" onClick={paymentMethods.reload}>{t("Try again")}</Button></div> : null}{paymentMethods.canManage ? <Link to="/app/settings" className="text-xs font-medium text-muted-foreground underline">{t("Manage payment methods")}</Link> : null}</div>
-				{preview ? <div className="rounded-xl border bg-muted/30 p-4 text-sm sm:col-span-2"><p className="font-medium">{t("How this payment will be used")}</p>{preview.allocations.length ? <ul className="mt-3 grid gap-3">{preview.allocations.map((item) => <li key={item.chargeId} className="grid gap-2 sm:grid-cols-[1fr_8rem] sm:items-center"><span className="break-words">{item.planName}<span className="mt-1 block text-xs text-muted-foreground">{t("Due {date}", { date: item.dueDate })}</span></span><MoneyInput aria-label={t("Amount applied to {plan}", { plan: item.planName })} min={0} value={item.amountMinor / 100} onValueChange={(value) => changeAllocation(item.chargeId, value)} /></li>)}</ul> : <p className="mt-2 text-muted-foreground">{t("No open charges. The payment will remain as credit.")}</p>}{preview.allocatedMinor > preview.amountMinor ? <p role="alert" className="mt-3 text-destructive">{t("Allocated amount cannot exceed the payment.")}</p> : null}{preview.creditMinor > 0 ? <p className="mt-3 border-t pt-3">{t("Credit after payment: {amount}", { amount: formatMoney(locale, preview.creditMinor, currency) })}</p> : null}</div> : currentAmountMinor > 0 && !failed ? <div className="flex justify-center rounded-xl bg-muted/30 p-5 sm:col-span-2"><Loader label={t("Loading…")} /></div> : null}
-			</fieldset>
-			{failed ? <div role="alert" className="space-y-2 rounded-xl bg-destructive/5 p-4 text-sm text-destructive"><p>{t("We could not load the payment distribution.")}</p><Button type="button" variant="outline" onClick={() => { setFailed(false); setPreviewRevision((value) => value + 1); }}>{t("Try again")}</Button></div> : null}
-			<div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" disabled={pending} onClick={() => { setAmount(null); setPreview(null); setFailed(false); onClose(); }}>{t("Cancel")}</Button><LoadingButton type="submit" loading={pending} loadingLabel={t("Recording…")} disabled={pending || !amount || !preview || preview.allocatedMinor > preview.amountMinor || !availableMethod || paymentMethods.failed}>{t("Review and record payment")}</LoadingButton></div>
-			</form>
-		</CenteredDialog> : null}
-		<div id="member-payments" hidden={!showHistory}><section className="space-y-5 rounded-2xl border bg-card p-5 sm:p-6"><SectionHeading title={t("Payment history")} description={t("Receipts, amounts and payment methods in this branch.")} />{payments.length ? <ul className="divide-y">{payments.map((item) => <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"><div className="flex min-w-0 items-center gap-3"><div aria-hidden="true" className="hidden rounded-xl bg-emerald-50 p-3 text-emerald-700 sm:block"><ArrowUpRight className="size-5" /></div><div className="min-w-0"><p className="font-medium break-all">{item.receiptNumber}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(locale, new Date(item.paidAt), { day: "numeric", month: "short", year: "numeric" })} · {paymentMethodLabel({ id: item.method, name: item.methodName }, t)}</p></div></div><div className="flex flex-wrap items-center gap-3"><strong className="tabular-nums">{formatMoney(locale, item.amountMinor, item.currency)}</strong><StatusBadge tone={item.status === "reversed" ? "neutral" : "success"}>{t(item.status === "reversed" ? "Cancelled" : "Posted")}</StatusBadge></div></li>)}</ul> : <EmptyState text={t("No payments yet.")} />}</section></div>
-	</>;
+function PaymentHistory({ payments, showHistory }: { payments: MemberDetail["payments"]; showHistory: boolean }) {
+	const { locale, t } = useI18n();
+	return <div id="member-payments" hidden={!showHistory}><section className="space-y-5 rounded-2xl border bg-card p-5 sm:p-6"><SectionHeading title={t("Payment history")} description={t("Receipts, amounts and payment methods in this branch.")} />{payments.length ? <ul className="divide-y">{payments.map((item) => <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"><div className="flex min-w-0 items-center gap-3"><div aria-hidden="true" className="hidden rounded-xl bg-emerald-50 p-3 text-emerald-700 sm:block"><ArrowUpRight className="size-5" /></div><div className="min-w-0"><p className="font-medium break-all">{item.receiptNumber}</p><p className="mt-1 text-xs text-muted-foreground">{formatDate(locale, new Date(item.paidAt), { day: "numeric", month: "short", year: "numeric" })} · {paymentMethodLabel({ id: item.method, name: item.methodName }, t)}</p></div></div><div className="flex flex-wrap items-center gap-3"><strong className="tabular-nums">{formatMoney(locale, item.amountMinor, item.currency)}</strong><StatusBadge tone={item.status === "reversed" ? "neutral" : "success"}>{t(item.status === "reversed" ? "Cancelled" : "Posted")}</StatusBadge></div></li>)}</ul> : <EmptyState text={t("No payments yet.")} />}</section></div>;
 }
 
 function ContactSection({ memberId, contacts, onChanged }: { memberId: string; contacts: MemberDetail["contacts"]; onChanged: () => void }) {

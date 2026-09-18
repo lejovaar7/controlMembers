@@ -5,21 +5,14 @@ import { AuthError } from "../auth/session";
 import { getTenantDb } from "../db";
 import { team } from "../db/auth-schema";
 import { allocation, auditEvent, charge, customerMember, payment } from "../db/schema";
-import { csvCell, details, localDate, readPeriod, requireExport, requireReports } from "./domain";
+import { csvCell, details, localDate, zonedMidnight, readPeriod, requireExport, requireReports } from "./domain";
 
 function addMonth(period: string) {
 	const [year, month] = period.split("-").map(Number);
 	return new Date(Date.UTC(year!, month!, 1)).toISOString().slice(0, 7);
 }
 
-function zonedMidnight(date: string, timezone: string | null) {
-	const [year, month, day] = date.split("-").map(Number);
-	const guess = Date.UTC(year!, month! - 1, day!);
-	const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone ?? "UTC", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(new Date(guess));
-	const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value ?? 0);
-	const represented = Date.UTC(value("year"), value("month") - 1, value("day"), value("hour"), value("minute"), value("second"));
-	return new Date(guess - (represented - guess));
-}
+
 
 
 export async function getDashboard(env: Env, request: Request) {

@@ -1,6 +1,6 @@
 import { Dialog } from "@base-ui/react/dialog";
 import { X } from "lucide-react";
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 export type DialogReturnFocus = HTMLElement | { readonly current: HTMLElement | null } | null;
 
 /** Shared modal presentation for action confirmations and full feature forms. */
-export function CenteredDialog({ title, description, open, pending = false, onClose, returnFocus, wide = false, children }: {
+export function CenteredDialog({ title, description, open, pending = false, onClose, returnFocus, wide = false, focusKey, children }: {
 	title: string;
 	description: string;
 	open: boolean;
@@ -16,10 +16,13 @@ export function CenteredDialog({ title, description, open, pending = false, onCl
 	onClose: () => void;
 	returnFocus?: DialogReturnFocus;
 	wide?: boolean;
+	/** Announce a new step and restore its heading to view in a tall dialog. */
+	focusKey?: string;
 	children: ReactNode;
 }) {
 	const t = useT();
 	const titleRef = useRef<HTMLHeadingElement>(null);
+	useEffect(() => { if (focusKey !== undefined) titleRef.current?.focus(); }, [focusKey]);
 	return <Dialog.Root open={open} disablePointerDismissal={pending} onOpenChange={(next, details) => {
 		if (!next) { if (pending) details.cancel(); else onClose(); }
 	}}>

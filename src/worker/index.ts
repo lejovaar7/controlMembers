@@ -109,7 +109,7 @@ app.post("/api/payment-methods", async (c) => c.json(await createPaymentMethod(c
 app.patch("/api/payment-methods/:id", async (c) => c.json(await updatePaymentMethod(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
 
 app.get("/api/payments", async (c) => c.json(await listPayments(c.env, c.req.raw)));
-app.get("/api/customer-members/:id/payment-preview", async (c) => c.json(await previewPaymentAllocation(c.env, c.req.raw, c.req.param("id"), Number(c.req.query("amountMinor")))));
+app.get("/api/customer-members/:id/payment-preview", async (c) => c.json(await previewPaymentAllocation(c.env, c.req.raw, c.req.param("id"), Number(c.req.query("amountMinor")), c.req.query("chargeId"))));
 app.post("/api/payments", async (c) => c.json(await createPayment(c.env, c.req.raw, await readJsonObject(c.req.raw)), 201));
 app.patch("/api/payments/:id/reverse", async (c) => c.json(await reversePayment(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
 

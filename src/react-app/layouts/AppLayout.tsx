@@ -1,6 +1,6 @@
 import { Loader } from "@/components/loader";
 import { useT } from "@/lib/i18n";
-import { Banknote, Building2, CalendarRange, ChartNoAxesCombined, ClipboardList, LayoutDashboard, LogOut, MapPin, Menu, X, Settings, UserRoundCheck, Users } from "lucide-react";
+import { Banknote, Building2, CalendarRange, ChartNoAxesCombined, LayoutDashboard, LogOut, MapPin, Menu, X, Settings, UserRoundCheck, Users } from "lucide-react";
 import { Dialog } from "@base-ui/react/dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, useLocation } from "react-router";
@@ -26,8 +26,7 @@ import { roleMessage } from "../../shared/i18n";
 const navigation = [
 	{ to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard, manage: false, reports: true },
 	{ to: "/app/customer-members", label: "Members", icon: UserRoundCheck, manage: false },
-	{ to: "/app/charges", label: "Charges", icon: ClipboardList, manage: false },
-	{ to: "/app/payments", label: "Payments", icon: Banknote, manage: false },
+	{ to: "/app/collections", label: "Collections & payments", icon: Banknote, manage: false },
 	{ to: "/app/billing-setup", label: "Plans", icon: CalendarRange, manage: true, fullScope: true },
 	{ to: "/app/reports", label: "Reports", icon: ChartNoAxesCombined, manage: false, reports: true },
 	{ to: "/app/branches", label: "Branches", icon: Building2, manage: true, fullScope: false },

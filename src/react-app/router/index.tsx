@@ -20,8 +20,7 @@ import { VerifyEmailPage } from "@/pages/VerifyEmailPage";
 import { BillingSetupPage } from "@/pages/BillingSetupPage";
 import { CustomerMembersPage } from "@/pages/CustomerMembersPage";
 import { CustomerMemberDetailPage } from "@/pages/CustomerMemberDetailPage";
-import { ChargesPage } from "@/pages/ChargesPage";
-import { PaymentsPage } from "@/pages/PaymentsPage";
+import { CollectionsPage, LegacyCollectionsRedirect } from "@/pages/CollectionsPage";
 import { ReportsPage } from "@/pages/ReportsPage";
 
 export const router = createBrowserRouter([
@@ -61,8 +60,10 @@ export const router = createBrowserRouter([
 			{ path: "billing-setup", element: <BillingSetupPage /> },
 			{ path: "customer-members", element: <CustomerMembersPage /> },
 			{ path: "customer-members/:id", element: <CustomerMemberDetailPage /> },
-			{ path: "charges", element: <ChargesPage /> },
-			{ path: "payments", element: <PaymentsPage /> },
+			{ path: "collections", element: <Navigate to="/app/collections/fees" replace /> },
+			{ path: "collections/:section", element: <CollectionsPage /> },
+			{ path: "charges", element: <LegacyCollectionsRedirect view="fees" /> },
+			{ path: "payments", element: <LegacyCollectionsRedirect view="payments" /> },
 			{ path: "reports", element: <ReportsPage /> },
 			{ path: "branches", element: <BranchesPage /> },
 			{ path: "no-branch-access", element: <NoBranchAccessPage /> },

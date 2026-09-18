@@ -1,3 +1,4 @@
+import { paymentMonthQuery } from "@/lib/collections-navigation";
 import { MonthPicker } from "@/components/date-picker";
 import { formatMoney } from "../../shared/i18n";
 import { DashboardSkeleton } from "@/components/content-skeleton";
@@ -41,10 +42,10 @@ export function DashboardPage() {
   {!metrics && !failed ? <DashboardSkeleton label={t("Loading dashboard…")} /> : null}
   {metrics && !failed ? <>
    <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 sm:gap-4 xl:grid-cols-4">
-    <Metric icon={<CalendarClock />} label={t("Total to collect")} value={amount(metrics.expectedMinor)} to={`/app/charges?period=${period}`} tone="blue" />
-    <Metric icon={<ArrowDownLeft />} label={t("Collected")} value={amount(metrics.collectedMinor)} to="/app/payments" tone="green" />
-    <Metric icon={<WalletCards />} label={t("Outstanding")} value={amount(metrics.outstandingMinor)} to={`/app/charges?period=${period}`} tone="amber" />
-    <Metric icon={<UsersRound />} label={t("Overdue members")} value={String(metrics.overdueMembers)} to={`/app/charges?period=${period}&state=overdue`} tone="rose" />
+    <Metric icon={<CalendarClock />} label={t("Total to collect")} value={amount(metrics.expectedMinor)} to={`/app/collections/fees?period=${period}&state=all`} tone="blue" />
+    <Metric icon={<ArrowDownLeft />} label={t("Collected")} value={amount(metrics.collectedMinor)} to={`/app/collections/payments?${paymentMonthQuery(period)}`} tone="green" />
+    <Metric icon={<WalletCards />} label={t("Outstanding")} value={amount(metrics.outstandingMinor)} to={`/app/collections/fees?period=${period}&state=unpaid`} tone="amber" />
+    <Metric icon={<UsersRound />} label={t("Overdue members")} value={String(metrics.overdueMembers)} to={`/app/collections/fees?period=${period}&state=overdue`} tone="rose" />
    </div>
    <div className="grid items-stretch gap-6 xl:grid-cols-[1.5fr_1fr]">
     <section className="rounded-2xl border bg-card p-5 sm:p-7">
@@ -58,11 +59,11 @@ export function DashboardPage() {
     <section className="flex flex-col rounded-2xl border bg-card p-5 sm:p-7">
      <div className="mb-5 flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-amber-50 text-amber-700"><CalendarClock className="size-5" /></span><h2 className="font-semibold">{t("Upcoming due in 7 days")}</h2></div>
      <p className="text-3xl font-semibold tracking-tight tabular-nums">{money(metrics.upcomingDueMinor)}</p><p className="mt-2 text-sm text-muted-foreground">{t("{count} charges", { count: metrics.upcomingDueCount })}</p>
-     <div className="mt-auto pt-7"><Link to={`/app/charges?period=${period}`} className="flex min-h-11 items-center justify-between gap-3 rounded-lg bg-muted px-4 text-sm font-medium hover:bg-accent">{t("Go to charges")}<ArrowRight className="size-4" /></Link></div>
+     <div className="mt-auto pt-7"><Link to={`/app/collections/fees?period=${period}&state=all`} className="flex min-h-11 items-center justify-between gap-3 rounded-lg bg-muted px-4 text-sm font-medium hover:bg-accent">{t("Go to charges")}<ArrowRight className="size-4" /></Link></div>
     </section>
    </div>
-   <section className="rounded-2xl border bg-card p-5 sm:p-6"><h2 className="mb-4 font-semibold">{t("Quick actions")}</h2><div className="grid gap-3 sm:grid-cols-3"><QuickLink to="/app/customer-members" icon={<Plus />} label={t("Manage members")} /><QuickLink to="/app/payments" icon={<CircleCheckBig />} label={t("View payments")} /><QuickLink to="/app/reports" icon={<ArrowUpRight />} label={t("View reports")} /></div></section>
-   {metrics.expectedMinor === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center"><h2 className="font-semibold">{t("No charges in this period")}</h2><p className="mt-2 text-sm text-muted-foreground">{t("Create members and enrollments, then generate monthly charges.")}</p><Button className="mt-5" nativeButton={false} render={<Link to="/app/charges" />}>{t("Go to charges")}<ArrowRight /></Button></div> : null}
+   <section className="rounded-2xl border bg-card p-5 sm:p-6"><h2 className="mb-4 font-semibold">{t("Quick actions")}</h2><div className="grid gap-3 sm:grid-cols-3"><QuickLink to="/app/customer-members" icon={<Plus />} label={t("Manage members")} /><QuickLink to={`/app/collections/payments?${paymentMonthQuery(period)}`} icon={<CircleCheckBig />} label={t("View payments")} /><QuickLink to="/app/reports" icon={<ArrowUpRight />} label={t("View reports")} /></div></section>
+   {metrics.expectedMinor === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center"><h2 className="font-semibold">{t("No charges in this period")}</h2><p className="mt-2 text-sm text-muted-foreground">{t("Create members and enrollments, then generate monthly charges.")}</p><Button className="mt-5" nativeButton={false} render={<Link to="/app/collections/fees" />}>{t("Go to charges")}<ArrowRight /></Button></div> : null}
    <p className="flex items-start gap-2 text-xs leading-5 text-muted-foreground"><Clock3 className="mt-0.5 size-3.5 shrink-0" />{t(metrics.scope === "branch" ? "Current branch · updated {date}" : metrics.scope === "all" ? "All accessible branches · updated {date}" : "Assigned branches only · updated {date}", { date: new Date(metrics.asOf).toLocaleString(locale) })}</p>
   </> : null}
  </PageContainer>;

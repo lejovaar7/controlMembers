@@ -191,18 +191,21 @@
   .member-name-link { display: inline-flex; align-items: center; min-height: 40px; max-width: 100%; font-weight: 600; line-height: 1.5; }
   .member-name-link:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
   .member-contact { display: grid; gap: 0.25rem; line-height: 1.5; font-size: 0.8125rem; }
-  .charges-table th:nth-child(1) { width: 26%; }
-  .charges-table th:nth-child(2) { width: 22%; }
-  .charges-table th:nth-child(3) { width: 17%; }
-  .charges-table th:nth-child(4) { width: 17%; }
-  .charges-table th:nth-child(5) { width: 18%; }
+  .charges-table th:nth-child(1) { width: 24%; }
+  .charges-table th:nth-child(2) { width: 18%; }
+  .charges-table th:nth-child(3) { width: 13%; }
+  .charges-table th:nth-child(4) { width: 15%; }
+  .charges-table th:nth-child(5) { width: 15%; }
+  .charges-table th:nth-child(6) { width: 15%; }
   .charges-table-actions th:nth-child(1) { width: 20%; }
-  .charges-table-actions th:nth-child(2) { width: 15%; }
-  .charges-table-actions th:nth-child(3) { width: 14%; }
-  .charges-table-actions th:nth-child(4) { width: 17%; }
-  .charges-table-actions th:nth-child(5) { width: 16%; }
-  .charges-table-actions th:nth-child(6) { width: 18%; }
+  .charges-table-actions th:nth-child(2) { width: 14%; }
+  .charges-table-actions th:nth-child(3) { width: 12%; }
+  .charges-table-actions th:nth-child(4) { width: 13%; }
+  .charges-table-actions th:nth-child(5) { width: 12%; }
+  .charges-table-actions th:nth-child(6) { width: 13%; }
+  .charges-table-actions th:nth-child(7) { width: 16%; }
   .charges-table .charge-actions { text-align: right; }
+  .charges-table .charge-actions [data-slot="button"] { height: auto; min-height: 40px; max-width: 100%; white-space: normal; padding-block: 0.5rem; }
   .payments-table th:nth-child(1) { width: 26%; }
   .payments-table th:nth-child(2) { width: 18%; }
   .payments-table th:nth-child(3) { width: 20%; }

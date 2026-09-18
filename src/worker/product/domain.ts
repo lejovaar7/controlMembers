@@ -99,3 +99,12 @@ export function csvCell(value: unknown) {
 	if (/^[=+\-@]/.test(result)) result = `'${result}`;
 	return `"${result.replace(/"/g, '""')}"`;
 }
+
+export function zonedMidnight(date: string, timezone: string | null) {
+	const [year, month, day] = date.split("-").map(Number);
+	const guess = Date.UTC(year!, month! - 1, day!);
+	const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone ?? "UTC", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(new Date(guess));
+	const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value ?? 0);
+	const represented = Date.UTC(value("year"), value("month") - 1, value("day"), value("hour"), value("minute"), value("second"));
+	return new Date(guess - (represented - guess));
+}
