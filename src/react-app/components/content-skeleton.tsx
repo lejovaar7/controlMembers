@@ -53,3 +53,9 @@ export function DetailSkeleton({ label }: { label: string }) {
 		</div>)}</div>
 	</div></SkeletonRegion>;
 }
+
+export function PlansSkeleton({ label }: { label: string }) {
+	return <SkeletonRegion label={label}><div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+		{[0, 1, 2].map((index) => <div key={index} className="space-y-5 rounded-2xl border bg-card p-5 sm:p-6"><div className="flex justify-between gap-4"><Skeleton className="h-5 w-36 max-w-full" /><Skeleton className="h-6 w-16 rounded-full" /></div><Skeleton className="h-8 w-32" /><Skeleton className="h-4 w-40 max-w-full" /><Skeleton className="h-4 w-28" /><div className="flex gap-2 border-t pt-4"><Skeleton className="h-10 flex-1" /><Skeleton className="h-10 flex-1" /></div></div>)}
+	</div></SkeletonRegion>;
+}

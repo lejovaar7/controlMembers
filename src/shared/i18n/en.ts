@@ -314,6 +314,22 @@ export const messages = [
 	"Enter a valid amount.",
 	"The amount must be at least {amount}.",
 	"The amount must not exceed {amount}.",
+	"Manage monthly prices and plans for this branch.",
+	"Plan created.",
+	"Plan updated.",
+	"Search plans",
+	"Search by name or tag",
+	"{count} plans in {branch}",
+	"No matching plans",
+	"Try another search or change the status filter.",
+	"Clear filters",
+	"Changes apply to future enrollments. Existing monthly fees stay unchanged.",
+	"Set the monthly price and where this plan is available.",
+	"Monthly price",
+	"Select only the branches that should offer this plan.",
+	"Description and tags (optional)",
+	"Currency and timezone apply to every branch of your company.",
+	"{count} plan in {branch}",
 ] as const;
 
 export type MessageKey = typeof messages[number];
