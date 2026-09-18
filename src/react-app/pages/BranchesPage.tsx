@@ -41,7 +41,7 @@ function BranchWorkspace() {
 			{branches.length ? <div className="member-directory rounded-2xl border bg-card shadow-sm">
 				<table className="members-table branches-table" role="table">
 					<caption className="sr-only">{t("Your branches")}</caption>
-					<thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">{t("Branch name")}</th><th scope="col" role="columnheader">{t("Actions")}</th></tr></thead>
+					<thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">{t("Branch name")}</th><th scope="col" role="columnheader" className="branch-actions">{t("Actions")}</th></tr></thead>
 					<tbody role="rowgroup">{branches.map((branch) => <tr key={branch.id} role="row">
 						<td role="cell" className="member-name" data-label={t("Branch name")}><div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2"><span className="font-semibold">{branch.name}</span>{branch.id === shell.activeBranch?.id ? <StatusBadge tone="success">{t("Current branch")}</StatusBadge> : null}</div></td>
 						<td role="cell" className="branch-actions" data-label={t("Actions")}><Button variant="outline" onClick={(event) => openEditor(branch, event.currentTarget)} aria-label={t("Edit name of {branch}", { branch: branch.name })}><Pencil aria-hidden="true" />{t("Edit name")}</Button></td>

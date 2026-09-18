@@ -170,6 +170,7 @@
   .record-list > li + li { border-top: 1px solid var(--border); }
   .record-row { padding: 1.25rem; transition: background-color 150ms; }
   .record-row:hover { background: color-mix(in srgb, var(--accent) 40%, var(--card)); }
+  :is(.members-table, .data-table) th { text-align: left; vertical-align: middle; }
   .data-table { width: 100%; table-layout: fixed; background: var(--card); font-size: 0.875rem; }
   .data-table th { background: var(--muted); color: var(--muted-foreground); font-weight: 500; }
   .data-table :where(th, td) { padding: 1rem; overflow-wrap: anywhere; }
@@ -177,7 +178,7 @@
   .data-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 35%, var(--card)); }
   .member-directory { container-type: inline-size; overflow: hidden; }
   .members-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 0.875rem; }
-  .members-table th { padding: 0.875rem 1rem; background: var(--muted); color: var(--muted-foreground); text-align: left; font-size: 0.75rem; font-weight: 600; }
+  .members-table th { padding: 0.875rem 1rem; background: var(--muted); color: var(--muted-foreground); font-size: 0.75rem; font-weight: 600; }
   .members-table th:nth-child(1) { width: 26%; }
   .members-table th:nth-child(2) { width: 17%; }
   .members-table th:nth-child(3) { width: 25%; }
@@ -186,7 +187,11 @@
   .members-table td { padding: 1rem; vertical-align: middle; overflow-wrap: anywhere; }
   .members-table tbody tr { border-top: 1px solid var(--border); }
   .members-table tbody tr:hover, .members-table tbody tr:focus-within { background: color-mix(in srgb, var(--accent) 30%, var(--card)); }
-  .members-table .member-balance { text-align: right; }
+  .members-table .member-balance, .data-table .table-number { text-align: right; font-variant-numeric: tabular-nums; }
+  .members-table :is(.table-status, .charge-actions, .payment-actions, .user-actions, .branch-actions) { text-align: center; }
+  .table-action-buttons { justify-content: center; }
+  .members-table .member-balance [data-slot="skeleton"] { margin-left: auto; }
+  .members-table :is(.table-status, .charge-actions, .payment-actions, .user-actions) [data-slot="skeleton"] { margin-inline: auto; }
   .member-clickable-row { cursor: pointer; }
   .member-name-link { display: inline-flex; align-items: center; min-height: 40px; max-width: 100%; font-weight: 600; line-height: 1.5; }
   .member-name-link:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 3px; }
@@ -204,7 +209,6 @@
   .charges-table-actions th:nth-child(5) { width: 12%; }
   .charges-table-actions th:nth-child(6) { width: 13%; }
   .charges-table-actions th:nth-child(7) { width: 16%; }
-  .charges-table .charge-actions { text-align: right; }
   .charges-table .charge-actions [data-slot="button"] { height: auto; min-height: 40px; max-width: 100%; white-space: normal; padding-block: 0.5rem; }
   .payments-table th:nth-child(1) { width: 26%; }
   .payments-table th:nth-child(2) { width: 18%; }
@@ -217,17 +221,14 @@
   .payments-table-actions th:nth-child(4) { width: 16%; }
   .payments-table-actions th:nth-child(5) { width: 16%; }
   .payments-table-actions th:nth-child(6) { width: 16%; }
-  .payments-table .payment-actions { text-align: right; }
   .users-table th:nth-child(1) { width: 25%; }
   .users-table th:nth-child(2) { width: 17%; }
   .users-table th:nth-child(3) { width: 20%; }
   .users-table th:nth-child(4) { width: 15%; }
-  .users-table th:nth-child(5) { width: 23%; text-align: right; }
-  .users-table .user-actions { text-align: right; }
+  .users-table th:nth-child(5) { width: 23%; }
   .users-table .user-actions [data-slot="button"] { height: auto; min-height: 40px; max-width: 100%; white-space: normal; padding-block: 0.5rem; }
   .branches-table th:nth-child(1) { width: 70%; }
-  .branches-table th:nth-child(2) { width: 30%; text-align: right; }
-  .branches-table .branch-actions { text-align: right; }
+  .branches-table th:nth-child(2) { width: 30%; }
   @container (max-width: 800px) {
     .members-table, .members-table tbody { display: block; }
     .members-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
@@ -239,6 +240,9 @@
     .members-table .member-name { grid-column: 1; grid-row: 1; align-items: center; text-align: left; }
     .members-table .member-name::before, .members-table td:nth-child(4)::before { display: none; }
     .members-table td:nth-child(4) { grid-column: 2; grid-row: 1; align-items: center; }
+    .members-table td:is(.table-status, .charge-actions, .payment-actions, .user-actions, .branch-actions) { text-align: right; }
+    .members-table td.table-status { justify-content: flex-end; }
+    .table-action-buttons { justify-content: flex-end; }
     .members-table .member-balance { margin-top: 0.5rem; padding-top: 0.875rem; border-top: 1px solid var(--border); align-items: center; }
     .charges-table .charge-actions { justify-content: flex-end; }
     .charges-table .charge-actions::before { display: none; }
