@@ -1,7 +1,8 @@
 import { LoadingButton } from "@/components/loading-button";
 import { useActionDialog } from "@/hooks/use-action-dialog";
-import { ListSkeleton } from "@/components/content-skeleton";
-import { roleMessage, type MessageKey } from "../../shared/i18n";
+import { UsersTable } from "@/components/users-table";
+import { Plus } from "lucide-react";
+import { type MessageKey } from "../../shared/i18n";
 import { useT } from "@/lib/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Navigate } from "react-router";
@@ -20,6 +21,7 @@ export function MembersPage() {
 
 function MemberWorkspace() {
 	const createButtonRef = useRef<HTMLButtonElement>(null);
+	const editButtonRef = useRef<HTMLButtonElement>(null);
 	const { dialog, openDialog } = useActionDialog();
 	const t = useT();
 	const shell = useAppShell();
@@ -76,31 +78,15 @@ function MemberWorkspace() {
 	return (
 		<PageContainer className="space-y-4">
 			{dialog}
-			<PageHeader title={t("Users & permissions")} description={t("Manage who can sign in to the system and what actions they can perform.")} />
+			<PageHeader title={t("Users & permissions")} description={t("Manage who can sign in to the system and what actions they can perform.")} actions={<Button ref={createButtonRef} onClick={() => { setMessage(null); setForm("new"); }}><Plus aria-hidden="true" />{t("Add user")}</Button>} />
 			{message && <p role="status" className="rounded-lg border p-3 text-sm">{message ? t(message) : null}</p>}
-			<div><Button ref={createButtonRef} onClick={() => { setMessage(null); setForm("new"); }}>{t("Add user")}</Button></div>
-			{form ? <MemberForm inDialog={form === "new"} returnFocus={createButtonRef} key={`${form === "new" ? "new" : form.membershipId}-${shell.allBranches}-${shell.canAppointAdmins}-${shell.organizationRole}`} branches={shell.branches} member={form === "new" ? undefined : form} allBranchesAllowed={shell.allBranches} canAppointAdmins={shell.canAppointAdmins} isOwner={shell.organizationRole === "owner"} onCancel={() => setForm(null)} onSaved={(status) => { setForm(null); setMessage(status ? setupMessage(status) : "User access updated."); setRevision((value) => value + 1); }} /> : null}
-			{failed ? <div role="alert">{t("We could not load users.")}<Button variant="outline" onClick={() => setRevision((value) => value + 1)}>{t("Try again")}</Button></div> : !current ? <ListSkeleton label={t("Loading users…")} /> : current.members.length === 0 ? <p>{t("No users found.")}</p> : (
-				<ul className="grid gap-4 xl:grid-cols-2">
-					{current.members.map((entry) => (
-						<li key={entry.membershipId} className="rounded-xl border bg-card p-5 sm:p-6">
-							<h2 className="break-words text-lg font-semibold">{entry.user.name}</h2>
-							<p className="text-muted-foreground break-all text-sm">{entry.user.email}</p>
-							<p className="mt-2 text-sm">{t("Role: {role}", { role: t(roleMessage(entry.role)) })}</p>
-							<p className="text-sm">{t("Company access: {status}", { status: t(entry.isActive ? "Active" : "Inactive") })}</p>
-							{entry.role === "admin" && <p className="text-sm">{t("Can appoint administrators: {permission}", { permission: t(entry.canAppointAdmins ? "Yes" : "No") })}</p>}
-							{shell.organizationRole === "owner" && <p className="text-sm text-muted-foreground">{t("Financial permissions: {permissions}", { permissions: [entry.canReversePayments ? t("cancel payments") : null, entry.canAdjustCharges ? t("adjust charges") : null, entry.canViewReports ? t("view reports") : null, entry.canExportFinancialData ? t("export data") : null].filter(Boolean).join(", ") || t("none") })}</p>}
-							<p className="text-sm">{entry.branchAccess.kind === "all-branches" ? t("All branches") : entry.branchAccess.branchIds.map((id) => shell.branches.find((branch) => branch.id === id)?.name).filter(Boolean).join(", ") || t("No branch access")}</p>
-							{entry.scopeRestricted && <p className="mt-1 text-sm text-muted-foreground">{t("This person also has access outside your branch scope. The owner or an administrator covering all of their branches must manage their access.")}</p>}
-							{entry.setupRequired && entry.isActive && <p className="mt-1 text-sm text-muted-foreground">{t("Account setup pending")}</p>}
-							{entry.canManage && <div className="mt-3 flex flex-wrap gap-2">
-								<Button variant="outline" aria-label={t("Edit access for {name}", { name: entry.user.name })} disabled={Boolean(form)} onClick={() => { setMessage(null); setForm(entry); }}>{t("Edit access")}</Button>
-								<Button variant="outline" aria-label={t(entry.isActive ? "Deactivate company access for {name}" : "Reactivate company access for {name}", { name: entry.user.name })} disabled={Boolean(form || resending)} onClick={() => { changeStatus(entry); }}>{entry.isActive ? t("Deactivate access") : t("Reactivate access")}</Button>
-								{entry.setupRequired && entry.isActive && <LoadingButton loading={resending === entry.membershipId} loadingLabel={t("Sending…")} variant="outline" aria-label={t("Resend setup for {name}", { name: entry.user.name })} disabled={Boolean(resending)} onClick={() => void resend(entry)}>{t("Resend setup")}</LoadingButton>}
-							</div>}
-						</li>
-					))}
-				</ul>
+			{form ? <MemberForm inDialog returnFocus={form === "new" ? createButtonRef : editButtonRef} key={`${form === "new" ? "new" : form.membershipId}-${shell.allBranches}-${shell.canAppointAdmins}-${shell.organizationRole}`} branches={shell.branches} member={form === "new" ? undefined : form} allBranchesAllowed={shell.allBranches} canAppointAdmins={shell.canAppointAdmins} isOwner={shell.organizationRole === "owner"} onCancel={() => setForm(null)} onSaved={(status) => { setForm(null); setMessage(status ? setupMessage(status) : "User access updated."); setRevision((value) => value + 1); }} /> : null}
+			{failed ? <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-5 text-sm">{t("We could not load users.")}<Button variant="outline" onClick={() => setRevision((value) => value + 1)}>{t("Try again")}</Button></div> : current?.members.length === 0 ? <p className="rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">{t("No users found.")}</p> : (
+				<UsersTable members={current?.members ?? []} branches={shell.branches} isOwner={shell.organizationRole === "owner"} loading={!current} actions={(entry) => <div className="flex flex-wrap justify-end gap-2">
+					<Button variant="outline" aria-label={t("Edit access for {name}", { name: entry.user.name })} disabled={Boolean(form)} onClick={(event) => { editButtonRef.current = event.currentTarget; setMessage(null); setForm(entry); }}>{t("Edit access")}</Button>
+					<Button variant="ghost" aria-label={t(entry.isActive ? "Deactivate company access for {name}" : "Reactivate company access for {name}", { name: entry.user.name })} disabled={Boolean(form || resending)} onClick={() => changeStatus(entry)}>{t(entry.isActive ? "Deactivate access" : "Reactivate access")}</Button>
+					{entry.setupRequired && entry.isActive && <LoadingButton loading={resending === entry.membershipId} loadingLabel={t("Sending…")} variant="ghost" aria-label={t("Resend setup for {name}", { name: entry.user.name })} disabled={Boolean(resending)} onClick={() => void resend(entry)}>{t("Resend setup")}</LoadingButton>}
+				</div>} />
 			)}
 		</PageContainer>
 	);

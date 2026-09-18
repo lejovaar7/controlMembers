@@ -690,4 +690,6 @@ export const es = {
 	"Choose a clear name so your team can easily identify this location.": "Elige un nombre claro para que tu equipo identifique esta sede fácilmente.",
 	"For example: North branch": "Por ejemplo: Sede Norte",
 	"We could not save the branch. Please try again.": "No pudimos guardar la sede. Inténtalo de nuevo.",
+	"View permissions": "Ver permisos",
+	"Read only": "Solo lectura",
 } satisfies Catalog;

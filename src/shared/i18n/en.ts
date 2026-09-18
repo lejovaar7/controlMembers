@@ -352,6 +352,8 @@ export const messages = [
 	"Choose a clear name so your team can easily identify this location.",
 	"For example: North branch",
 	"We could not save the branch. Please try again.",
+	"View permissions",
+	"Read only",
 ] as const;
 
 export type MessageKey = typeof messages[number];
