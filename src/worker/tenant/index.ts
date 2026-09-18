@@ -25,6 +25,8 @@ export type TenantContext = {
 	canViewReports: boolean;
 	canExportFinancialData: boolean;
 	branchIds: string[];
+	/** Validated active Branch filter, populated only by product workspace guards. */
+	activeBranchId?: string | null;
 	locale: string;
 	timezone: string | null;
 	currency: string | null;

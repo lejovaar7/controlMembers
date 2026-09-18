@@ -7,6 +7,7 @@ import { getBranch } from "../tenant/branch";
 import { requireTenant, type TenantContext } from "../tenant";
 import { requireBillingSetupAdmin } from "./setup";
 import { details } from "./domain";
+import { requireWorkspaceTenant } from "./workspace";
 
 const now = () => new Date();
 const normalizeName = (value: string) => value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en");
@@ -109,16 +110,16 @@ function readPlan(body: Record<string, unknown>, tenant: TenantContext, current?
 }
 
 export async function listPlans(env: Env, request: Request) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	const db = getTenantDb(env, tenant.organizationId);
 	if (!tenant.allBranches && tenant.branchIds.length === 0) return { plans: [], tags: [] };
 	const allowedBranches = tenant.allBranches ? undefined : tenant.branchIds;
 	const branchLinks = await db.select({ planId: planBranch.planId, branchId: planBranch.branchId })
 		.from(planBranch)
 		.where(and(eq(planBranch.organizationId, tenant.organizationId), allowedBranches ? inArray(planBranch.branchId, allowedBranches) : undefined));
-	const visibleIds = [...new Set(branchLinks.map((link) => link.planId))];
+	const visibleIds = [...new Set(branchLinks.filter((link) => !tenant.activeBranchId || link.branchId === tenant.activeBranchId).map((link) => link.planId))];
 	const rows = await db.select().from(plan)
-		.where(and(eq(plan.organizationId, tenant.organizationId), tenant.allBranches ? undefined : (visibleIds.length ? inArray(plan.id, visibleIds) : eq(plan.id, ""))))
+		.where(and(eq(plan.organizationId, tenant.organizationId), tenant.allBranches && !tenant.activeBranchId ? undefined : (visibleIds.length ? inArray(plan.id, visibleIds) : eq(plan.id, ""))))
 		.orderBy(asc(plan.name));
 	const planIds = rows.map((row) => row.id);
 	const tagLinks = planIds.length

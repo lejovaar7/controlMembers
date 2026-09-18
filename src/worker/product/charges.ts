@@ -1,10 +1,11 @@
+import { inWorkspace, requireWorkspaceTenant, workspaceCondition } from "./workspace";
 import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { AuthError } from "../auth/session";
 import { getTenantDb } from "../db";
 import { team } from "../db/auth-schema";
 import { allocation, auditEvent, charge, customerMember, enrollment, payment, plan, planTag, tag } from "../db/schema";
 import { RequestError } from "../http";
-import { requireTenant, type TenantContext } from "../tenant";
+import type { TenantContext } from "../tenant";
 import { details, localDate, readPeriod, readString, requireAccessibleBranch, requireAdjustCharges, requireConfiguredBilling, requireGenerateCharges } from "./domain";
 
 function periodRange(period: string) {
@@ -23,8 +24,8 @@ function chargeState(item: { lifecycle: string; totalMinor: number; paidMinor: n
 async function generationBranches(env: Env, tenant: TenantContext, value: unknown) {
 	const requested = value === undefined ? null : value;
 	if (requested !== null && (!Array.isArray(requested) || requested.some((id) => typeof id !== "string"))) throw new RequestError(400, "INVALID_INPUT");
-	const branchIds = requested ? [...new Set(requested as string[])] : (tenant.allBranches ? null : tenant.branchIds);
-	if (branchIds && branchIds.some((id) => !tenant.allBranches && !tenant.branchIds.includes(id))) throw new AuthError(404, "RESOURCE_NOT_FOUND");
+	const branchIds = requested ? [...new Set(requested as string[])] : (tenant.activeBranchId ? [tenant.activeBranchId] : tenant.allBranches ? null : tenant.branchIds);
+	if (branchIds && branchIds.some((id) => !inWorkspace(tenant, id))) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 	if (branchIds) for (const branchId of branchIds) await requireAccessibleBranch(env, tenant, branchId);
 	return branchIds;
 }
@@ -50,7 +51,7 @@ async function generationCandidates(env: Env, tenant: TenantContext, period: str
 }
 
 export async function previewChargeGeneration(env: Env, request: Request, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	requireGenerateCharges(tenant); requireConfiguredBilling(tenant);
 	const period = readPeriod(body.period);
 	const branchIds = await generationBranches(env, tenant, body.branchIds);
@@ -59,12 +60,12 @@ export async function previewChargeGeneration(env: Env, request: Request, body: 
 }
 
 export async function listCharges(env: Env, request: Request) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	const url = new URL(request.url);
 	const periodValue = url.searchParams.get("period");
 	const period = periodValue ? readPeriod(periodValue) : null;
 	const requestedBranch = url.searchParams.get("branchId");
-	if (requestedBranch && !tenant.allBranches && !tenant.branchIds.includes(requestedBranch)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
+	if (requestedBranch && !inWorkspace(tenant, requestedBranch)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 	const search = (url.searchParams.get("search") ?? "").trim().toLocaleLowerCase("en");
 	const requestedPlan = url.searchParams.get("planId");
 	const requestedTag = (url.searchParams.get("tag") ?? "").trim().toLocaleLowerCase("en");
@@ -87,7 +88,7 @@ export async function listCharges(env: Env, request: Request) {
 			requestedBranch ? eq(charge.branchId, requestedBranch) : undefined,
 			requestedPlan ? eq(charge.planId, requestedPlan) : undefined,
 			taggedPlanIds ? (taggedPlanIds.length ? inArray(charge.planId, taggedPlanIds) : eq(charge.id, "")) : undefined,
-			!tenant.allBranches ? (tenant.branchIds.length ? inArray(charge.branchId, tenant.branchIds) : eq(charge.id, "")) : undefined,
+			workspaceCondition(tenant, charge.branchId),
 			search ? or(like(sql`lower(${charge.memberNameSnapshot})`, `%${search}%`), like(sql`lower(${charge.planNameSnapshot})`, `%${search}%`)) : undefined,
 		)).groupBy(charge.id).orderBy(desc(charge.dueDate));
 	const today = localDate(tenant.timezone);
@@ -102,7 +103,7 @@ export async function listCharges(env: Env, request: Request) {
 }
 
 export async function generateCharges(env: Env, request: Request, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	requireGenerateCharges(tenant);
 	requireConfiguredBilling(tenant);
 	const period = readPeriod(body.period);
@@ -138,10 +139,10 @@ async function loadChargeWithPaid(env: Env, organizationId: string, id: string) 
 }
 
 export async function adjustCharge(env: Env, request: Request, id: string, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	requireAdjustCharges(tenant);
 	const current = await loadChargeWithPaid(env, tenant.organizationId, id);
-	if (!current || (!tenant.allBranches && !tenant.branchIds.includes(current.branchId))) throw new AuthError(404, "RESOURCE_NOT_FOUND");
+	if (!current || !inWorkspace(tenant, current.branchId)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 	if (current.status !== "open" || current.paidMinor > 0) throw new RequestError(409, "CHARGE_CANNOT_BE_ADJUSTED");
 	const adjustmentMinor = Number(body.adjustmentMinor);
 	const reason = readString(body.reason, 500, true)!;
@@ -156,10 +157,10 @@ export async function adjustCharge(env: Env, request: Request, id: string, body:
 }
 
 export async function voidCharge(env: Env, request: Request, id: string, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	requireAdjustCharges(tenant);
 	const current = await loadChargeWithPaid(env, tenant.organizationId, id);
-	if (!current || (!tenant.allBranches && !tenant.branchIds.includes(current.branchId))) throw new AuthError(404, "RESOURCE_NOT_FOUND");
+	if (!current || !inWorkspace(tenant, current.branchId)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 	const reason = readString(body.reason, 500, true)!;
 	if (current.paidMinor > 0) throw new RequestError(409, "CHARGE_HAS_ALLOCATIONS");
 	if (current.status === "void") return { id, status: "void", reason: current.voidReason };

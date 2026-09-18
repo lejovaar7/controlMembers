@@ -1,21 +1,33 @@
+import { inWorkspace, requireWorkspaceTenant, workspaceCondition } from "./workspace";
 import { and, asc, desc, eq, inArray, like, ne, or, sql } from "drizzle-orm";
 import { AuthError } from "../auth/session";
 import { getTenantDb } from "../db";
 import { allocation, auditEvent, charge, contact, customerMember, enrollment, memberContact, payment, plan } from "../db/schema";
 import { RequestError } from "../http";
-import { requireTenant, type TenantContext } from "../tenant";
+import type { TenantContext } from "../tenant";
 import { details, normalizeText, now, readDate, readEmail, readPhone, readString, requireAccessibleBranch } from "./domain";
 
 const MEMBER_STATUSES = new Set(["active", "paused", "inactive"]);
 
 function allowedMember(tenant: TenantContext, branchId: string) {
-	return tenant.allBranches || tenant.branchIds.includes(branchId);
+	return inWorkspace(tenant, branchId);
+}
+
+/** A recorded Enrollment keeps the Member reachable in its Branch, including history. */
+export function memberWorkspaceCondition(env: Env, tenant: TenantContext) {
+	if (!tenant.activeBranchId) return workspaceCondition(tenant, customerMember.primaryBranchId);
+	return or(
+		eq(customerMember.primaryBranchId, tenant.activeBranchId),
+		inArray(customerMember.id, getTenantDb(env, tenant.organizationId)
+			.select({ memberId: enrollment.memberId }).from(enrollment)
+			.where(and(eq(enrollment.organizationId, tenant.organizationId), eq(enrollment.branchId, tenant.activeBranchId)))),
+	);
 }
 
 async function loadMember(env: Env, tenant: TenantContext, id: string) {
 	const [row] = await getTenantDb(env, tenant.organizationId).select().from(customerMember)
-		.where(and(eq(customerMember.id, id), eq(customerMember.organizationId, tenant.organizationId))).limit(1);
-	if (!row || !allowedMember(tenant, row.primaryBranchId)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
+		.where(and(eq(customerMember.id, id), eq(customerMember.organizationId, tenant.organizationId), memberWorkspaceCondition(env, tenant))).limit(1);
+	if (!row) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 	return row;
 }
 
@@ -59,22 +71,20 @@ async function requireUniqueMemberIdentifiers(env: Env, organizationId: string, 
 }
 
 export async function listCustomerMembers(env: Env, request: Request) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	const url = new URL(request.url);
 	const search = normalizeText(url.searchParams.get("search") ?? "");
 	const status = url.searchParams.get("status");
 	if (status && !MEMBER_STATUSES.has(status)) throw new RequestError(400, "INVALID_INPUT");
 	const requestedBranch = url.searchParams.get("branchId");
 	if (requestedBranch && !allowedMember(tenant, requestedBranch)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
-	const accessible = tenant.allBranches ? undefined : tenant.branchIds;
 	const limit = pageSize(url.searchParams.get("limit"));
 	const offset = Math.max(0, Number.parseInt(url.searchParams.get("offset") ?? "0", 10) || 0);
 	const db = getTenantDb(env, tenant.organizationId);
 	const conditions = [
 		eq(customerMember.organizationId, tenant.organizationId),
+		memberWorkspaceCondition(env, requestedBranch ? { ...tenant, activeBranchId: requestedBranch } : tenant),
 		status ? eq(customerMember.status, status) : undefined,
-		requestedBranch ? eq(customerMember.primaryBranchId, requestedBranch) : undefined,
-		accessible ? (accessible.length ? inArray(customerMember.primaryBranchId, accessible) : eq(customerMember.id, "")) : undefined,
 		search ? or(like(customerMember.normalizedName, `%${search}%`), like(customerMember.normalizedDocument, `%${search}%`), like(customerMember.email, `%${search}%`), like(customerMember.phoneE164, `%${search}%`)) : undefined,
 	];
 	const rows = await db.select().from(customerMember).where(and(...conditions)).orderBy(asc(customerMember.displayName)).limit(limit + 1).offset(offset);
@@ -87,7 +97,7 @@ export async function listCustomerMembers(env: Env, request: Request) {
 	}).from(charge)
 		.leftJoin(allocation, eq(allocation.chargeId, charge.id))
 		.leftJoin(payment, eq(payment.id, allocation.paymentId))
-		.where(and(eq(charge.organizationId, tenant.organizationId), inArray(charge.memberId, ids), eq(charge.status, "open")))
+		.where(and(eq(charge.organizationId, tenant.organizationId), inArray(charge.memberId, ids), workspaceCondition(tenant, charge.branchId), eq(charge.status, "open")))
 		.groupBy(charge.id, charge.memberId, charge.totalMinor) : [];
 	// Aggregate each charge first so multiple allocations do not multiply its total.
 	const byMember = new Map<string, number>();
@@ -99,7 +109,7 @@ export async function listCustomerMembers(env: Env, request: Request) {
 }
 
 export async function createCustomerMember(env: Env, request: Request, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	const branch = await requireAccessibleBranch(env, tenant, body.primaryBranchId);
 	const values = readMemberInput(body);
 	await requireUniqueMemberIdentifiers(env, tenant.organizationId, values);
@@ -113,18 +123,18 @@ export async function createCustomerMember(env: Env, request: Request, body: Rec
 }
 
 export async function getCustomerMember(env: Env, request: Request, id: string) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	const row = await loadMember(env, tenant, id);
 	const db = getTenantDb(env, tenant.organizationId);
 	const contacts = await db.select({ id: contact.id, displayName: contact.displayName, email: contact.email, phoneE164: contact.phoneE164, relationshipId: memberContact.id, relationship: memberContact.relationship, isPrimary: memberContact.isPrimary, isBillingContact: memberContact.isBillingContact, whatsappConsent: memberContact.whatsappConsent })
 		.from(memberContact).innerJoin(contact, eq(contact.id, memberContact.contactId))
 		.where(and(eq(memberContact.organizationId, tenant.organizationId), eq(memberContact.memberId, id))).orderBy(desc(memberContact.isPrimary), asc(contact.displayName));
 	const enrollments = await db.select({ id: enrollment.id, planId: enrollment.planId, planName: plan.name, branchId: enrollment.branchId, status: enrollment.status, startDate: enrollment.startDate, endDate: enrollment.endDate, agreedAmountMinor: enrollment.agreedAmountMinor, currency: enrollment.currency, dueDay: enrollment.dueDay, discountMinor: enrollment.discountMinor })
-		.from(enrollment).innerJoin(plan, eq(plan.id, enrollment.planId)).where(and(eq(enrollment.organizationId, tenant.organizationId), eq(enrollment.memberId, id))).orderBy(desc(enrollment.createdAt));
+		.from(enrollment).innerJoin(plan, eq(plan.id, enrollment.planId)).where(and(eq(enrollment.organizationId, tenant.organizationId), eq(enrollment.memberId, id), workspaceCondition(tenant, enrollment.branchId))).orderBy(desc(enrollment.createdAt));
 	const charges = await db.select({ id: charge.id, billingPeriod: charge.billingPeriod, dueDate: charge.dueDate, totalMinor: charge.totalMinor, currency: charge.currency, lifecycle: charge.status, planName: charge.planNameSnapshot, paidMinor: sql<number>`coalesce(sum(case when ${payment.status} = 'posted' then ${allocation.amountMinor} else 0 end), 0)` })
 		.from(charge).leftJoin(allocation, eq(allocation.chargeId, charge.id)).leftJoin(payment, eq(payment.id, allocation.paymentId))
-		.where(and(eq(charge.organizationId, tenant.organizationId), eq(charge.memberId, id))).groupBy(charge.id).orderBy(desc(charge.dueDate));
-	const payments = await db.select().from(payment).where(and(eq(payment.organizationId, tenant.organizationId), eq(payment.memberId, id))).orderBy(desc(payment.paidAt)).limit(50);
+		.where(and(eq(charge.organizationId, tenant.organizationId), eq(charge.memberId, id), workspaceCondition(tenant, charge.branchId))).groupBy(charge.id).orderBy(desc(charge.dueDate));
+	const payments = await db.select().from(payment).where(and(eq(payment.organizationId, tenant.organizationId), eq(payment.memberId, id), workspaceCondition(tenant, payment.branchId))).orderBy(desc(payment.paidAt)).limit(50);
 	const normalizedCharges = charges.map((item) => ({ ...item, paidMinor: Number(item.paidMinor), outstandingMinor: item.lifecycle === "void" ? 0 : Math.max(0, item.totalMinor - Number(item.paidMinor)) }));
 	const grossOutstandingMinor = normalizedCharges.reduce((sum, item) => sum + item.outstandingMinor, 0);
 	const postedTotal = payments.filter((item) => item.status === "posted").reduce((sum, item) => sum + item.amountMinor, 0);
@@ -134,7 +144,7 @@ export async function getCustomerMember(env: Env, request: Request, id: string) 
 }
 
 export async function updateCustomerMember(env: Env, request: Request, id: string, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	const current = await loadMember(env, tenant, id);
 	const branch = body.primaryBranchId === undefined ? { branchId: current.primaryBranchId } : await requireAccessibleBranch(env, tenant, body.primaryBranchId);
 	const values = readMemberInput(body, current);
@@ -147,7 +157,7 @@ export async function updateCustomerMember(env: Env, request: Request, id: strin
 }
 
 export async function updateCustomerMemberStatus(env: Env, request: Request, id: string, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	const current = await loadMember(env, tenant, id);
 	const status = body.status;
 	if (typeof status !== "string" || !MEMBER_STATUSES.has(status)) throw new RequestError(400, "INVALID_INPUT");
@@ -161,7 +171,7 @@ export async function updateCustomerMemberStatus(env: Env, request: Request, id:
 }
 
 export async function addMemberContact(env: Env, request: Request, memberId: string, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	const member = await loadMember(env, tenant, memberId);
 	const existingContactId = readString(body.contactId, 100);
 	const displayName = existingContactId ? null : readString(body.displayName, 200, true)!;
@@ -199,7 +209,7 @@ async function loadRelationship(env: Env, tenant: TenantContext, memberId: strin
 }
 
 export async function updateMemberContact(env: Env, request: Request, memberId: string, relationshipId: string, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	const current = await loadRelationship(env, tenant, memberId, relationshipId);
 	const relationship = body.relationship === undefined ? current.relationship.relationship : readString(body.relationship, 80, true)!;
 	const isPrimary = body.isPrimary === undefined ? current.relationship.isPrimary : body.isPrimary === true;
@@ -216,7 +226,7 @@ export async function updateMemberContact(env: Env, request: Request, memberId: 
 }
 
 export async function unlinkMemberContact(env: Env, request: Request, memberId: string, relationshipId: string) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	const current = await loadRelationship(env, tenant, memberId, relationshipId);
 	const db = getTenantDb(env, tenant.organizationId);
 	await db.batch([

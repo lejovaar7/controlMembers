@@ -1,21 +1,23 @@
+import { inWorkspace, requireWorkspaceTenant } from "./workspace";
 import { and, eq, sql } from "drizzle-orm";
 import { AuthError } from "../auth/session";
 import { getTenantDb } from "../db";
 import { auditEvent, enrollment, plan, planBranch } from "../db/schema";
 import { RequestError } from "../http";
-import { requireTenant } from "../tenant";
 import { details, now, readDate, readString, requireAccessibleBranch, requireConfiguredBilling } from "./domain";
 import { loadMember } from "./members";
 
 const STATUSES = new Set(["active", "paused", "ended"]);
 
 export async function createEnrollment(env: Env, request: Request, memberId: string, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	requireConfiguredBilling(tenant);
-	const member = await loadMember(env, tenant, memberId);
+	// An authorized explicit enrollment can make a Member available in another Branch.
+	const member = await loadMember(env, { ...tenant, activeBranchId: null }, memberId);
 	if (member.status !== "active") throw new RequestError(409, "MEMBER_NOT_ACTIVE");
 	const planId = readString(body.planId, 100, true)!;
 	const branch = await requireAccessibleBranch(env, tenant, body.branchId ?? member.primaryBranchId);
+	if (!inWorkspace(tenant, branch.branchId)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 	const db = getTenantDb(env, tenant.organizationId);
 	const [selectedPlan] = await db.select().from(plan).innerJoin(planBranch, and(eq(planBranch.planId, plan.id), eq(planBranch.branchId, branch.branchId)))
 		.where(and(eq(plan.id, planId), eq(plan.organizationId, tenant.organizationId), eq(plan.isActive, true))).limit(1);
@@ -42,10 +44,10 @@ export async function createEnrollment(env: Env, request: Request, memberId: str
 }
 
 export async function updateEnrollment(env: Env, request: Request, id: string, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	const db = getTenantDb(env, tenant.organizationId);
 	const [current] = await db.select().from(enrollment).where(and(eq(enrollment.id, id), eq(enrollment.organizationId, tenant.organizationId))).limit(1);
-	if (!current || (!tenant.allBranches && !tenant.branchIds.includes(current.branchId))) throw new AuthError(404, "RESOURCE_NOT_FOUND");
+	if (!current || !inWorkspace(tenant, current.branchId)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 	const status = body.status === undefined ? current.status : body.status;
 	if (typeof status !== "string" || !STATUSES.has(status) || (current.status === "ended" && status !== "ended")) throw new RequestError(400, "INVALID_INPUT");
 	const agreedAmountMinor = body.agreedAmountMinor === undefined ? current.agreedAmountMinor : Number(body.agreedAmountMinor);

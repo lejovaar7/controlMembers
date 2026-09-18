@@ -308,7 +308,7 @@ export function AppLayout() {
 					</div>
 				</header>
 				<main id="main-content" tabIndex={-1} className="min-w-0 flex-1 outline-none">
-					{switchingOrganization ? <p role="status" className="p-6">{t("Switching company…")}</p> : <Outlet context={shell} />}
+					{switchingOrganization ? <p role="status" className="p-6">{t("Switching company…")}</p> : <Outlet key={`${activeOrganizationId}:${activeBranchId}`} context={shell} />}
 				</main>
 			</div>
 		</div>

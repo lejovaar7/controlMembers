@@ -1,9 +1,9 @@
+import { inWorkspace, requireWorkspaceTenant, workspaceCondition } from "./workspace";
 import { and, asc, desc, eq, gte, inArray, isNull, like, lt, sql } from "drizzle-orm";
 import { AuthError } from "../auth/session";
 import { getTenantDb } from "../db";
 import { allocation, auditEvent, charge, customerMember, payment, paymentMethod } from "../db/schema";
 import { RequestError } from "../http";
-import { requireTenant } from "../tenant";
 import { details, readString, requireAccessibleBranch, requireConfiguredBilling, requireReversePayments } from "./domain";
 import { loadMember } from "./members";
 
@@ -26,13 +26,13 @@ async function paymentResult(env: Env, organizationId: string, id: string) {
 }
 
 export async function previewPaymentAllocation(env: Env, request: Request, memberId: string, amountMinor: number) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	await loadMember(env, tenant, memberId);
 	if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) throw new RequestError(400, "INVALID_INPUT");
 	const db = getTenantDb(env, tenant.organizationId);
 	const rows = await db.select({ id: charge.id, dueDate: charge.dueDate, totalMinor: charge.totalMinor, planName: charge.planNameSnapshot, paidMinor: sql<number>`coalesce(sum(case when ${payment.status} = 'posted' then ${allocation.amountMinor} else 0 end), 0)` })
 		.from(charge).leftJoin(allocation, eq(allocation.chargeId, charge.id)).leftJoin(payment, eq(payment.id, allocation.paymentId))
-		.where(and(eq(charge.organizationId, tenant.organizationId), eq(charge.memberId, memberId), eq(charge.status, "open"), !tenant.allBranches ? inArray(charge.branchId, tenant.branchIds) : undefined))
+		.where(and(eq(charge.organizationId, tenant.organizationId), eq(charge.memberId, memberId), eq(charge.status, "open"), workspaceCondition(tenant, charge.branchId)))
 		.groupBy(charge.id).orderBy(asc(charge.dueDate));
 	let remaining = amountMinor;
 	const allocations = [] as Array<{ chargeId: string; amountMinor: number; dueDate: string; planName: string }>;
@@ -47,11 +47,12 @@ export async function previewPaymentAllocation(env: Env, request: Request, membe
 }
 
 export async function createPayment(env: Env, request: Request, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	requireConfiguredBilling(tenant);
 	const memberId = readString(body.memberId, 100, true)!;
 	await loadMember(env, tenant, memberId);
 	const branch = await requireAccessibleBranch(env, tenant, body.branchId);
+	if (!inWorkspace(tenant, branch.branchId)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 	const amountMinor = Number(body.amountMinor);
 	if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) throw new RequestError(400, "INVALID_INPUT");
 	const method = body.method;
@@ -92,7 +93,7 @@ export async function createPayment(env: Env, request: Request, body: Record<str
 	if (chargeRows.length !== chargeIds.length) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 	for (const proposedItem of proposed) {
 		const target = chargeRows.find((item) => item.id === proposedItem.chargeId)!;
-		if (target.memberId !== memberId || target.status !== "open" || (!tenant.allBranches && !tenant.branchIds.includes(target.branchId))) throw new AuthError(404, "RESOURCE_NOT_FOUND");
+		if (target.memberId !== memberId || target.status !== "open" || (!inWorkspace(tenant, target.branchId) || target.branchId !== branch.branchId)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 		if (Number(target.paidMinor) + proposedItem.amountMinor > target.totalMinor) throw new RequestError(409, "ALLOCATION_CONFLICT");
 	}
 	const id = crypto.randomUUID();
@@ -106,29 +107,29 @@ export async function createPayment(env: Env, request: Request, body: Record<str
 }
 
 export async function listPayments(env: Env, request: Request) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	const url = new URL(request.url);
 	const limit = Math.min(50, Math.max(1, Number.parseInt(url.searchParams.get("limit") ?? "25", 10) || 25));
 	const offset = Math.max(0, Number.parseInt(url.searchParams.get("offset") ?? "0", 10) || 0);
 	const method = url.searchParams.get("method"); const status = url.searchParams.get("status"); const branchId = url.searchParams.get("branchId"); const search = (url.searchParams.get("search") ?? "").trim().toLocaleLowerCase("en"); const dateFrom = url.searchParams.get("dateFrom"); const dateTo = url.searchParams.get("dateTo");
 	if (method && method.length > 100) throw new RequestError(400, "INVALID_INPUT");
 	if (status && !["posted", "reversed"].includes(status)) throw new RequestError(400, "INVALID_INPUT");
-	if (branchId && !tenant.allBranches && !tenant.branchIds.includes(branchId)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
+	if (branchId && !inWorkspace(tenant, branchId)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 	const start = dateFrom ? new Date(`${dateFrom}T00:00:00Z`) : null; const end = dateTo ? new Date(`${dateTo}T00:00:00Z`) : null; if ((start && Number.isNaN(start.valueOf())) || (end && Number.isNaN(end.valueOf()))) throw new RequestError(400, "INVALID_INPUT"); if (end) end.setUTCDate(end.getUTCDate() + 1);
 	const rows = await getTenantDb(env, tenant.organizationId).select({ payment, memberName: customerMember.displayName, allocatedMinor: sql<number>`coalesce(sum(${allocation.amountMinor}), 0)` })
 		.from(payment).innerJoin(customerMember, eq(customerMember.id, payment.memberId)).leftJoin(allocation, eq(allocation.paymentId, payment.id))
-		.where(and(eq(payment.organizationId, tenant.organizationId), !tenant.allBranches ? (tenant.branchIds.length ? inArray(payment.branchId, tenant.branchIds) : eq(payment.id, "")) : undefined, branchId ? eq(payment.branchId, branchId) : undefined, url.searchParams.get("memberId") ? eq(payment.memberId, url.searchParams.get("memberId")!) : undefined, method ? (LEGACY_METHODS.has(method) ? and(eq(payment.method, method), isNull(payment.paymentMethodId)) : eq(payment.paymentMethodId, method)) : undefined, status ? eq(payment.status, status) : undefined, search ? like(customerMember.normalizedName, `%${search}%`) : undefined, start ? gte(payment.paidAt, start) : undefined, end ? lt(payment.paidAt, end) : undefined))
+		.where(and(eq(payment.organizationId, tenant.organizationId), workspaceCondition(tenant, payment.branchId), branchId ? eq(payment.branchId, branchId) : undefined, url.searchParams.get("memberId") ? eq(payment.memberId, url.searchParams.get("memberId")!) : undefined, method ? (LEGACY_METHODS.has(method) ? and(eq(payment.method, method), isNull(payment.paymentMethodId)) : eq(payment.paymentMethodId, method)) : undefined, status ? eq(payment.status, status) : undefined, search ? like(customerMember.normalizedName, `%${search}%`) : undefined, start ? gte(payment.paidAt, start) : undefined, end ? lt(payment.paidAt, end) : undefined))
 		.groupBy(payment.id).orderBy(desc(payment.paidAt)).limit(limit + 1).offset(offset);
 	return { payments: rows.slice(0, limit).map((row) => ({ ...row.payment, method: row.payment.paymentMethodId ?? row.payment.method, memberName: row.memberName, allocatedMinor: Number(row.allocatedMinor), creditMinor: row.payment.status === "posted" ? row.payment.amountMinor - Number(row.allocatedMinor) : 0 })), nextOffset: rows.length > limit ? offset + limit : null };
 }
 
 export async function reversePayment(env: Env, request: Request, id: string, body: Record<string, unknown>) {
-	const tenant = await requireTenant(env, request);
+	const tenant = await requireWorkspaceTenant(env, request);
 	requireReversePayments(tenant);
 	const reason = readString(body.reason, 500, true)!;
 	const db = getTenantDb(env, tenant.organizationId);
 	const [current] = await db.select().from(payment).where(and(eq(payment.id, id), eq(payment.organizationId, tenant.organizationId))).limit(1);
-	if (!current || (!tenant.allBranches && !tenant.branchIds.includes(current.branchId))) throw new AuthError(404, "RESOURCE_NOT_FOUND");
+	if (!current || !inWorkspace(tenant, current.branchId)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
 	if (current.status === "reversed") {
 		if (current.reversalReason !== reason) throw new RequestError(409, "REVERSAL_CONFLICT");
 		return await paymentResult(env, tenant.organizationId, id);
