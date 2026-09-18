@@ -229,13 +229,12 @@ navigation is:
 
 1. Dashboard
 2. Members
-3. Charges
-4. Payments
-5. Plans
-6. Reports
-7. Users & permissions
-8. Branches
-9. Settings
+3. Collections & payments (Monthly fees / Received payments)
+4. Plans
+5. Reports
+6. Users & permissions
+7. Branches
+8. Settings
 
 Navigation hides unauthorized modules for usability; direct routes remain
 server-protected. On narrow screens it becomes an accessible menu rather than a
@@ -288,10 +287,11 @@ date, method, amount and state. Personal information groups profile fields,
 notes, Member status actions and linked contacts.
 
 Adding an enrollment or contact and composing a payment use CenteredDialog,
-instead of permanently expanded forms. Payment posting retains a nested final
-review, its idempotency key and retry behavior. Preview failures have an explicit
-retry action; closing the composer invalidates its preview. Success closes the
-dialogs, refreshes balances, selects Payment history and shows the receipt.
+instead of permanently expanded forms. Payment posting uses entry and final
+review steps in one shared dialog, preserving its idempotency key on uncertain
+retries. Preview failures have an explicit retry action; closing the composer
+invalidates its preview. Success closes the dialog, refreshes balances, selects
+Payment history and shows the receipt.
 Outside-click/Escape dismissal and focus return use the shared dialog wrapper.
 The payment amount is prefilled on opening, using the oldest pending charge's
 remaining balance or, if none exists, active agreed monthly fees after discounts
@@ -304,10 +304,11 @@ Period and payment-state filters lead. Bulk generation is a distinct confirmed
 action and never shares placement with destructive actions. Balance and due date
 are more prominent than internal identifiers.
 
-The Charges directory reuses the Member table styling: Member, Plan, due date,
+The Monthly fees tab reuses the Member table styling: Member, Plan, billing month, due date,
 payment state and outstanding balance (with the original total underneath).
-Authorized users have a separate Actions column; only open, unpaid Charges
-offer Adjust/Void, using the existing confirmation dialogs. Row clicks open the
+Its Actions column offers Register payment for open positive balances. Authorized
+users also see Adjust/Void for charges without allocations, using the existing
+confirmation dialogs. Row clicks open the
 Member profile while links, action buttons and text selection retain their own
 behavior. Localized dates preserve their calendar day. Matching skeleton rows
 cover initial loading, and narrow containers stack labeled fields without
@@ -338,16 +339,59 @@ tags use an inline chip/autocomplete control and never determine price, access o
 billing behavior. Simple management lists prioritize active records; historical
 inactive records remain discoverable.
 
+Plans use a responsive card directory with name, state, prominent monthly price,
+due day, Branch assignments and optional tags. Search and status filters stay
+above the catalog. Add plan is the primary header action; billing configuration
+is secondary and opens separately instead of occupying the initial viewport.
+Creation and editing share a centered dialog. Description/tags are disclosed on
+demand, essential terms remain visible, and the footer previews price/due day.
+Shared dialog focus, pending-state protection and dismissal rules apply. Saved
+edits update the directory immediately; removing the current Branch hides the
+Plan from that workspace. Card skeletons match the loaded layout.
+
+### Branch management
+
+The Branches screen has a compact current-workspace summary, search by name and
+a responsive table with Branch name and Actions columns. The current Branch is sorted first and marked with
+a text badge; the summary explains using the existing header selector when more
+than one Branch is available. Add branch is the primary header action for users
+with creation permission. Each row offers Edit name with an accessible label
+that includes the Branch name. Both actions use centered, icon-free dialogs.
+Unchanged/blank names cannot be submitted; pending saves prevent dismissal and
+duplicate requests, while errors preserve the input. Successful saves announce
+the result and refresh the shell. Empty search results offer clearing the search;
+limited administrators see their existing scope explanation and no create action.
+The table reuses the Member directory surface, header and row styling; narrow
+containers stack the name/current badge and the edit action without horizontal overflow.
+
 ## Interaction rules
+
+Collections & payments replaces separate Charges/Payments navigation with
+`/app/collections/fees` and `/app/collections/payments`. The tabs retain their own
+URL filters and support reload/back/forward. Legacy routes redirect preserving
+their former filter semantics. Only the active tab fetches its directory; stale
+responses and pagination appends are discarded after filter or workspace changes.
+Shared payment entry supports a selected fee, a Member profile or an accessible
+Member search. The same dialog shows entry then final review with the Member,
+Branch, fee month, allocation and credit. Successful mutations refresh balances
+and history without clearing filters. No database records are removed.
+
+Users & permissions follows the same responsive directory table convention as
+Members, charges and payments. Staff identity, role, Branch scope, state and
+actions have separate columns. Expandable permission details reduce visual noise
+without hiding scope restrictions. Create and edit use centered dialogs; the
+table shows only actions allowed by the server directory contract in module 07.
 
 ### Confirmation and reason dialogs
 
 Use `ActionDialog` through `useActionDialog` for action confirmations and reason
 forms. Do not use browser `alert`, `confirm` or `prompt` calls. This convention
-covers Member status, enrollment status/terms, recording and cancelling Payments,
-Charge generation/adjustment/voiding, Contact unlinking, Plan deactivation and
+covers Member status, enrollment status/terms, cancelling Payments,
+Charge adjustment/voiding, Contact unlinking, Plan deactivation and
 User access changes. Navigation drawers and date/select popovers keep their
-purpose-specific placement.
+purpose-specific placement. Payment posting and monthly generation use dedicated
+CenteredDialog entry/review flows; payment step changes focus the heading so
+keyboard users review the new state before reaching the confirmation button.
 
 "Add member" and "Add user" open their existing creation forms in the same
 `CenteredDialog` presentation, with a wider desktop surface and vertical scroll

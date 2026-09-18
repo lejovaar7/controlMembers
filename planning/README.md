@@ -5,6 +5,8 @@ work. It does not redefine product behavior.
 
 - [`USER_STORIES.md`](USER_STORIES.md) is the prioritized MVP backlog.
 - [`DELIVERY_PLAN.md`](DELIVERY_PLAN.md) groups stories into vertical milestones.
+- [`COLLECTIONS_WORKSPACE_PLAN.md`](COLLECTIONS_WORKSPACE_PLAN.md) records the plan for the implemented
+  consolidation of Charges and Payments navigation and payment entry.
 - [`DECISION_LOG.md`](DECISION_LOG.md) records settled assumptions and decisions
   that still require product validation.
 

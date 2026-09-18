@@ -6,6 +6,14 @@
 
 ## Purpose
 
+The Collections & payments workspace combines monthly fees and received-payment
+history under one navigation item. A shared centered payment dialog is used by
+Member profiles, fee rows and global Member selection. Entry and final review
+are steps in the same dialog. Targeted preview settles only the selected fee;
+switching to oldest-debt allocation requires an explicit user choice. Excess
+money is disclosed as Branch credit. Uncertain retries retain the reviewed
+payload and idempotency key; definite allocation conflicts require fresh review.
+
 Record money received, apply it to Charges, preserve unapplied Member credit and
 correct mistakes without destroying financial history.
 
@@ -120,6 +128,11 @@ Reports must not call allocated value “cash collected.”
 - Open-Charge allocation preview with manual adjustments.
 - Payment receipt/detail with allocations and audit metadata.
 - Payment history filters by date, Branch, method, Member and state.
+- Receipt date filters use inclusive company-local calendar dates, with the same
+  timezone conversion as dashboard totals. Invalid or reversed date bounds fail.
+- Uncertain attempts retain their reviewed payload/key across dialog dismissal
+  and route navigation within the current browser app session. A full page reload
+  ends this in-memory recovery state; no payment data is written to browser storage.
 - The Payments directory uses the responsive Member table design, with Member
   and receipt number, payment date, method, state, amount, available credit and
   permitted cancellation actions. Row clicks open the Member profile; cancel
@@ -141,9 +154,13 @@ Reports must not call allocated value “cash collected.”
 
 ## Concurrency
 
-The server re-reads Charge balances immediately before committing allocations.
-Conflicting payments return a stable conflict response and the UI reloads the
-latest balances. Client-calculated balance is preview only.
+The server checks each Charge's current open status and remaining balance inside
+the same D1 batch transaction that inserts the Payment, allocations and audit.
+An invalid allocation violates the existing positive-amount constraint, rolling
+back the whole batch and returning `ALLOCATION_CONFLICT`. Simultaneous retries
+with the same key and payload return the existing receipt. Conflicting payments
+return a stable conflict response and the UI reloads the latest balances.
+Client-calculated balance is preview only.
 
 ## Acceptance checks
 

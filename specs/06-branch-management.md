@@ -26,6 +26,9 @@ renaming, visibility and selection are implemented; deletion is not supported.
 - Owner/admin can rename a Branch through `updateTeam`, but a limited admin can
   rename only an assigned Branch and sees no Branch-creation form.
 - The list refreshes after a successful mutation.
+- The searchable directory uses a responsive table with Branch name and Actions
+  columns. The current Branch appears first with a text badge. Each row opens
+  the shared centered rename dialog; mobile rows stack without horizontal scrolling.
 - Server hooks trim names and reject empty or over-100-character values.
 - Native Team writes are restricted to the active tenant; browser assignment
   writes only support owner/admin self-activation inside existing authorized scope.

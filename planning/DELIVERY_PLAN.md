@@ -164,6 +164,15 @@ migration or deployment.
 
 ## Post-MVP sequence
 
+### Implemented interface consolidation
+
+The [Collections workspace plan](COLLECTIONS_WORKSPACE_PLAN.md) defines the next
+requested interface slice: retain Members and combine Charges/Payments under one
+workspace, preserving ledger history and authorization. It is implemented locally;
+see the dated verification record for executed checks and operational limits.
+
+### Later product capabilities
+
 1. Validate collection behavior with real operators.
 2. Specify reminder rules and consent jurisdiction.
 3. Add Queue/Cron and provider-neutral notifications.

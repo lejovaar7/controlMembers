@@ -98,6 +98,18 @@ All submitted IDs must resolve under the same validated Organization.
 
 ## API and UI
 
+The Plans workspace prioritizes the catalog over forms and billing configuration.
+Search matches name, description and tags; the status filter includes active and
+inactive records, with active plans sorted first. Cards expose monthly price,
+due day, assigned Branches, tags and status, with edit and activation actions.
+Create/edit use the same centered dialog, preserve Branch assignments and offer
+an optional disclosure for description/tags. The editable price is grouped and
+a summary previews monthly price and due day before saving. Invalid amounts,
+out-of-range days and empty Branch selections block saving. Failed saves retain
+the form; pending saves block dismissal. Billing settings have their own dialog
+with an explicit company-wide scope explanation. Initial loading uses matching
+card skeletons; empty results offer clearing filters or creating the first Plan.
+
 - Plans: list, create, edit and activate/deactivate.
 - Plan writes accept exact Branch IDs and tag names; the server resolves tags
   within the Organization.

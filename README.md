@@ -215,7 +215,7 @@ Client-side routing uses React Router, with three route groups:
 | ----- | ------ | ------ |
 | Public/auth | `/`, `/login`, `/verify-email`, `/forgot-password`, `/reset-password`, `/setup-account`, `/no-company` | Implemented |
 | Platform | `/platform`, `/platform/organizations/new`, `/platform/organizations/:id` | Company directory, provisioning, details and audited rename; platform-admin UX guard plus server authorization |
-| Application | `/app/dashboard`, `/app/customer-members`, `/app/charges`, `/app/payments`, `/app/billing-setup`, `/app/reports`, `/app/members`, `/app/branches`, `/app/settings` | Complete ControlMembers operational MVP plus company administration |
+| Application | `/app/dashboard`, `/app/customer-members`, `/app/collections/fees`, `/app/collections/payments`, `/app/billing-setup`, `/app/reports`, `/app/members`, `/app/branches`, `/app/settings` | Complete ControlMembers operational MVP plus company administration |
 | Redirected | `/register`, `/onboarding` | No public signup or self-service company onboarding |
 
 Invitation acceptance is not exposed: its placeholder page and route were removed.

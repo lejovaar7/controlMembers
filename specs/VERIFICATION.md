@@ -1,5 +1,137 @@
 # ControlMembers Verification Record
 
+## 2026-09-18 — Collections and payments workspace
+
+- Combined financial navigation under Collections & payments with Monthly fees
+  and Received payments. Added legacy redirects preserving former all-state and
+  monthly defaults, independent URL filters, dashboard drill-through links,
+  all-period unpaid fees, and guarded asynchronous directory/pagination loading.
+  Monthly generation keeps its explicit company-local month and confirmation.
+- Extracted shared Member selection/loading/payment composition. Profile, global
+  and fee-row actions use one dialog with entry and review steps. Fee-row preview
+  targets the selected fee, while oldest-debt allocation remains an explicit
+  alternative. Review shows Member, Branch, billing month, distribution and credit.
+  Uncertain requests reuse the exact payload/key, including after dialog dismissal
+  within the same app session. Definite conflicts require fresh balance review.
+- Added server targeting authorization and unpaid filtering before pagination.
+  Receipt date filters now share dashboard company-timezone boundaries. A new
+  simultaneous-payment regression exposed two accepted payments exceeding one
+  fee's balance. Transactional balance checks now reject the second allocation
+  and roll back its payment; simultaneous identical retries return one receipt.
+  Both focused regressions passed. No schema, data migration, scheduled generation,
+  financial rule change or deployment.
+- Regression suite: 219 tests across 20 Workers files passed, including targeted
+  later-month payment, partial/full settlement, idempotent retry, reversal,
+  overpayment credit, paid-target/conflict rejection, unpaid pagination,
+  cross-Member/tenant/Branch denial, company-local dates, legacy routes,
+  simultaneous balance conflicts and simultaneous idempotent retries.
+  Typecheck, lint, 27 environment checks, 2 i18n checks, 2 form checks, and dev,
+  production and local build/deployment dry runs passed. A catalog guard initially
+  rejected a new key containing the reserved lowercase word `document`; the key
+  was renamed and the checks rerun successfully. Final UI-only focus/scope changes
+  were followed by another typecheck, lint, i18n check and local build. After the
+  concurrency fix, all checks above, all 219 Workers tests and all three target
+  build/deployment dry runs passed again.
+- Isolated browser checks used synthetic data, with no real payments or emails:
+  50,000 + 30,000 settled September's 80,000 fee and preserved August's balance;
+  receipt history/pagination showed both entries. Profile payment refreshed the
+  balance to zero and selected history. A Member without fees showed explicit
+  credit; switching destination reviewed two fees for one payment. Lost-response
+  retry (including close/reopen) returned one receipt; a changed balance returned
+  to entry with a fresh preview. Verified generation review, legacy redirects,
+  filter retention between tabs, Member search limited to the switched Branch,
+  staff action restrictions, English/Spanish, Escape/focus return and single-dialog
+  review focus. Responsive checks at 320px, 390px, 1100px and 1440px showed no
+  horizontal page overflow. Existing bundle-size advisories remain.
+  Removed temporary fixtures and checked the live LAN health endpoint: HTTP 200,
+  application and database OK. The normal development server remains running.
+
+## 2026-09-18 — Branch directory table
+
+- Replaced Branch cards with the shared directory table surface: Branch name,
+  current-Branch badge and right-aligned Edit name action. Preserved search,
+  current-first ordering, creation, centered editor, permission gates and APIs.
+- Isolated browser QA at 1440px and 390px confirmed table semantics, names and
+  badge wrapping, no horizontal overflow, search/count/no-results/reset, opening
+  an editor from its row, simulated rename/refresh and Escape focus return.
+  English limited-admin mode showed its single assigned Branch and no creation
+  action. No console errors were observed; no real Branch records were changed.
+- Typecheck, lint, 27 environment checks, 2 i18n checks, 2 form checks and all
+  212 Workers tests passed, along with dev, production and local build/deployment
+  dry runs. LAN health returned HTTP 200 with database status OK.
+  Temporary QA fixtures were removed; the normal development server stayed up.
+
+## 2026-09-18 — Users and permissions table
+
+- Replaced staff cards with a semantic directory table matching the Member,
+  charges and payments tables: identity/email, role, Branch scope, status and
+  authorized actions. Financial/delegation details expand under the role;
+  restricted scope explanations and pending activation remain visible.
+- Moved Add user to the header and reused the centered form for access editing,
+  restoring focus to the relevant row action on dismissal. Preserved the guarded
+  directory, mutation routes and permission checks; no backend changes.
+- Isolated browser QA at 1440px, 1100px and 390px verified long names/emails,
+  responsive layout without horizontal overflow, permission disclosure, edit
+  dialog/save/focus return, create dialog/Escape, confirmed deactivation and
+  activation resend feedback. Mutations used synthetic responses only: no real
+  user permissions changed and no emails were sent. English limited-admin mode
+  retained read-only entries and hid owner-only financial details. Also checked
+  loading skeletons, an empty directory and recovery through the retry action.
+- Typecheck, lint, 27 environment checks, 2 i18n checks, 2 form checks and all
+  212 Workers tests passed, as did dev, production and local build/deployment
+  dry runs. Existing bundle-size advisories remain. The normal LAN
+  server health endpoint returned HTTP 200 with database status OK. Temporary
+  browser fixtures were removed.
+
+## 2026-09-18 — Branch management redesign
+
+- Replaced inline create/rename forms with shared centered dialogs and a
+  searchable responsive card directory. The current Branch is highlighted and
+  sorted first, with a short workspace-switching explanation. Add branch is a
+  header action; card edit buttons have Branch-specific accessible names.
+- Forms keep the existing Better Auth Team APIs and role/scope guards. Blank
+  or unchanged names cannot be saved, pending requests disable controls and
+  dismissal, and failures preserve the name with local error feedback. Successful
+  saves refresh the app-shell list and announce creation or renaming.
+- Browser QA used synthetic Branches and the actual Better Auth client with
+  intercepted fixture responses. At 1440px and 390px verified layout, long names,
+  creating a Branch, renaming the current Branch (including summary refresh),
+  search/no-results/reset, unchanged-name prevention, Escape dismissal and
+  failed-save input retention. No horizontal overflow was observed. English
+  limited-admin mode showed only the assigned Branch with rename and no creation;
+  member mode redirected to the dashboard. An empty owner workspace retained
+  the create action and omitted the current-Branch summary.
+- Typecheck, lint, 27 environment checks, 2 i18n checks, 2 form checks and all
+  212 Workers tests passed, as did dev, production and local build/deployment
+  dry runs. Existing bundle-size advisories remain. No real Branch records,
+  permissions, schema or dependencies were changed; no deployment occurred.
+  Removed QA fixtures and retained the normal LAN development server.
+
+## 2026-09-18 — Plans workspace redesign
+
+- Reorganized Plans into a searchable, status-filtered card directory with active
+  plans first. Cards show monthly price, due day, Branches, tags and status, with
+  edit/activation actions. Billing configuration is a separate header dialog.
+- Added a shared create/edit PlanEditor using CenteredDialog and MoneyInput.
+  Essential fields remain visible, description/tags use an optional disclosure,
+  and a price/day summary previews the terms. Branch selection defaults to the
+  current workspace; editing retains shared assignments. Empty selection blocks
+  saving, failed saves retain input, and pending requests disable fields/dismissal.
+  Added matching PlansSkeleton, first-plan guidance and filter-reset empty states.
+- Synthetic browser checks at 1440px, 900px and 390px covered Spanish/English,
+  long names, custom tags, active/inactive plans, empty setup and single/multiple
+  Branches. No horizontal overflow or unexpected console errors were observed.
+  Created a fixture at 80,000 with a tag, searched by that tag, edited its Branches
+  and confirmed removal from the current Branch. Verified activation under the
+  inactive filter, confirmed deactivation, failed-save value retention, initial
+  currency setup, and Escape dismissal. Single-Branch forms omit Branch choices.
+- Typecheck, lint, 27 environment checks, 2 i18n checks, 2 form checks and all
+  212 Workers tests passed. Dev, production and local build/deployment dry runs
+  passed; existing bundle-size advisories remain. Rechecked translations after
+  the final singular-count copy adjustment. No real business data was mutated,
+  no dependency/schema changes or deployments were made, and QA fixtures were
+  removed. The normal LAN development server remains running.
+
 ## 2026-09-18 — Payments table and development server recovery
 
 - Payments now shares the Member directory table styling, responsive labeled

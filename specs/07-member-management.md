@@ -188,6 +188,14 @@ poll; deactivation cannot erase information already displayed or downloaded.
 
 ## Frontend and acceptance checks
 
+- The staff directory uses `users-table.tsx`, a semantic table with user name and
+  email, company role, accessible Branches, access status and authorized actions.
+  Narrow containers stack labeled fields without horizontal scrolling. Permission
+  details expand within the role cell; restricted scope explanations remain visible.
+  Unmanageable entries show read-only status, with no mutation controls.
+- Add user is the page-header action. Both create and edit use the shared centered
+  dialog; closing an edit restores focus to its row button. Loading uses matching
+  table skeletons, and directory failures retain an explicit retry action.
 - Owner-only delegation checkbox, off by default; admin role choice only for
   appointment-authorized actors. Limited callers cannot choose all Branches.
 - Active/inactive and scope are visible; read-only shared employees explain why

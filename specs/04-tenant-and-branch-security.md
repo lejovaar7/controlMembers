@@ -101,6 +101,15 @@ Language choice is not an authentication or Branch-authorization mechanism.
 
 ## Exceptional states
 
+Branch management renders only the accessible Branches supplied by the app shell.
+The searchable directory puts the current Branch first and identifies it as the
+current workspace, rather than suggesting other Branches are inactive. Creation
+is offered only when `canCreateBranches` is true; scoped administrators retain
+rename actions for their assigned Branches. Create and rename use a shared
+centered form and the existing Better Auth Team APIs. Successful saves refresh
+the shell list; error feedback stays with the form and preserves the typed name.
+The page introduces no additional Branch access or switching authority.
+
 - An authenticated user with no active company membership sees `/no-company` and cannot
   create one.
 - A normal member or limited admin with zero assignments receives an empty accessible list and

@@ -89,6 +89,12 @@ and reason.
 
 ## Target API and UI
 
+- The Collections & payments workspace opens on Monthly fees with all periods
+  and unpaid balances selected. `state=unpaid` includes every open positive
+  balance before pagination, including partial overdue charges. Paid/void history
+  remains available through filters. Generation always selects an explicit month.
+- Payable rows open the shared payment dialog targeting that exact charge; the
+  server preview validates Member and active Branch before suggesting allocations.
 - Period summary and generation preview.
 - Idempotent generation command with explicit confirmation.
 - Charge list filtered by period, Branch, Plan, tag, state and Member search.

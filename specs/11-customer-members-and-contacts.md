@@ -109,6 +109,9 @@ have a zero balance. Resolve balances only for Members on the authorized page.
 
 ## Frontend target
 
+- Member profiles share the Collections & payments dialog for payment entry and
+  review. Successful posting refreshes balances and selects the receipt history.
+  Profile requests and open dialogs are keyed by Member and active workspace.
 - Searchable Member list with distinct loading, empty and failure states.
 - Filters for Branch, lifecycle and payment state.
 - Member profile with Overview, Enrollments and Financial Activity sections.
