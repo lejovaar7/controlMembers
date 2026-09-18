@@ -215,6 +215,9 @@
   .payments-table-actions th:nth-child(5) { width: 16%; }
   .payments-table-actions th:nth-child(6) { width: 16%; }
   .payments-table .payment-actions { text-align: right; }
+  .branches-table th:nth-child(1) { width: 70%; }
+  .branches-table th:nth-child(2) { width: 30%; text-align: right; }
+  .branches-table .branch-actions { text-align: right; }
   @container (max-width: 800px) {
     .members-table, .members-table tbody { display: block; }
     .members-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
@@ -231,6 +234,9 @@
     .charges-table .charge-actions::before { display: none; }
     .payments-table .payment-actions { justify-content: flex-end; }
     .payments-table .payment-actions::before { display: none; }
+    .branches-table .member-name { grid-column: 1 / -1; }
+    .branches-table .branch-actions { justify-content: flex-end; }
+    .branches-table .branch-actions::before { display: none; }
   }
   .skip-link { position: fixed; z-index: 100; top: 1rem; left: 1rem; transform: translateY(-200%); background: var(--card); padding: 0.75rem 1rem; border-radius: var(--radius); }
   .skip-link:focus { transform: translateY(0); }
