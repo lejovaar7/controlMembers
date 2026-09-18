@@ -15,10 +15,11 @@ type SelectFieldProps = AriaAttributes & {
 	required?: boolean;
 	autoFocus?: boolean;
 	className?: string;
+	popupClassName?: string;
 };
 
 /** Shared select presentation; Base UI owns keyboard, typeahead and form behavior. */
-export function SelectField({ id, name, value, defaultValue, onValueChange, options, disabled, required, autoFocus, className, ...aria }: SelectFieldProps) {
+export function SelectField({ id, name, value, defaultValue, onValueChange, options, disabled, required, autoFocus, className, popupClassName, ...aria }: SelectFieldProps) {
 	return <Select.Root<string> name={name} value={value} defaultValue={defaultValue ?? (value === undefined ? options[0]?.value : undefined)}
 		items={options} disabled={disabled} required={required} onValueChange={(next) => { if (next !== null) onValueChange?.(next); }}>
 		<Select.Trigger id={id} autoFocus={autoFocus} data-slot="select-trigger" {...aria}
@@ -28,7 +29,7 @@ export function SelectField({ id, name, value, defaultValue, onValueChange, opti
 		</Select.Trigger>
 		<Select.Portal>
 			<Select.Positioner sideOffset={6} align="start" alignItemWithTrigger={false} className="z-[70] max-w-[calc(100vw-1rem)]">
-				<Select.Popup className="w-[var(--anchor-width)] min-w-32 max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-lg shadow-black/10 outline-none">
+				<Select.Popup className={cn("w-[var(--anchor-width)] min-w-32 max-w-[calc(100vw-1rem)] overflow-hidden rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-lg shadow-black/10 outline-none", popupClassName)}>
 					<Select.List className="max-h-[min(20rem,calc(var(--available-height)_-_0.875rem))] overflow-y-auto overscroll-contain outline-none">
 						{options.map((option) => <Select.Item key={option.value} value={option.value} disabled={option.disabled} lang={option.lang}
 							className="flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 text-sm outline-none select-none data-selected:bg-muted/60 data-selected:font-medium data-highlighted:bg-muted data-disabled:pointer-events-none data-disabled:opacity-40">

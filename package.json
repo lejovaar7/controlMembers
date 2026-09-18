@@ -42,6 +42,7 @@
 		"clsx": "2.1.1",
 		"date-fns": "4.4.0",
 		"drizzle-orm": "0.45.2",
+		"flag-icons": "7.5.0",
 		"hono": "4.13.5",
 		"ldrs": "1.1.9",
 		"lucide-react": "1.34.0",
