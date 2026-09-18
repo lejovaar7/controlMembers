@@ -1,12 +1,9 @@
 import { useId, useState } from "react";
 import { Link } from "react-router";
-import { ArrowDown, ArrowRight, ArrowUpRight, Building2, Check, ChevronDown, CircleCheck, Layers3, LayoutDashboard, ListFilter, ShieldCheck, UsersRound, WalletCards } from "lucide-react";
+import { ArrowDown, ArrowUpRight, Building2, Check, ChevronDown, CircleCheck, Layers3, LayoutDashboard, ListFilter, ShieldCheck, UsersRound, WalletCards } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LoadingButton } from "@/components/loading-button";
 import { ProductBrand } from "@/components/product-brand";
 import { useT } from "@/lib/i18n";
-import { useSession } from "@/lib/auth-client";
-import { authenticatedStartPath } from "@/lib/session-routing";
 import "./home.css";
 
 const contactUrl = "https://magdasystems.com/#proyecto";
@@ -52,7 +49,6 @@ function ProductPreview() {
 
 export function HomePage() {
 	const t = useT();
-	const { data: session, isPending } = useSession();
 	const features = [
 		{ icon: UsersRound, title: "People first. Details in order.", detail: "Keep member profiles, contacts and enrollments together. Find the right information without searching through spreadsheets.", tag: "Members & enrollments" },
 		{ icon: WalletCards, title: "A clear path from charge to payment.", detail: "Generate monthly charges, record payments and see what is still owed. Every movement keeps its context.", tag: "Charges & payments" },
@@ -85,7 +81,7 @@ export function HomePage() {
 		</section>
 		<section id="workflow" className="workflow-section" aria-labelledby="workflow-title"><div className="landing-container landing-section"><p className="landing-eyebrow">{t("02 / A SIMPLER ROUTINE")}</p><div className="section-heading"><h2 id="workflow-title">{t("More control.")}<br /><span>{t("Less running around.")}</span></h2><p>{t("From enrollment to payment, every step made simpler. Keep the information you need at hand and act with confidence.")}</p></div><div className="workflow-steps">{steps.map(({ title, detail }, index) => <article key={title}><span className="step-number">{String(index + 1).padStart(2, "0")}</span><h3>{t(title)}</h3><p>{t(detail)}</p></article>)}</div><div className="workflow-footnote"><Building2 size={18} aria-hidden="true" /><span>{t("One branch or several. One shared way of working.")}</span><Layers3 size={20} aria-hidden="true" /></div></div></section>
 		<section id="questions" className="landing-container landing-section faq-section" aria-labelledby="faq-title"><div><p className="landing-eyebrow">{t("03 / GOOD TO KNOW")}</p><h2 id="faq-title">{t("Clear from")}<br /><span>{t("the start.")}</span></h2><p className="faq-intro">{t("A few answers before your next step.")}</p></div><div className="faq-list">{faqs.map(({ question, answer }) => <details key={question}><summary>{t(question)}<ChevronDown size={18} aria-hidden="true" /></summary><p>{t(answer)}</p></details>)}</div></section>
-		<section className="landing-container landing-contact" aria-labelledby="contact-title"><div><p className="landing-eyebrow">{t("YOUR NEXT CHAPTER")}</p><h2 id="contact-title">{t("Take control.")}<br /><span>{t("Simplify your day.")}</span></h2><p>{t("Manage your academy with clarity and put your energy into helping it grow.")}</p></div><div className="contact-actions"><Button size="lg" nativeButton={false} render={<a href={contactUrl} />} className="landing-primary">{t("Talk to MagdaSystems")}<ArrowUpRight aria-hidden="true" /></Button><LoadingButton loading={isPending} type="button" variant="ghost" nativeButton={false} render={<Link to={session ? authenticatedStartPath(null, (session.user as { role?: unknown }).role) : "/login"} />} className="contact-signin">{t(session ? "Open app" : "Already have an account? Sign in")}<ArrowRight aria-hidden="true" /></LoadingButton></div></section>
+		<section className="landing-container landing-contact" aria-labelledby="contact-title"><div><p className="landing-eyebrow">{t("YOUR NEXT CHAPTER")}</p><h2 id="contact-title">{t("Take control.")}<br /><span>{t("Simplify your day.")}</span></h2><p>{t("Manage your academy with clarity and put your energy into helping it grow.")}</p></div><div className="contact-actions"><Button size="lg" nativeButton={false} render={<a href={contactUrl} />} className="landing-primary">{t("Talk to MagdaSystems")}<ArrowUpRight aria-hidden="true" /></Button></div></section>
 		<footer className="landing-container landing-footer"><Link to="/" aria-label={t("Home")}><ProductBrand compact className="w-40" /></Link><span>{t("Clarity for your academy. Space to grow.")}</span><a href="https://magdasystems.com/">{t("A product by MagdaSystems")}<ArrowUpRight size={14} aria-hidden="true" /></a></footer>
 	</div>;
 }
