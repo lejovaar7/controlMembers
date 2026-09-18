@@ -263,9 +263,16 @@ setup states provide one next action.
 
 ### Members
 
+Table headers match their column contents: descriptive text, identifiers, phone,
+email and dates align left; monetary amounts align right with tabular numerals;
+status badges and actions align center. Action groups and loading placeholders
+follow the same column alignment. Narrow layouts retain labeled fields and
+right-aligned values/actions so the desktop rules do not disrupt mobile reading.
+
 Search and high-value filters remain visible. The Member directory uses a
-semantic table with Member, document number, contact details, status, outstanding
-balance columns. Clicking anywhere in a Member row opens the profile, while
+semantic table with Member, phone, email, status and outstanding balance columns.
+Phone appears only in its own column; document numbers remain in Member details
+and search rather than the directory columns. Clicking anywhere in a Member row opens the profile, while
 selecting text does not navigate. The name remains a native link for keyboard
 navigation and normal link gestures; there is no separate View member button.
 Status badges include text, balances align right, and missing fields say Not

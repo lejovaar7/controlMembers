@@ -1,5 +1,51 @@
 # ControlMembers Verification Record
 
+## 2026-09-18 — Consistent alignment by column type
+
+- Replaced uniformly centered headers with matching header/body alignment:
+  descriptive text, dates and contact fields left; amounts right; status and
+  action columns centered. Action groups and skeletons follow their columns.
+  Reports use numeric headers; mobile keeps its labeled-field layout.
+  Text/numeric alignment follows the Material Design data-table convention:
+  https://m1.material.io/components/data-tables.html
+- Browser QA rendered actual Member, charge, payment and staff components with
+  synthetic data, plus representative Branch/report markup using live styles.
+  Checked every header/body alignment and centered action groups on desktop.
+  At 390px, all tables used the narrow layout without horizontal overflow and
+  action groups returned to their mobile placement. Removed temporary fixtures,
+  closed the QA tab and reset the viewport. No real data was modified.
+- Typecheck, lint, 27 environment checks, 2 i18n checks, 2 form checks and all
+  219 Workers tests passed. Dev, production and local build/deployment dry runs
+  passed; existing bundle-size advisories remain.
+
+## 2026-09-18 — Centered table headers
+
+- Added the shared centered column-header convention and restricted numeric/action
+  alignment rules to body cells. Removed competing header alignment from Reports,
+  Users and Branches while preserving existing narrow-screen field layouts.
+- Browser QA loaded the live application stylesheet with six synthetic table
+  variants: Members, monthly fees, payments, users, Branches and reports. All 29
+  header cells computed to centered alignment, including balance/actions; numeric
+  body cells retained right alignment. Visually inspected desktop rendering and
+  removed the temporary fixture and tab. No real data was accessed or changed.
+- Typecheck, lint, 27 environment checks, 2 i18n checks, 2 form checks and all
+  219 Workers tests passed, along with dev, production and local build/deployment
+  dry runs. Existing bundle-size advisories remain.
+
+## 2026-09-18 — Member directory phone column
+
+- Replaced the document-number column with Phone and made Email a separate
+  column. Phone is no longer repeated above email. Responsive labels and loading
+  headers use the same translated column definitions; absent values retain the
+  localized Not provided placeholder. Member data and search remain unchanged.
+- Rendered the actual MembersTable with isolated synthetic complete/missing
+  contact records. Confirmed Spanish headers, one phone occurrence, separate
+  email, no document number and two missing-value placeholders. Removed the
+  temporary renderer. Live LAN health returned HTTP 200 with database status OK.
+- Typecheck, lint, 27 environment checks, 2 i18n checks, 2 form checks and all
+  219 Workers tests passed. Dev, production and local build/deployment dry runs
+  passed; existing bundle-size advisories remain. No real data was changed.
+
 ## 2026-09-18 — Collections and payments workspace
 
 - Combined financial navigation under Collections & payments with Monthly fees
