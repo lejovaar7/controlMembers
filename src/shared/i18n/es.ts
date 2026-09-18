@@ -621,4 +621,7 @@ export const es = {
 	"View company": "Ver empresa",
 	"This email already owns a company. Use a different email for the new company.": "Este correo ya es propietario de una empresa. Usa un correo diferente para la nueva empresa.",
 	"Use a different owner email for each company.": "Usa un correo de propietario diferente para cada empresa.",
+	"Enter a valid amount.": "Ingresa un valor válido.",
+	"The amount must be at least {amount}.": "El valor debe ser de al menos {amount}.",
+	"The amount must not exceed {amount}.": "El valor no debe superar {amount}.",
 } satisfies Catalog;

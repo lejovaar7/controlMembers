@@ -289,6 +289,9 @@ export const messages = [
 	"View company",
 	"This email already owns a company. Use a different email for the new company.",
 	"Use a different owner email for each company.",
+	"Enter a valid amount.",
+	"The amount must be at least {amount}.",
+	"The amount must not exceed {amount}.",
 ] as const;
 
 export type MessageKey = typeof messages[number];

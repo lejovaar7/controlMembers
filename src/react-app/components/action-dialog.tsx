@@ -4,6 +4,7 @@ import { useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { LoadingButton } from "@/components/loading-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoneyInput } from "@/components/money-input";
 import { Label } from "@/components/ui/label";
 import { useT } from "@/lib/i18n";
 import type { MessageKey } from "../../shared/i18n";
@@ -11,7 +12,7 @@ import type { MessageKey } from "../../shared/i18n";
 export interface ActionDialogField {
 	name: string;
 	label: string;
-	type: "number" | "textarea";
+	type: "number" | "money" | "textarea";
 	defaultValue?: string;
 	min?: number;
 	max?: number;
@@ -63,7 +64,8 @@ export function ActionDialog({ options, open, onClose, returnFocus }: {
 				{options.fields?.map((field) => <div key={field.name} className="grid gap-2">
 					<Label htmlFor={`${id}-${field.name}`}>{field.label}</Label>
 					{field.type === "textarea" ? <textarea id={`${id}-${field.name}`} name={field.name} required maxLength={500} rows={3} disabled={pending} value={values[field.name]} onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))} className="min-h-24 w-full resize-y rounded-xl border bg-background px-3 py-3 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-60 sm:text-sm" />
-						: <Input id={`${id}-${field.name}`} name={field.name} type="number" required min={field.min} max={field.max} step={field.step ?? 1} disabled={pending} value={values[field.name]} onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))} />}
+						: field.type === "money" ? <MoneyInput id={`${id}-${field.name}`} name={field.name} required min={field.min} max={field.max} disabled={pending} value={values[field.name]} onValueChange={(value) => setValues((current) => ({ ...current, [field.name]: value }))} />
+							: <Input id={`${id}-${field.name}`} name={field.name} type="number" required min={field.min} max={field.max} step={field.step ?? 1} disabled={pending} value={values[field.name]} onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))} />}
 				</div>)}
 				{error ? <p role="alert" className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm leading-6 text-destructive">{t(error)}</p> : null}
 			</div>
