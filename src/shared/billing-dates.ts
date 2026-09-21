@@ -12,5 +12,5 @@ export function billingDateInMonth(period: string, day: number): string {
 }
 
 export function defaultFirstDueDate(startDate: string): string {
-	return billingDateInMonth(nextBillingMonth(startDate.slice(0, 7)), Number(startDate.slice(8, 10)));
+	return startDate;
 }

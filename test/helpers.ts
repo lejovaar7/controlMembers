@@ -4,9 +4,20 @@ import worker from "../src/worker";
 import { getAuth } from "../src/worker/auth";
 import { getDb } from "../src/worker/db";
 import { user } from "../src/worker/db/auth-schema";
+import { customerMember } from "../src/worker/db/schema";
+import { requireTenant } from "../src/worker/tenant";
+import { normalizeText } from "../src/worker/product/domain";
 
 export const TEST_PASSWORD = "TestOnlyPassword123!";
 export type Actor = { userId: string; email: string; headers: Headers };
+
+/** Existing/imported member fixture without an enrollment; new manual signup requires a plan. */
+export async function seedLegacyMember(actor: Actor, input: { displayName: string; primaryBranchId: string; phoneE164?: string | null }) {
+	const tenant = await requireTenant(env, new Request("http://localhost:5173", { headers: actor.headers }));
+	const id = crypto.randomUUID();
+	await getDb(env).insert(customerMember).values({ ...input, id, organizationId: tenant.organizationId, normalizedName: normalizeText(input.displayName), createdByUserId: actor.userId });
+	return { id };
+}
 
 export async function createActor(email: string, platformAdmin = false): Promise<Actor> {
 	const auth = getAuth(env);

@@ -1,3 +1,4 @@
+import { previewReminder } from "./product/reminders";
 import { createPaymentMethod, listPaymentMethods, updatePaymentMethod } from "./product/payment-methods";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -98,6 +99,7 @@ app.delete("/api/customer-members/:id/contacts/:relationshipId", async (c) => c.
 app.post("/api/customer-members/:id/enrollments", async (c) => c.json(await createEnrollment(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw)), 201));
 app.patch("/api/enrollments/:id", async (c) => c.json(await updateEnrollment(c.env, c.req.raw, c.req.param("id"), await readJsonObject(c.req.raw))));
 
+app.get("/api/charges/:id/reminder", async (c) => c.json(await previewReminder(c.env, c.req.raw, c.req.param("id"))));
 app.get("/api/charges", async (c) => c.json(await listCharges(c.env, c.req.raw)));
 app.post("/api/charges/generate/preview", async (c) => c.json(await previewChargeGeneration(c.env, c.req.raw, await readJsonObject(c.req.raw))));
 app.post("/api/charges/generate", async (c) => c.json(await generateCharges(c.env, c.req.raw, await readJsonObject(c.req.raw))));

@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { getAuth } from "../src/worker/auth";
-import { callApi, createActor, type Actor } from "./helpers";
+import { callApi, createActor, seedLegacyMember, type Actor } from "./helpers";
 import { legacyCollectionUrl, paymentMonthQuery } from "../src/react-app/lib/collections-navigation";
 
 let owner: Actor; let outsider: Actor; let branch: string; let otherBranch: string; let plan: string;
@@ -25,13 +25,50 @@ beforeAll(async () => {
 });
 beforeEach(async () => { await getAuth(env).api.setActiveTeam({ headers: owner.headers, body: { teamId: branch } }); });
 async function fixture() {
-	const id = (await json<{ id: string }>("/api/customer-members", { displayName: `Member ${crypto.randomUUID()}`, primaryBranchId: branch })).id;
+	const id = (await seedLegacyMember(owner, { displayName: `Member ${crypto.randomUUID()}`, primaryBranchId: branch })).id;
 	await json(`/api/customer-members/${id}/enrollments`, { planId: plan, branchId: branch, startDate: "2026-01-01", firstDueDate: "2026-01-05" });
 	for (const period of ["2026-01", "2026-02", "2026-03"]) await json("/api/charges/generate", { period });
 	const detail = await json<{ charges: Fee[] }>(`/api/customer-members/${id}`);
 	return { id, fees: detail.charges.sort((a, b) => a.billingPeriod.localeCompare(b.billingPeriod)) };
 }
 describe("collections workspace contracts", () => {
+	it("identifies the fee covered by each same-day receipt and exposes its actual payment state", async () => {
+		const { id, fees } = await fixture();
+		const base = { memberId: id, branchId: branch, amountMinor: 8000000, method: "cash", paidAt: "2026-02-07T15:00:00Z" };
+		const first = await json<{ id: string }>("/api/payments", { ...base, allocations: [{ chargeId: fees[0]!.id, amountMinor: 8000000 }], idempotencyKey: crypto.randomUUID() });
+		const second = await json<{ id: string }>("/api/payments", { ...base, allocations: [{ chargeId: fees[1]!.id, amountMinor: 8000000 }], idempotencyKey: crypto.randomUUID() });
+		const detail = await json<{ charges: Array<{ id: string; branchId: string; paymentState: string }>; payments: Array<{ id: string; allocatedMinor: number; creditMinor: number; applications: Array<{ billingPeriod: string; amountMinor: number }> }> }>(`/api/customer-members/${id}`);
+		for (const fee of fees.slice(0, 2)) expect(detail.charges.find((item) => item.id === fee.id)).toMatchObject({ paymentState: "paid", branchId: branch });
+		expect(detail.payments.find((item) => item.id === first.id)).toMatchObject({ allocatedMinor: 8000000, creditMinor: 0, applications: [{ billingPeriod: "2026-01", amountMinor: 8000000 }] });
+		expect(detail.payments.find((item) => item.id === second.id)?.applications[0]?.billingPeriod).toBe("2026-02");
+		const history = await json<{ payments: typeof detail.payments }>(`/api/payments?memberId=${id}`);
+		expect(history.payments.find((item) => item.id === second.id)?.applications[0]?.billingPeriod).toBe("2026-02");
+		await json(`/api/payments/${first.id}/reverse`, { reason: "Fixture reversal" }, "PATCH");
+		const reversed = await json<typeof detail>(`/api/customer-members/${id}`);
+		expect(reversed.charges.find((item) => item.id === fees[0]!.id)?.paymentState).toBe("overdue");
+		expect(reversed.payments.find((item) => item.id === first.id)).toMatchObject({ creditMinor: 0, applications: [{ billingPeriod: "2026-01" }] });
+	});
+	it("requires explicit advance consent after every fee is paid and keeps retries idempotent", async () => {
+		const { id, fees } = await fixture();
+		const base = { memberId: id, branchId: branch, amountMinor: 8000000, method: "cash", paidAt: "2026-02-07T15:00:00Z" };
+		for (const fee of fees) await json("/api/payments", { ...base, allocations: [{ chargeId: fee.id, amountMinor: 8000000 }], idempotencyKey: crypto.randomUUID() });
+		const extra = { ...base, idempotencyKey: crypto.randomUUID() };
+		const rejected = await callApi("/api/payments", owner, extra);
+		expect(rejected.status).toBe(409); expect(await rejected.json()).toMatchObject({ error: "CREDIT_CONFIRMATION_REQUIRED" });
+		expect((await json<{ payments: unknown[] }>(`/api/payments?memberId=${id}`)).payments).toHaveLength(3);
+		const explicit = { ...extra, allowCredit: true };
+		const advance = await json<{ id: string }>("/api/payments", explicit);
+		expect(await json("/api/payments", explicit)).toMatchObject({ id: advance.id, allocatedMinor: 0, creditMinor: 8000000 });
+		expect((await json<{ payments: unknown[] }>(`/api/payments?memberId=${id}`)).payments).toHaveLength(4);
+		expect((await callApi("/api/payments", owner, { ...explicit, idempotencyKey: crypto.randomUUID(), allocations: [{ chargeId: fees[0]!.id, amountMinor: 8000000 }] })).status).toBe(409);
+	});
+	it("requires explicit consent for partial overpayments too", async () => {
+		const { id, fees } = await fixture();
+		const input = { memberId: id, branchId: branch, amountMinor: 10000000, method: "cash", paidAt: "2026-02-07T15:00:00Z", allocations: [{ chargeId: fees[0]!.id, amountMinor: 8000000 }], idempotencyKey: crypto.randomUUID() };
+		expect((await callApi("/api/payments", owner, input)).status).toBe(409);
+		expect((await callApi("/api/payments", owner, { ...input, allowCredit: "true" })).status).toBe(400);
+		expect(await json("/api/payments", { ...input, allowCredit: true })).toMatchObject({ allocatedMinor: 8000000, creditMinor: 2000000 });
+	});
 	it("saves a due-day change for future fees and requires a valid day and reason", async () => {
 		const { id } = await fixture();
 		const before = await json<{ enrollments: Array<{ id: string; dueDay: number; paymentDue: { date: string; kind: string } }>; charges: Array<{ id: string; dueDate: string }> }>(`/api/customer-members/${id}`);
@@ -99,7 +136,7 @@ describe("collections workspace contracts", () => {
 	});
 	it("uses company-local receipt dates consistently with dashboard drill-through", async () => {
 		const { id } = await fixture();
-		for (const paidAt of ["2026-04-01T04:59:59Z", "2026-04-01T05:00:00Z", "2026-05-01T04:59:59Z", "2026-05-01T05:00:00Z"]) await json("/api/payments", { memberId: id, branchId: branch, amountMinor: 100, method: "cash", paidAt, allocations: [], idempotencyKey: crypto.randomUUID() });
+		for (const paidAt of ["2026-04-01T04:59:59Z", "2026-04-01T05:00:00Z", "2026-05-01T04:59:59Z", "2026-05-01T05:00:00Z"]) await json("/api/payments", { memberId: id, branchId: branch, amountMinor: 100, method: "cash", paidAt, allowCredit: true, allocations: [], idempotencyKey: crypto.randomUUID() });
 		const result = await json<{ payments: unknown[] }>(`/api/payments?${paymentMonthQuery("2026-04")}&memberId=${id}`);
 		expect(result.payments).toHaveLength(2);
 		expect((await callApi("/api/payments?dateFrom=2026-02-30", owner)).status).toBe(400);

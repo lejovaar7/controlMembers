@@ -1,3 +1,4 @@
+import { paymentApplications } from "./payment-history";
 import { inWorkspace, requireWorkspaceTenant, workspaceCondition } from "./workspace";
 import { and, asc, desc, eq, gte, inArray, isNull, like, lt, sql } from "drizzle-orm";
 import { AuthError } from "../auth/session";
@@ -73,7 +74,8 @@ export async function createPayment(env: Env, request: Request, body: Record<str
 	const idempotencyKey = readString(body.idempotencyKey, 100, true)!;
 	const requested = body.allocations;
 	if (requested !== undefined && (!Array.isArray(requested) || requested.length > 100)) throw new RequestError(400, "INVALID_INPUT");
-	const fingerprint = JSON.stringify({ memberId, branchId: branch.branchId, amountMinor, method, paidAt: paidAt.toISOString(), externalReference, note, allocations: requested ?? null });
+	if (body.allowCredit !== undefined && typeof body.allowCredit !== "boolean") throw new RequestError(400, "INVALID_INPUT");
+	const fingerprint = JSON.stringify({ ...(body.allowCredit === undefined ? {} : { allowCredit: body.allowCredit }), memberId, branchId: branch.branchId, amountMinor, method, paidAt: paidAt.toISOString(), externalReference, note, allocations: requested ?? null });
 	const db = getTenantDb(env, tenant.organizationId);
 	const existing = await replayPayment(env, tenant.organizationId, idempotencyKey, fingerprint);
 	if (existing) return existing;
@@ -93,6 +95,7 @@ export async function createPayment(env: Env, request: Request, body: Record<str
 		});
 	}
 	if (new Set(proposed.map((item) => item.chargeId)).size !== proposed.length || proposed.reduce((sum, item) => sum + item.amountMinor, 0) > amountMinor) throw new RequestError(400, "INVALID_INPUT");
+	if (proposed.reduce((sum, item) => sum + item.amountMinor, 0) < amountMinor && body.allowCredit !== true) throw new RequestError(409, "CREDIT_CONFIRMATION_REQUIRED");
 	const chargeIds = proposed.map((item) => item.chargeId);
 	const chargeRows = chargeIds.length ? await db.select({ id: charge.id, memberId: charge.memberId, branchId: charge.branchId, totalMinor: charge.totalMinor, status: charge.status, paidMinor: sql<number>`coalesce(sum(case when ${payment.status} = 'posted' then ${allocation.amountMinor} else 0 end), 0)` })
 		.from(charge).leftJoin(allocation, eq(allocation.chargeId, charge.id)).leftJoin(payment, eq(payment.id, allocation.paymentId))
@@ -162,7 +165,8 @@ export async function listPayments(env: Env, request: Request) {
 		.from(payment).innerJoin(customerMember, eq(customerMember.id, payment.memberId)).leftJoin(allocation, eq(allocation.paymentId, payment.id))
 		.where(and(eq(payment.organizationId, tenant.organizationId), workspaceCondition(tenant, payment.branchId), branchId ? eq(payment.branchId, branchId) : undefined, url.searchParams.get("memberId") ? eq(payment.memberId, url.searchParams.get("memberId")!) : undefined, method ? (LEGACY_METHODS.has(method) ? and(eq(payment.method, method), isNull(payment.paymentMethodId)) : eq(payment.paymentMethodId, method)) : undefined, status ? eq(payment.status, status) : undefined, search ? like(customerMember.normalizedName, `%${search}%`) : undefined, start ? gte(payment.paidAt, start) : undefined, end ? lt(payment.paidAt, end) : undefined))
 		.groupBy(payment.id).orderBy(desc(payment.paidAt)).limit(limit + 1).offset(offset);
-	return { payments: rows.slice(0, limit).map((row) => ({ ...row.payment, method: row.payment.paymentMethodId ?? row.payment.method, memberName: row.memberName, allocatedMinor: Number(row.allocatedMinor), creditMinor: row.payment.status === "posted" ? row.payment.amountMinor - Number(row.allocatedMinor) : 0 })), nextOffset: rows.length > limit ? offset + limit : null };
+	const applications = await paymentApplications(env, tenant.organizationId, rows.slice(0, limit).map((row) => row.payment.id));
+	return { payments: rows.slice(0, limit).map((row) => ({ ...row.payment, applications: applications.filter((item) => item.paymentId === row.payment.id), method: row.payment.paymentMethodId ?? row.payment.method, memberName: row.memberName, allocatedMinor: Number(row.allocatedMinor), creditMinor: row.payment.status === "posted" ? row.payment.amountMinor - Number(row.allocatedMinor) : 0 })), nextOffset: rows.length > limit ? offset + limit : null };
 }
 
 export async function reversePayment(env: Env, request: Request, id: string, body: Record<string, unknown>) {

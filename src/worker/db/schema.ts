@@ -88,6 +88,8 @@ export const customerMember = sqliteTable("customer_member", {
 	birthDate: text("birth_date"),
 	email: text("email"),
 	phoneE164: text("phone_e164"),
+	whatsappSameAsPhone: integer("whatsapp_same_as_phone", { mode: "boolean" }).notNull().default(true),
+	whatsappE164: text("whatsapp_e164"),
 	notes: text("notes"),
 	externalReference: text("external_reference"),
 	createdByUserId: text("created_by_user_id").notNull().references(() => user.id, { onDelete: "restrict" }),

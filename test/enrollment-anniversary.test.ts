@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { getAuth } from "../src/worker/auth";
 import { getDb } from "../src/worker/db";
 import { enrollment } from "../src/worker/db/schema";
-import { callApi, createActor, type Actor } from "./helpers";
+import { callApi, createActor, seedLegacyMember, type Actor } from "./helpers";
 import { billingDateInMonth, defaultFirstDueDate } from "../src/shared/billing-dates";
 
 let owner: Actor; let branchId: string; let planId: string;
@@ -13,7 +13,7 @@ async function json<T>(path: string, body?: unknown, method?: string): Promise<T
 	expect(response.ok, `${path}: ${response.status}`).toBe(true);
 	return await response.json() as T;
 }
-type Detail = { enrollments: Array<{ id: string; dueDay: number; firstDueDate: string | null; paymentDue: { date: string } | null }>; charges: Array<{ id: string; dueDate: string; billingPeriod: string; totalMinor: number }> };
+type Detail = { enrollments: Array<{ id: string; dueDay: number; firstDueDate: string | null; paymentDue: { date: string } | null }>; charges: Array<{ id: string; dueDate: string; billingPeriod: string; totalMinor: number; outstandingMinor: number }>; payments: unknown[] };
 beforeAll(async () => {
 	owner = await createActor("anniversary-owner@test.invalid");
 	const auth = getAuth(env);
@@ -25,29 +25,57 @@ beforeAll(async () => {
 	await json("/api/product/settings", { currency: "COP", timezone: "America/Bogota" }, "PATCH");
 	planId = (await json<{ id: string }>("/api/plans", { name: "Monthly", amountMinor: 8000000, defaultDueDay: 1, branchIds: [branchId] })).id;
 });
-async function member() { return (await json<{ id: string }>("/api/customer-members", { displayName: "New member", primaryBranchId: branchId })).id; }
-async function create(id: string, input: Record<string, unknown>) { return json<{ id: string; firstDueDate: string; dueDay: number }>(`/api/customer-members/${id}/enrollments`, { planId, branchId, ...input }); }
+async function member() { return (await seedLegacyMember(owner, { displayName: "New member", primaryBranchId: branchId })).id; }
+async function create(id: string, input: Record<string, unknown>) { return json<{ id: string; firstDueDate: string; dueDay: number; firstChargeId: string | null }>(`/api/customer-members/${id}/enrollments`, { planId, branchId, ...input }); }
 
 describe("anniversary enrollment billing", () => {
-	it("defaults September 21 to October 21 independently of the plan day", async () => {
+	it("creates the signup fee immediately without recording money or duplicating generation", async () => {
 		const id = await member();
-		expect(await create(id, { startDate: "2026-09-21" })).toMatchObject({ firstDueDate: "2026-10-21", dueDay: 21 });
+		const created = await create(id, { startDate: "2026-09-21" });
+		expect(created).toMatchObject({ firstDueDate: "2026-09-21", dueDay: 21, firstChargeId: expect.any(String) });
+		const initial = await json<Detail>(`/api/customer-members/${id}`);
+		expect(initial.charges).toEqual([expect.objectContaining({ id: created.firstChargeId, dueDate: "2026-09-21", totalMinor: 8000000, outstandingMinor: 8000000 })]);
+		expect(initial.payments).toHaveLength(0);
 		expect(await json("/api/charges/generate/preview", { period: "2026-09" })).toMatchObject({ willCreate: 0 });
 		await json("/api/charges/generate", { period: "2026-09" });
-		expect((await json<Detail>(`/api/customer-members/${id}`)).charges).toHaveLength(0);
+		expect((await json<Detail>(`/api/customer-members/${id}`)).charges).toEqual(initial.charges);
+		expect((await callApi(`/api/customer-members/${id}/enrollments`, owner, { planId, branchId, startDate: "2026-09-21" })).status).toBe(409);
 		await Promise.all([json("/api/charges/generate", { period: "2026-10" }), json("/api/charges/generate", { period: "2026-10" })]);
 		await json("/api/charges/generate", { period: "2026-11" });
 		const detail = await json<Detail>(`/api/customer-members/${id}`);
-		expect(detail.charges.map((fee) => fee.dueDate).sort()).toEqual(["2026-10-21", "2026-11-21"]);
-		expect(detail.enrollments[0]!.paymentDue?.date).toBe("2026-10-21");
+		expect(detail.charges.map((fee) => fee.dueDate).sort()).toEqual(["2026-09-21", "2026-10-21", "2026-11-21"]);
+		expect(detail.enrollments[0]!.paymentDue?.date).toBe("2026-09-21");
+	});
+	it.each([
+		["2026-01-29", "2026-02-28", "2026-03-29"],
+		["2026-01-30", "2026-02-28", "2026-03-30"],
+		["2026-01-31", "2026-02-28", "2026-03-31"],
+		["2028-01-30", "2028-02-29", "2028-03-30"],
+		["2026-12-31", "2027-01-31", "2027-02-28"],
+	])("collects at signup on %s and preserves the original day across short months", async (start, next, following) => {
+		const id = await member();
+		await create(id, { startDate: start });
+		for (const date of [next, following]) await json("/api/charges/generate", { period: date.slice(0, 7) });
+		expect((await json<Detail>(`/api/customer-members/${id}`)).charges.map((fee) => fee.dueDate).sort()).toEqual([start, next, following]);
+	});
+	it("lets the monthly day differ from signup and settles only the signup fee", async () => {
+		const id = await member();
+		const created = await create(id, { startDate: "2026-09-30", recurringDay: 5, discountMinor: 1000000 });
+		expect(created).toMatchObject({ firstDueDate: "2026-09-30", dueDay: 5 });
+		await json("/api/payments", { memberId: id, branchId, amountMinor: 7000000, method: "cash", paidAt: "2026-09-30T15:00:00Z", idempotencyKey: "signup-payment", allocations: [{ chargeId: created.firstChargeId, amountMinor: 7000000 }] });
+		const paid = await json<Detail>(`/api/customer-members/${id}`);
+		expect(paid.charges[0]).toMatchObject({ totalMinor: 7000000, outstandingMinor: 0 });
+		expect(paid.enrollments[0]!.paymentDue?.date).toBe("2026-10-05");
+		await json("/api/charges/generate", { period: "2026-10" });
+		expect((await json<Detail>(`/api/customer-members/${id}`)).charges.map((fee) => fee.dueDate).sort()).toEqual(["2026-09-30", "2026-10-05"]);
 	});
 	it("clamps January 31 to February then returns to 31 in March", async () => {
 		const id = await member();
 		expect(await create(id, { startDate: "2026-01-31", firstDueDate: "2026-02-28", recurringDay: 31 })).toMatchObject({ dueDay: 31 });
 		for (const period of ["2026-02", "2026-03", "2026-04"]) await json("/api/charges/generate", { period });
 		expect((await json<Detail>(`/api/customer-members/${id}`)).charges.map((fee) => fee.dueDate).sort()).toEqual(["2026-02-28", "2026-03-31", "2026-04-30"]);
-		expect(defaultFirstDueDate("2028-01-31")).toBe("2028-02-29");
-		expect(defaultFirstDueDate("2026-12-21")).toBe("2027-01-21");
+		expect(defaultFirstDueDate("2028-01-31")).toBe("2028-01-31");
+		expect(defaultFirstDueDate("2026-12-21")).toBe("2026-12-21");
 		expect(billingDateInMonth("2028-03", 31)).toBe("2028-03-31");
 	});
 	it("accepts a custom first date and retains past charges after future day changes", async () => {
@@ -63,18 +91,19 @@ describe("anniversary enrollment billing", () => {
 	});
 	it("rejects invalid dates and anchors without creating an enrollment", async () => {
 		const id = await member();
-		for (const input of [{ firstDueDate: "2026-09-21" }, { firstDueDate: "2026-09-20" }, { firstDueDate: "2026-02-30" }, { firstDueDate: "" }, { firstDueDate: "2026-10-21", recurringDay: 1 }, { recurringDay: 32 }]) {
+		for (const input of [{ firstDueDate: "2026-09-20" }, { firstDueDate: "2026-02-30" }, { firstDueDate: "" }, { recurringDay: 0 }, { recurringDay: 1.5 }, { recurringDay: 32 }]) {
 			expect((await callApi(`/api/customer-members/${id}/enrollments`, owner, { planId, branchId, startDate: "2026-09-21", ...input })).status).toBe(400);
 		}
 		expect((await json<Detail>(`/api/customer-members/${id}`)).enrollments).toHaveLength(0);
+		expect((await json<Detail>(`/api/customer-members/${id}`)).charges).toHaveLength(0);
 	});
 	it("preserves legacy calendar schedules and stops new schedules at their end date", async () => {
-		const id = await member(); const created = await create(id, { startDate: "2026-09-21" });
+		const id = await member(); const created = await create(id, { startDate: "2026-09-21", firstDueDate: "2026-10-21" });
 		await getDb(env).update(enrollment).set({ firstDueDate: null, recurringDay: null }).where(eq(enrollment.id, created.id));
 		await json("/api/charges/generate", { period: "2026-09" });
 		expect((await json<Detail>(`/api/customer-members/${id}`)).charges[0]!.dueDate).toBe("2026-09-01");
 		const second = await member(); await create(second, { startDate: "2026-09-21", endDate: "2026-10-20" });
 		await json("/api/charges/generate", { period: "2026-10" });
-		expect((await json<Detail>(`/api/customer-members/${second}`)).charges).toHaveLength(0);
+		expect((await json<Detail>(`/api/customer-members/${second}`)).charges.map((fee) => fee.dueDate)).toEqual(["2026-09-21"]);
 	});
 });

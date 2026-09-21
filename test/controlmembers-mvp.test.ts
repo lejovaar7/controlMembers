@@ -47,7 +47,7 @@ beforeAll(async () => {
 
 describe("ControlMembers MVP workflow", () => {
 	it("creates a customer Member independently from authenticated users", async () => {
-		const response = await callApi("/api/customer-members", owner, { displayName: "Ana Pérez", primaryBranchId: branchId, documentType: "TI", documentNumber: "1001", email: "ana@example.test", phoneE164: "+573001112233" });
+		const response = await callApi("/api/customer-members", owner, { displayName: "Ana Pérez", primaryBranchId: branchId, documentType: "TI", documentNumber: "1001", email: "ana@example.test", phoneE164: "+573001112233", planId, startDate: "2026-01-01", firstDueDate: "2026-01-05" });
 		expect(response.status).toBe(201);
 		const created = await response.json() as { id: string; status: string; outstandingMinor: number };
 		customerId = created.id;
@@ -69,10 +69,8 @@ describe("ControlMembers MVP workflow", () => {
 	});
 
 	it("enrolls the Member using Plan price and a chosen first due date, rejecting overlap", async () => {
-		const response = await callApi(`/api/customer-members/${customerId}/enrollments`, staff, { planId, branchId, startDate: "2026-01-01", firstDueDate: "2026-01-05" });
-		expect(response.status).toBe(201);
-		const created = await response.json() as { id: string; agreedAmountMinor: number; dueDay: number; status: string };
-		expect(created).toMatchObject({ agreedAmountMinor: 10000, dueDay: 5, status: "active" });
+		const detail = await (await callApi(`/api/customer-members/${customerId}`, staff)).json() as { enrollments: Array<{ agreedAmountMinor: number; dueDay: number; status: string }> };
+		expect(detail.enrollments).toEqual([expect.objectContaining({ agreedAmountMinor: 10000, dueDay: 5, status: "active" })]);
 		const duplicate = await callApi(`/api/customer-members/${customerId}/enrollments`, staff, { planId, branchId, startDate: "2026-02-01" });
 		expect(duplicate.status).toBe(409);
 	});
@@ -186,7 +184,7 @@ describe("ControlMembers MVP workflow", () => {
 		const firstDetail = await callApi(`/api/customer-members/${customerId}`, owner);
 		const [existingContact] = (await firstDetail.json() as { contacts: Array<{ id: string }> }).contacts;
 		if (!existingContact) throw new Error("contact missing");
-		const siblingResponse = await callApi("/api/customer-members", owner, { displayName: "Sofía Pérez", primaryBranchId: branchId });
+		const siblingResponse = await callApi("/api/customer-members", owner, { displayName: "Sofía Pérez", primaryBranchId: branchId, planId, startDate: "2027-01-01", firstDueDate: "2027-01-05" });
 		const siblingId = (await siblingResponse.json() as { id: string }).id;
 		const linked = await callApi(`/api/customer-members/${siblingId}/contacts`, owner, { contactId: existingContact.id, relationship: "mother", isPrimary: true, isBillingContact: true });
 		expect(linked.status).toBe(201);
@@ -200,5 +198,19 @@ describe("ControlMembers MVP workflow", () => {
 		const response = await callApi("/api/product/settings", owner, { currency: "USD", timezone: "America/Bogota" }, "PATCH");
 		expect(response.status).toBe(409);
 		expect(await response.json()).toEqual({ error: "CURRENCY_LOCKED" });
+	});
+
+	it("allows staff to create an audited signup fee but not a monthly batch", async () => {
+		const newMember = await callApi("/api/customer-members", staff, { displayName: "Signup fee test", primaryBranchId: branchId, planId, startDate: "2026-09-30" });
+		expect(newMember.status).toBe(201);
+		const created = await newMember.json() as { id: string; firstChargeId: string };
+		const memberId = created.id;
+		const detail = await (await callApi(`/api/customer-members/${memberId}`, staff)).json() as { charges: Array<{ id: string; dueDate: string; outstandingMinor: number }>; payments: unknown[] };
+		expect(detail.charges).toEqual([expect.objectContaining({ id: created.firstChargeId, dueDate: "2026-09-30", outstandingMinor: 10000 })]);
+		expect(detail.payments).toHaveLength(0);
+		expect((await callApi("/api/charges/generate", staff, { period: "2026-10" })).status).toBe(403);
+		expect((await callApi(`/api/customer-members/${memberId}`, foreignOwner)).status).toBe(404);
+		const events = await getDb(env).select().from(auditEvent).where(eq(auditEvent.subjectId, created.firstChargeId));
+		expect(events).toEqual([expect.objectContaining({ eventType: "charge.created", actorUserId: staff.userId, branchId, organizationId })]);
 	});
 });

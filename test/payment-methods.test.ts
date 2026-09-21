@@ -5,7 +5,7 @@ import { getAuth } from "../src/worker/auth";
 import { getDb } from "../src/worker/db";
 import { member } from "../src/worker/db/auth-schema";
 import { auditEvent, payment } from "../src/worker/db/schema";
-import { callApi, createActor, type Actor } from "./helpers";
+import { callApi, createActor, seedLegacyMember, type Actor } from "./helpers";
 
 let owner: Actor, staff: Actor, foreign: Actor;
 let organizationId: string, branchId: string, memberId: string;
@@ -24,15 +24,14 @@ beforeAll(async () => {
 	await auth.api.addMember({ body: { organizationId, userId: staff.userId, role: "member", teamId: branchId, allBranches: false } });
 	await auth.api.setActiveOrganization({ headers: staff.headers, body: { organizationId } });
 	expect((await callApi("/api/product/settings", owner, { currency: "COP", timezone: "America/Bogota" }, "PATCH")).status).toBe(200);
-	const created = await callApi("/api/customer-members", owner, { displayName: "Method QA", primaryBranchId: branchId });
-	memberId = (await created.json() as { id: string }).id;
+	memberId = (await seedLegacyMember(owner, { displayName: "Method QA", primaryBranchId: branchId })).id;
 });
 async function add(name: string) {
 	const response = await callApi("/api/payment-methods", owner, { name });
 	expect(response.status).toBe(201);
 	return await response.json() as { id: string; name: string };
 }
-function paymentInput(method: string) { return { memberId, branchId, amountMinor: 500, method, paidAt: "2026-09-17T12:00:00.000Z", idempotencyKey: crypto.randomUUID() }; }
+function paymentInput(method: string) { return { memberId, branchId, allowCredit: true, amountMinor: 500, method, paidAt: "2026-09-17T12:00:00.000Z", idempotencyKey: crypto.randomUUID() }; }
 
 describe("company payment methods", () => {
 	it("starts with cash only, authenticates reads and protects the default", async () => {

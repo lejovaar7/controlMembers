@@ -1,3 +1,4 @@
+import { chargeState } from "./charge-state";
 import { enrollmentPeriodDueDate } from "./enrollment-due-date";
 import { inWorkspace, requireWorkspaceTenant, workspaceCondition } from "./workspace";
 import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
@@ -13,13 +14,6 @@ function periodRange(period: string) {
 	const [year, month] = period.split("-").map(Number);
 	const lastDay = new Date(Date.UTC(year!, month!, 0)).getUTCDate();
 	return { start: `${period}-01`, end: `${period}-${String(lastDay).padStart(2, "0")}` };
-}
-
-function chargeState(item: { lifecycle: string; totalMinor: number; paidMinor: number; dueDate: string }, today: string) {
-	if (item.lifecycle === "void") return "void";
-	if (item.paidMinor >= item.totalMinor) return "paid";
-	if (item.paidMinor > 0) return "partial";
-	return item.dueDate < today ? "overdue" : "pending";
 }
 
 async function generationBranches(env: Env, tenant: TenantContext, value: unknown) {
@@ -97,10 +91,10 @@ export async function listCharges(env: Env, request: Request) {
 	const normalized = rows.map((row) => {
 		const paidMinor = Number(row.paidMinor);
 		const outstandingMinor = row.lifecycle === "void" ? 0 : Math.max(0, row.totalMinor - paidMinor);
-		return { ...row, paidMinor, outstandingMinor, paymentState: chargeState({ lifecycle: row.lifecycle, totalMinor: row.totalMinor, paidMinor, dueDate: row.dueDate }, today) };
+		return { ...row, paidMinor, outstandingMinor, isOverdue: row.lifecycle === "open" && outstandingMinor > 0 && row.dueDate < today, paymentState: chargeState({ lifecycle: row.lifecycle, totalMinor: row.totalMinor, paidMinor, dueDate: row.dueDate }, today) };
 	});
 	const state = url.searchParams.get("state");
-	const filtered = state === "unpaid" ? normalized.filter((item) => item.lifecycle === "open" && item.outstandingMinor > 0) : state ? normalized.filter((item) => item.paymentState === state) : normalized;
+	const filtered = state === "unpaid" ? normalized.filter((item) => item.lifecycle === "open" && item.outstandingMinor > 0) : state === "overdue" ? normalized.filter((item) => item.isOverdue) : state ? normalized.filter((item) => item.paymentState === state) : normalized;
 	return { charges: filtered.slice(offset, offset + limit), nextOffset: filtered.length > offset + limit ? offset + limit : null, asOf: new Date().toISOString(), appliedFilters: { period, branchId: requestedBranch, planId: requestedPlan, tag: requestedTag || null, search: search || null, state } };
 }
 

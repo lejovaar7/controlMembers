@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
 import { getAuth } from "../src/worker/auth";
-import { callApi, createActor, type Actor } from "./helpers";
+import { callApi, createActor, seedLegacyMember, type Actor } from "./helpers";
 
 let owner: Actor;
 let branchA: string;
@@ -51,8 +51,8 @@ beforeAll(async () => {
 	planA = (await json("/api/plans", { name: "Only Main", amountMinor: 5000, defaultDueDay: 5, branchIds: [branchA] })).id;
 	planB = (await json("/api/plans", { name: "Only Vida B", amountMinor: 9000, defaultDueDay: 5, branchIds: [branchB] })).id;
 	sharedPlan = (await json("/api/plans", { name: "Explicitly shared", amountMinor: 7000, defaultDueDay: 5, branchIds: [branchA, branchB] })).id;
-	memberA = (await json("/api/customer-members", { displayName: "Main member", primaryBranchId: branchA })).id;
-	memberB = (await json("/api/customer-members", { displayName: "Vida member", primaryBranchId: branchB })).id;
+	memberA = (await seedLegacyMember(owner, { displayName: "Main member", primaryBranchId: branchA })).id;
+	memberB = (await seedLegacyMember(owner, { displayName: "Vida member", primaryBranchId: branchB })).id;
 	await json(`/api/customer-members/${memberA}/enrollments`, { planId: planA, branchId: branchA, startDate: "2026-01-01", firstDueDate: "2026-01-05" });
 	await json(`/api/customer-members/${memberB}/enrollments`, { planId: planB, branchId: branchB, startDate: "2026-01-01", firstDueDate: "2026-01-05" });
 	await json("/api/charges/generate", { period: "2026-01" });
@@ -119,12 +119,12 @@ describe("active Branch workspace isolation", () => {
 		expect((await json("/api/customer-members")).members).toEqual([expect.objectContaining({ id: memberA, outstandingMinor: 10000 })]);
 		expect(await json(`/api/customer-members/${memberA}`)).toMatchObject({ charges: [expect.anything(), expect.anything()] });
 		expect((await json("/api/reports/member-balances")).balances).toEqual([expect.objectContaining({ id: memberA, branchName: "Sede Principal", outstandingMinor: 10000 })]);
-		await json("/api/payments", { memberId: memberA, branchId: branchA, amountMinor: 1000, method: "cash", paidAt: "2026-02-15T15:00:00Z", idempotencyKey: "moved-member-payment" });
+		await json("/api/payments", { memberId: memberA, branchId: branchA, amountMinor: 1000, method: "cash", paidAt: "2026-02-15T15:00:00Z", allowCredit: true, idempotencyKey: "moved-member-payment" });
 	});
 
 	it("shares Members only through explicit Enrollments and keeps their ledgers separate", async () => {
 		await activate(branchA);
-		const sharedMember = (await json("/api/customer-members", { displayName: "Explicitly shared member", primaryBranchId: branchA })).id;
+		const sharedMember = (await seedLegacyMember(owner, { displayName: "Explicitly shared member", primaryBranchId: branchA })).id;
 		await json(`/api/customer-members/${sharedMember}/enrollments`, { planId: sharedPlan, branchId: branchA, startDate: "2026-03-01", firstDueDate: "2026-03-05" });
 		await activate(branchB);
 		expect((await callApi(`/api/customer-members/${sharedMember}`, owner)).status).toBe(404);

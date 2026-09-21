@@ -1,3 +1,6 @@
+import { chargeState } from "./charge-state";
+import { prepareEnrollment } from "./enrollment-write";
+import { paymentApplications } from "./payment-history";
 import { enrollmentDueDate } from "./enrollment-due-date";
 import { inWorkspace, requireWorkspaceTenant, workspaceCondition } from "./workspace";
 import { and, asc, desc, eq, inArray, like, ne, or, sql } from "drizzle-orm";
@@ -39,6 +42,9 @@ function readMemberInput(body: Record<string, unknown>, current?: typeof custome
 	const birthDate = body.birthDate === undefined && current ? current.birthDate : readDate(body.birthDate);
 	const email = body.email === undefined && current ? current.email : readEmail(body.email);
 	const phoneE164 = body.phoneE164 === undefined && current ? current.phoneE164 : readPhone(body.phoneE164);
+	const whatsappSameAsPhone = body.whatsappSameAsPhone === undefined ? current?.whatsappSameAsPhone ?? true : body.whatsappSameAsPhone;
+	if (typeof whatsappSameAsPhone !== "boolean") throw new RequestError(400, "INVALID_INPUT");
+	const whatsappE164 = whatsappSameAsPhone ? null : body.whatsappE164 === undefined && current ? current.whatsappE164 : readPhone(body.whatsappE164);
 	const notes = body.notes === undefined && current ? current.notes : readString(body.notes, 2000);
 	const externalReference = body.externalReference === undefined && current ? current.externalReference : readString(body.externalReference, 100);
 	return {
@@ -50,6 +56,8 @@ function readMemberInput(body: Record<string, unknown>, current?: typeof custome
 		birthDate,
 		email,
 		phoneE164,
+		whatsappSameAsPhone,
+		whatsappE164,
 		notes,
 		externalReference,
 	};
@@ -112,15 +120,22 @@ export async function listCustomerMembers(env: Env, request: Request) {
 export async function createCustomerMember(env: Env, request: Request, body: Record<string, unknown>) {
 	const tenant = await requireWorkspaceTenant(env, request);
 	const branch = await requireAccessibleBranch(env, tenant, body.primaryBranchId);
+	if (!inWorkspace(tenant, branch.branchId)) throw new AuthError(404, "RESOURCE_NOT_FOUND");
+	if (typeof body.planId !== "string" || !body.planId.trim()) throw new RequestError(400, "PLAN_REQUIRED");
 	const values = readMemberInput(body);
 	await requireUniqueMemberIdentifiers(env, tenant.organizationId, values);
 	const id = crypto.randomUUID();
 	const db = getTenantDb(env, tenant.organizationId);
+	const signup = await prepareEnrollment(env, tenant, { id, displayName: values.displayName, primaryBranchId: branch.branchId }, {
+		planId: body.planId, branchId: branch.branchId,
+		startDate: body.startDate ?? localDate(tenant.timezone), firstDueDate: body.firstDueDate, recurringDay: body.recurringDay,
+	});
 	await db.batch([
 		db.insert(customerMember).values({ id, organizationId: tenant.organizationId, primaryBranchId: branch.branchId, ...values, status: "active", createdByUserId: tenant.userId }),
+		...signup.statements,
 		db.insert(auditEvent).values({ id: crypto.randomUUID(), organizationId: tenant.organizationId, eventType: "member.created", actorUserId: tenant.userId, subjectType: "member", subjectId: id, branchId: branch.branchId, detailsJson: details({ version: 1 }) }),
 	]);
-	return { id, organizationId: tenant.organizationId, primaryBranchId: branch.branchId, ...values, status: "active", outstandingMinor: 0 };
+	return { id, organizationId: tenant.organizationId, primaryBranchId: branch.branchId, ...values, status: "active", outstandingMinor: signup.result.firstChargeId ? signup.result.agreedAmountMinor - signup.result.discountMinor : 0, enrollmentId: signup.result.id, firstChargeId: signup.result.firstChargeId };
 }
 
 export async function getCustomerMember(env: Env, request: Request, id: string) {
@@ -132,18 +147,19 @@ export async function getCustomerMember(env: Env, request: Request, id: string) 
 		.where(and(eq(memberContact.organizationId, tenant.organizationId), eq(memberContact.memberId, id))).orderBy(desc(memberContact.isPrimary), asc(contact.displayName));
 	const enrollments = await db.select({ id: enrollment.id, planId: enrollment.planId, planName: plan.name, branchId: enrollment.branchId, status: enrollment.status, startDate: enrollment.startDate, firstDueDate: enrollment.firstDueDate, recurringDay: enrollment.recurringDay, endDate: enrollment.endDate, agreedAmountMinor: enrollment.agreedAmountMinor, currency: enrollment.currency, dueDay: enrollment.dueDay, discountMinor: enrollment.discountMinor })
 		.from(enrollment).innerJoin(plan, eq(plan.id, enrollment.planId)).where(and(eq(enrollment.organizationId, tenant.organizationId), eq(enrollment.memberId, id), workspaceCondition(tenant, enrollment.branchId))).orderBy(desc(enrollment.createdAt));
-	const charges = await db.select({ id: charge.id, enrollmentId: charge.enrollmentId, billingPeriod: charge.billingPeriod, dueDate: charge.dueDate, totalMinor: charge.totalMinor, currency: charge.currency, lifecycle: charge.status, planName: charge.planNameSnapshot, paidMinor: sql<number>`coalesce(sum(case when ${payment.status} = 'posted' then ${allocation.amountMinor} else 0 end), 0)` })
+	const charges = await db.select({ id: charge.id, branchId: charge.branchId, enrollmentId: charge.enrollmentId, billingPeriod: charge.billingPeriod, dueDate: charge.dueDate, totalMinor: charge.totalMinor, currency: charge.currency, lifecycle: charge.status, planName: charge.planNameSnapshot, paidMinor: sql<number>`coalesce(sum(case when ${payment.status} = 'posted' then ${allocation.amountMinor} else 0 end), 0)` })
 		.from(charge).leftJoin(allocation, eq(allocation.chargeId, charge.id)).leftJoin(payment, eq(payment.id, allocation.paymentId))
 		.where(and(eq(charge.organizationId, tenant.organizationId), eq(charge.memberId, id), workspaceCondition(tenant, charge.branchId))).groupBy(charge.id).orderBy(desc(charge.dueDate));
 	const payments = await db.select().from(payment).where(and(eq(payment.organizationId, tenant.organizationId), eq(payment.memberId, id), workspaceCondition(tenant, payment.branchId))).orderBy(desc(payment.paidAt)).limit(50);
-	const normalizedCharges = charges.map((item) => ({ ...item, paidMinor: Number(item.paidMinor), outstandingMinor: item.lifecycle === "void" ? 0 : Math.max(0, item.totalMinor - Number(item.paidMinor)) }));
+	const today = localDate(tenant.timezone);
+	const applications = await paymentApplications(env, tenant.organizationId, payments.map((item) => item.id));
+	const normalizedCharges = charges.map((item) => ({ ...item, paymentState: chargeState({ ...item, paidMinor: Number(item.paidMinor) }, today), paidMinor: Number(item.paidMinor), outstandingMinor: item.lifecycle === "void" ? 0 : Math.max(0, item.totalMinor - Number(item.paidMinor)) }));
 	const grossOutstandingMinor = normalizedCharges.reduce((sum, item) => sum + item.outstandingMinor, 0);
 	const postedTotal = payments.filter((item) => item.status === "posted").reduce((sum, item) => sum + item.amountMinor, 0);
 	const allocatedTotal = normalizedCharges.reduce((sum, item) => sum + item.paidMinor, 0);
 	const creditMinor = Math.max(0, postedTotal - allocatedTotal);
-	const today = localDate(tenant.timezone);
 	const scheduledEnrollments = enrollments.map((item) => ({ ...item, dueDay: item.recurringDay ?? item.dueDay, paymentDue: enrollmentDueDate(item, normalizedCharges, today, row.status === "active") }));
-	return { member: row, contacts, enrollments: scheduledEnrollments, charges: normalizedCharges, payments: payments.map((item) => ({ ...item, method: item.paymentMethodId ?? item.method })), summary: { grossOutstandingMinor, creditMinor, netMinor: grossOutstandingMinor - creditMinor } };
+	return { member: row, contacts, enrollments: scheduledEnrollments, charges: normalizedCharges, payments: payments.map((item) => { const applied = applications.filter((entry) => entry.paymentId === item.id); const allocatedMinor = applied.reduce((sum, entry) => sum + entry.amountMinor, 0); return { ...item, method: item.paymentMethodId ?? item.method, applications: applied, allocatedMinor, creditMinor: item.status === "posted" ? Math.max(0, item.amountMinor - allocatedMinor) : 0 }; }), summary: { grossOutstandingMinor, creditMinor, netMinor: grossOutstandingMinor - creditMinor } };
 }
 
 export async function updateCustomerMember(env: Env, request: Request, id: string, body: Record<string, unknown>) {

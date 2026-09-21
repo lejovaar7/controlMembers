@@ -14,11 +14,11 @@ describe("member payment suggestion", () => {
 		expect(charges[0].id).toBe("newer");
 	});
 
-	it("uses the agreed monthly amount minus the member's discount before charges exist", () => {
-		expect(memberPaymentDefault({ charges: [], enrollments: [{ branchId: "main", status: "active", agreedAmountMinor: 15000000, discountMinor: 2000000 }] }, "main")).toBe(13000000);
+	it("does not suggest charging a plan before its charge exists", () => {
+		expect(memberPaymentDefault({ charges: [], enrollments: [{ branchId: "main", status: "active", agreedAmountMinor: 15000000, discountMinor: 2000000 }] }, "main")).toBe(0);
 	});
 
-	it("combines active fees without including paused, ended or other-branch enrollments", () => {
+	it("does not manufacture new debt from active enrollments", () => {
 		const enrollments = [
 			{ branchId: "main", status: "active" as const, agreedAmountMinor: 10000000, discountMinor: 0 },
 			{ branchId: "main", status: "active" as const, agreedAmountMinor: 5000000, discountMinor: 500000 },
@@ -26,7 +26,7 @@ describe("member payment suggestion", () => {
 			{ branchId: "main", status: "ended" as const, agreedAmountMinor: 10000000, discountMinor: 0 },
 			{ branchId: "other", status: "active" as const, agreedAmountMinor: 10000000, discountMinor: 0 },
 		];
-		expect(memberPaymentDefault({ charges: [], enrollments }, "main")).toBe(14500000);
+		expect(memberPaymentDefault({ charges: [], enrollments }, "main")).toBe(0);
 	});
 
 	it("leaves the amount unset when no charge or active monthly fee is available", () => {
