@@ -26,12 +26,27 @@ beforeAll(async () => {
 beforeEach(async () => { await getAuth(env).api.setActiveTeam({ headers: owner.headers, body: { teamId: branch } }); });
 async function fixture() {
 	const id = (await json<{ id: string }>("/api/customer-members", { displayName: `Member ${crypto.randomUUID()}`, primaryBranchId: branch })).id;
-	await json(`/api/customer-members/${id}/enrollments`, { planId: plan, branchId: branch, startDate: "2026-01-01" });
+	await json(`/api/customer-members/${id}/enrollments`, { planId: plan, branchId: branch, startDate: "2026-01-01", firstDueDate: "2026-01-05" });
 	for (const period of ["2026-01", "2026-02", "2026-03"]) await json("/api/charges/generate", { period });
 	const detail = await json<{ charges: Fee[] }>(`/api/customer-members/${id}`);
 	return { id, fees: detail.charges.sort((a, b) => a.billingPeriod.localeCompare(b.billingPeriod)) };
 }
 describe("collections workspace contracts", () => {
+	it("saves a due-day change for future fees and requires a valid day and reason", async () => {
+		const { id } = await fixture();
+		const before = await json<{ enrollments: Array<{ id: string; dueDay: number; paymentDue: { date: string; kind: string } }>; charges: Array<{ id: string; dueDate: string }> }>(`/api/customer-members/${id}`);
+		const endpoint = `/api/enrollments/${before.enrollments[0]!.id}`;
+		for (const dueDay of [0, 32, 123, 1.5]) expect((await callApi(endpoint, owner, { dueDay, reason: "Fixture correction" }, "PATCH")).status).toBe(400);
+		expect((await callApi(endpoint, owner, { dueDay: 12, reason: "" }, "PATCH")).status).toBe(400);
+		await json(endpoint, { agreedAmountMinor: 8000000, discountMinor: 0, dueDay: 12, reason: "New agreed due day" }, "PATCH");
+		const after = await json<typeof before>(`/api/customer-members/${id}`);
+		expect(after.enrollments[0]!.dueDay).toBe(12);
+		expect(after.enrollments[0]!.paymentDue).toEqual({ date: "2026-01-05", kind: "pending" });
+		expect(after.charges.map(({ id: chargeId, dueDate }) => ({ id: chargeId, dueDate }))).toEqual(before.charges.map(({ id: chargeId, dueDate }) => ({ id: chargeId, dueDate })));
+		await json("/api/charges/generate", { period: "2026-04" });
+		const generated = await json<{ charges: Array<{ billingPeriod: string; dueDate: string }> }>(`/api/customer-members/${id}`);
+		expect(generated.charges.find((fee) => fee.billingPeriod === "2026-04")?.dueDate).toBe("2026-04-12");
+	});
 	it("targets a later fee without paying older debt and returns its current balance", async () => {
 		const { id, fees } = await fixture(); const target = fees[1]!;
 		const preview = await json<{ allocations: Array<{ chargeId: string; amountMinor: number }>; creditMinor: number }>(`/api/customer-members/${id}/payment-preview?amountMinor=5000000&chargeId=${target.id}`);

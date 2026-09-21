@@ -68,8 +68,8 @@ describe("ControlMembers MVP workflow", () => {
 		expect(body.contacts).toEqual([expect.objectContaining({ displayName: "Laura Pérez", isBillingContact: true })]);
 	});
 
-	it("enrolls the Member using Plan defaults and rejects overlap", async () => {
-		const response = await callApi(`/api/customer-members/${customerId}/enrollments`, staff, { planId, branchId, startDate: "2026-01-01" });
+	it("enrolls the Member using Plan price and a chosen first due date, rejecting overlap", async () => {
+		const response = await callApi(`/api/customer-members/${customerId}/enrollments`, staff, { planId, branchId, startDate: "2026-01-01", firstDueDate: "2026-01-05" });
 		expect(response.status).toBe(201);
 		const created = await response.json() as { id: string; agreedAmountMinor: number; dueDay: number; status: string };
 		expect(created).toMatchObject({ agreedAmountMinor: 10000, dueDay: 5, status: "active" });

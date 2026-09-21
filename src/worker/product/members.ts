@@ -1,3 +1,4 @@
+import { enrollmentDueDate } from "./enrollment-due-date";
 import { inWorkspace, requireWorkspaceTenant, workspaceCondition } from "./workspace";
 import { and, asc, desc, eq, inArray, like, ne, or, sql } from "drizzle-orm";
 import { AuthError } from "../auth/session";
@@ -5,7 +6,7 @@ import { getTenantDb } from "../db";
 import { allocation, auditEvent, charge, contact, customerMember, enrollment, memberContact, payment, plan } from "../db/schema";
 import { RequestError } from "../http";
 import type { TenantContext } from "../tenant";
-import { details, normalizeText, now, readDate, readEmail, readPhone, readString, requireAccessibleBranch } from "./domain";
+import { details, localDate, normalizeText, now, readDate, readEmail, readPhone, readString, requireAccessibleBranch } from "./domain";
 
 const MEMBER_STATUSES = new Set(["active", "paused", "inactive"]);
 
@@ -129,9 +130,9 @@ export async function getCustomerMember(env: Env, request: Request, id: string) 
 	const contacts = await db.select({ id: contact.id, displayName: contact.displayName, email: contact.email, phoneE164: contact.phoneE164, relationshipId: memberContact.id, relationship: memberContact.relationship, isPrimary: memberContact.isPrimary, isBillingContact: memberContact.isBillingContact, whatsappConsent: memberContact.whatsappConsent })
 		.from(memberContact).innerJoin(contact, eq(contact.id, memberContact.contactId))
 		.where(and(eq(memberContact.organizationId, tenant.organizationId), eq(memberContact.memberId, id))).orderBy(desc(memberContact.isPrimary), asc(contact.displayName));
-	const enrollments = await db.select({ id: enrollment.id, planId: enrollment.planId, planName: plan.name, branchId: enrollment.branchId, status: enrollment.status, startDate: enrollment.startDate, endDate: enrollment.endDate, agreedAmountMinor: enrollment.agreedAmountMinor, currency: enrollment.currency, dueDay: enrollment.dueDay, discountMinor: enrollment.discountMinor })
+	const enrollments = await db.select({ id: enrollment.id, planId: enrollment.planId, planName: plan.name, branchId: enrollment.branchId, status: enrollment.status, startDate: enrollment.startDate, firstDueDate: enrollment.firstDueDate, recurringDay: enrollment.recurringDay, endDate: enrollment.endDate, agreedAmountMinor: enrollment.agreedAmountMinor, currency: enrollment.currency, dueDay: enrollment.dueDay, discountMinor: enrollment.discountMinor })
 		.from(enrollment).innerJoin(plan, eq(plan.id, enrollment.planId)).where(and(eq(enrollment.organizationId, tenant.organizationId), eq(enrollment.memberId, id), workspaceCondition(tenant, enrollment.branchId))).orderBy(desc(enrollment.createdAt));
-	const charges = await db.select({ id: charge.id, billingPeriod: charge.billingPeriod, dueDate: charge.dueDate, totalMinor: charge.totalMinor, currency: charge.currency, lifecycle: charge.status, planName: charge.planNameSnapshot, paidMinor: sql<number>`coalesce(sum(case when ${payment.status} = 'posted' then ${allocation.amountMinor} else 0 end), 0)` })
+	const charges = await db.select({ id: charge.id, enrollmentId: charge.enrollmentId, billingPeriod: charge.billingPeriod, dueDate: charge.dueDate, totalMinor: charge.totalMinor, currency: charge.currency, lifecycle: charge.status, planName: charge.planNameSnapshot, paidMinor: sql<number>`coalesce(sum(case when ${payment.status} = 'posted' then ${allocation.amountMinor} else 0 end), 0)` })
 		.from(charge).leftJoin(allocation, eq(allocation.chargeId, charge.id)).leftJoin(payment, eq(payment.id, allocation.paymentId))
 		.where(and(eq(charge.organizationId, tenant.organizationId), eq(charge.memberId, id), workspaceCondition(tenant, charge.branchId))).groupBy(charge.id).orderBy(desc(charge.dueDate));
 	const payments = await db.select().from(payment).where(and(eq(payment.organizationId, tenant.organizationId), eq(payment.memberId, id), workspaceCondition(tenant, payment.branchId))).orderBy(desc(payment.paidAt)).limit(50);
@@ -140,7 +141,9 @@ export async function getCustomerMember(env: Env, request: Request, id: string) 
 	const postedTotal = payments.filter((item) => item.status === "posted").reduce((sum, item) => sum + item.amountMinor, 0);
 	const allocatedTotal = normalizedCharges.reduce((sum, item) => sum + item.paidMinor, 0);
 	const creditMinor = Math.max(0, postedTotal - allocatedTotal);
-	return { member: row, contacts, enrollments, charges: normalizedCharges, payments: payments.map((item) => ({ ...item, method: item.paymentMethodId ?? item.method })), summary: { grossOutstandingMinor, creditMinor, netMinor: grossOutstandingMinor - creditMinor } };
+	const today = localDate(tenant.timezone);
+	const scheduledEnrollments = enrollments.map((item) => ({ ...item, dueDay: item.recurringDay ?? item.dueDay, paymentDue: enrollmentDueDate(item, normalizedCharges, today, row.status === "active") }));
+	return { member: row, contacts, enrollments: scheduledEnrollments, charges: normalizedCharges, payments: payments.map((item) => ({ ...item, method: item.paymentMethodId ?? item.method })), summary: { grossOutstandingMinor, creditMinor, netMinor: grossOutstandingMinor - creditMinor } };
 }
 
 export async function updateCustomerMember(env: Env, request: Request, id: string, body: Record<string, unknown>) {

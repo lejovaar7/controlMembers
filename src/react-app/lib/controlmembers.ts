@@ -20,6 +20,8 @@ export type Enrollment = {
 	branchId: string;
 	status: "active" | "paused" | "ended";
 	startDate: string;
+	firstDueDate: string | null;
+	recurringDay: number | null;
 	endDate: string | null;
 	agreedAmountMinor: number;
 	currency: string;
@@ -71,7 +73,7 @@ export type PaymentPreview = { allocations: Array<{ chargeId: string; amountMino
 export type MemberDetail = {
 	member: CustomerMember;
 	contacts: Array<{ id: string; relationshipId: string; displayName: string; email: string | null; phoneE164: string | null; relationship: string; isPrimary: boolean; isBillingContact: boolean; whatsappConsent: string }>;
-	enrollments: Enrollment[];
+	enrollments: Array<Enrollment & { paymentDue: { date: string; kind: "pending" | "scheduled" } | null }>;
 	charges: Charge[];
 	payments: Payment[];
 	summary: { grossOutstandingMinor: number; creditMinor: number; netMinor: number };

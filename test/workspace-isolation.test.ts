@@ -53,8 +53,8 @@ beforeAll(async () => {
 	sharedPlan = (await json("/api/plans", { name: "Explicitly shared", amountMinor: 7000, defaultDueDay: 5, branchIds: [branchA, branchB] })).id;
 	memberA = (await json("/api/customer-members", { displayName: "Main member", primaryBranchId: branchA })).id;
 	memberB = (await json("/api/customer-members", { displayName: "Vida member", primaryBranchId: branchB })).id;
-	await json(`/api/customer-members/${memberA}/enrollments`, { planId: planA, branchId: branchA, startDate: "2026-01-01" });
-	await json(`/api/customer-members/${memberB}/enrollments`, { planId: planB, branchId: branchB, startDate: "2026-01-01" });
+	await json(`/api/customer-members/${memberA}/enrollments`, { planId: planA, branchId: branchA, startDate: "2026-01-01", firstDueDate: "2026-01-05" });
+	await json(`/api/customer-members/${memberB}/enrollments`, { planId: planB, branchId: branchB, startDate: "2026-01-01", firstDueDate: "2026-01-05" });
 	await json("/api/charges/generate", { period: "2026-01" });
 	chargeB = (await json(`/api/charges?branchId=${branchB}&period=2026-01`)).charges[0]!.id;
 	await json("/api/payments", { memberId: memberB, branchId: branchB, amountMinor: 2000, method: "cash", paidAt: "2026-01-15T15:00:00Z", idempotencyKey: "workspace-payment" });
@@ -125,10 +125,10 @@ describe("active Branch workspace isolation", () => {
 	it("shares Members only through explicit Enrollments and keeps their ledgers separate", async () => {
 		await activate(branchA);
 		const sharedMember = (await json("/api/customer-members", { displayName: "Explicitly shared member", primaryBranchId: branchA })).id;
-		await json(`/api/customer-members/${sharedMember}/enrollments`, { planId: sharedPlan, branchId: branchA, startDate: "2026-03-01" });
+		await json(`/api/customer-members/${sharedMember}/enrollments`, { planId: sharedPlan, branchId: branchA, startDate: "2026-03-01", firstDueDate: "2026-03-05" });
 		await activate(branchB);
 		expect((await callApi(`/api/customer-members/${sharedMember}`, owner)).status).toBe(404);
-		await json(`/api/customer-members/${sharedMember}/enrollments`, { planId: sharedPlan, branchId: branchB, startDate: "2026-03-01" });
+		await json(`/api/customer-members/${sharedMember}/enrollments`, { planId: sharedPlan, branchId: branchB, startDate: "2026-03-01", firstDueDate: "2026-03-05" });
 		await json("/api/charges/generate", { period: "2026-03" });
 		expect(await json(`/api/customer-members/${sharedMember}`)).toMatchObject({ enrollments: [expect.objectContaining({ branchId: branchB })], charges: [expect.objectContaining({ totalMinor: 7000 })] });
 		await activate(branchA);

@@ -1,3 +1,4 @@
+import { enrollmentPeriodDueDate } from "./enrollment-due-date";
 import { inWorkspace, requireWorkspaceTenant, workspaceCondition } from "./workspace";
 import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 import { AuthError } from "../auth/session";
@@ -33,7 +34,7 @@ async function generationBranches(env: Env, tenant: TenantContext, value: unknow
 async function generationCandidates(env: Env, tenant: TenantContext, period: string, branchIds: string[] | null) {
 	const { start, end } = periodRange(period);
 	const db = getTenantDb(env, tenant.organizationId);
-	const eligible = await db.select({ enrollment, memberName: customerMember.displayName, memberStatus: customerMember.status, planName: plan.name, branchName: team.name })
+	const candidates = await db.select({ enrollment, memberName: customerMember.displayName, memberStatus: customerMember.status, planName: plan.name, branchName: team.name })
 		.from(enrollment)
 		.innerJoin(customerMember, eq(customerMember.id, enrollment.memberId))
 		.innerJoin(plan, eq(plan.id, enrollment.planId))
@@ -44,6 +45,7 @@ async function generationCandidates(env: Env, tenant: TenantContext, period: str
 			sql`(${enrollment.endDate} is null or ${enrollment.endDate} >= ${start})`,
 			branchIds ? (branchIds.length ? inArray(enrollment.branchId, branchIds) : eq(enrollment.id, "")) : undefined,
 		));
+	const eligible = candidates.filter((item) => enrollmentPeriodDueDate(item.enrollment, period) !== null);
 	const ids = eligible.map((item) => item.enrollment.id);
 	const existing = ids.length ? await db.select({ enrollmentId: charge.enrollmentId }).from(charge).where(and(eq(charge.organizationId, tenant.organizationId), eq(charge.billingPeriod, period), inArray(charge.enrollmentId, ids))) : [];
 	const existingIds = new Set(existing.map((item) => item.enrollmentId));
@@ -118,7 +120,7 @@ export async function generateCharges(env: Env, request: Request, body: Record<s
 			return db.insert(charge).values({
 				id: crypto.randomUUID(), organizationId: tenant.organizationId, enrollmentId: item.enrollment.id,
 				memberId: item.enrollment.memberId, planId: item.enrollment.planId, branchId: item.enrollment.branchId,
-				billingPeriod: period, dueDate: `${period}-${String(item.enrollment.dueDay).padStart(2, "0")}`,
+				billingPeriod: period, dueDate: enrollmentPeriodDueDate(item.enrollment, period)!,
 				subtotalMinor: item.enrollment.agreedAmountMinor, discountMinor: item.enrollment.discountMinor,
 				adjustmentMinor: 0, totalMinor, currency: item.enrollment.currency,
 				memberNameSnapshot: item.memberName, planNameSnapshot: item.planName, branchNameSnapshot: item.branchName,

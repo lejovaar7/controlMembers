@@ -140,6 +140,10 @@ export const enrollment = sqliteTable("enrollment", {
 	planId: text("plan_id").notNull().references(() => plan.id, { onDelete: "restrict" }),
 	branchId: text("branch_id").notNull().references(() => team.id, { onDelete: "restrict" }),
 	startDate: text("start_date").notNull(),
+	// Null dates identify legacy calendar-month enrollments; their terms stay intact.
+	firstDueDate: text("first_due_date"),
+	// Preserves the requested day (including 29-31) when a short month clamps it.
+	recurringDay: integer("recurring_day"),
 	endDate: text("end_date"),
 	status: text("status").notNull().default("active"),
 	agreedAmountMinor: integer("agreed_amount_minor").notNull(),
