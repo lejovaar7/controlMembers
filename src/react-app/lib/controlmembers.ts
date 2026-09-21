@@ -8,6 +8,8 @@ export type CustomerMember = {
 	birthDate: string | null;
 	email: string | null;
 	phoneE164: string | null;
+	whatsappSameAsPhone: boolean;
+	whatsappE164: string | null;
 	notes: string | null;
 	externalReference: string | null;
 	outstandingMinor: number;
@@ -29,6 +31,13 @@ export type Enrollment = {
 	discountMinor: number;
 };
 
+export type ReminderPreview = {
+	memberName: string; companyName: string; branchName: string; currency: string;
+	overdueMinor: number; creditMinor: number; amountMinor: number; overdueCount: number;
+	oldestDueDate: string | null; blockedReason: "not_overdue" | "credit_covers_debt" | null;
+	recipients: Array<{ id: string; name: string; phone: string; kind: "member" | "contact"; relationship: string }>;
+};
+
 export type Charge = {
 	id: string;
 	memberId: string;
@@ -46,12 +55,14 @@ export type Charge = {
 	outstandingMinor: number;
 	currency: string;
 	lifecycle: "open" | "void";
+	isOverdue?: boolean;
 	paymentState: "paid" | "partial" | "overdue" | "pending" | "void";
 };
 
 export type PaymentMethod = { id: string; name: string | null; isActive: boolean; readOnly: boolean };
 
 export type Payment = {
+	applications?: Array<{ chargeId: string; planName: string; billingPeriod: string; dueDate: string; amountMinor: number }>;
 	id: string;
 	memberId: string;
 	memberName: string;
@@ -99,18 +110,19 @@ async function requestJson<T>(path: string, organizationId: string, init?: Reque
 const write = (method: "POST" | "PATCH", body: unknown): RequestInit => ({ method, body: JSON.stringify(body) });
 
 export const controlMembersApi = {
+	reminder: (organizationId: string, chargeId: string, signal?: AbortSignal) => requestJson<ReminderPreview>(`/api/charges/${encodeURIComponent(chargeId)}/reminder`, organizationId, { signal }),
 	paymentMethods: (organizationId: string, mode: "active" | "inactive" | "history" = "active") => requestJson<{ methods: PaymentMethod[]; canManage: boolean }>(`/api/payment-methods?${mode}=1`, organizationId),
 	createPaymentMethod: (organizationId: string, name: string) => requestJson<PaymentMethod>("/api/payment-methods", organizationId, write("POST", { name })),
 	updatePaymentMethod: (organizationId: string, id: string, input: { name?: string; isActive?: boolean }) => requestJson<PaymentMethod>(`/api/payment-methods/${encodeURIComponent(id)}`, organizationId, write("PATCH", input)),
 	members: (organizationId: string, search = "", status = "", offset = 0, signal?: AbortSignal) => requestJson<{ members: CustomerMember[]; nextOffset: number | null; currency: string | null }>(`/api/customer-members?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&offset=${offset}`, organizationId, { signal }),
-	createMember: (organizationId: string, input: Record<string, unknown>) => requestJson<CustomerMember>("/api/customer-members", organizationId, write("POST", input)),
+	createMember: (organizationId: string, input: Record<string, unknown>) => requestJson<CustomerMember & { enrollmentId: string; firstChargeId: string | null }>("/api/customer-members", organizationId, write("POST", input)),
 	member: (organizationId: string, id: string, signal?: AbortSignal) => requestJson<MemberDetail>(`/api/customer-members/${encodeURIComponent(id)}`, organizationId, { signal }),
 	updateMember: (organizationId: string, id: string, input: Record<string, unknown>) => requestJson<CustomerMember>(`/api/customer-members/${encodeURIComponent(id)}`, organizationId, write("PATCH", input)),
 	updateMemberStatus: (organizationId: string, id: string, status: string, reason: string) => requestJson(`/api/customer-members/${encodeURIComponent(id)}/status`, organizationId, write("PATCH", { status, reason })),
 	addContact: (organizationId: string, id: string, input: Record<string, unknown>) => requestJson(`/api/customer-members/${encodeURIComponent(id)}/contacts`, organizationId, write("POST", input)),
 	updateContact: (organizationId: string, id: string, relationshipId: string, input: Record<string, unknown>) => requestJson(`/api/customer-members/${encodeURIComponent(id)}/contacts/${encodeURIComponent(relationshipId)}`, organizationId, write("PATCH", input)),
 	unlinkContact: (organizationId: string, id: string, relationshipId: string) => requestJson(`/api/customer-members/${encodeURIComponent(id)}/contacts/${encodeURIComponent(relationshipId)}`, organizationId, { method: "DELETE", body: "{}" }),
-	addEnrollment: (organizationId: string, id: string, input: Record<string, unknown>) => requestJson<Enrollment>(`/api/customer-members/${encodeURIComponent(id)}/enrollments`, organizationId, write("POST", input)),
+	addEnrollment: (organizationId: string, id: string, input: Record<string, unknown>) => requestJson<Enrollment & { firstChargeId: string | null }>(`/api/customer-members/${encodeURIComponent(id)}/enrollments`, organizationId, write("POST", input)),
 	updateEnrollment: (organizationId: string, id: string, input: Record<string, unknown>) => requestJson<Enrollment>(`/api/enrollments/${encodeURIComponent(id)}`, organizationId, write("PATCH", input)),
 	charges: (organizationId: string, period: string, state = "", offset = 0, filters: { branchId?: string; planId?: string; tag?: string; search?: string } = {}, signal?: AbortSignal) => { const query = new URLSearchParams({ period, state, offset: String(offset), ...filters }); return requestJson<{ charges: Charge[]; nextOffset: number | null }>(`/api/charges?${query}`, organizationId, { signal }); },
 	generateCharges: (organizationId: string, period: string) => requestJson<{ created: number; alreadyExisting: number }>("/api/charges/generate", organizationId, write("POST", { period })),

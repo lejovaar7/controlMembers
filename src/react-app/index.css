@@ -175,6 +175,7 @@
   .data-table th { background: var(--muted); color: var(--muted-foreground); font-weight: 500; }
   .data-table :where(th, td) { padding: 1rem; overflow-wrap: anywhere; }
   .data-table td { font-variant-numeric: tabular-nums; }
+  .reports-table :is(th, td) { padding: 0.75rem; }
   .data-table tbody tr:hover { background: color-mix(in srgb, var(--accent) 35%, var(--card)); }
   .member-directory { container-type: inline-size; overflow: hidden; }
   .members-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 0.875rem; }
@@ -209,18 +210,22 @@
   .charges-table-actions th:nth-child(5) { width: 12%; }
   .charges-table-actions th:nth-child(6) { width: 13%; }
   .charges-table-actions th:nth-child(7) { width: 16%; }
-  .charges-table .charge-actions [data-slot="button"] { height: auto; min-height: 40px; max-width: 100%; white-space: normal; padding-block: 0.5rem; }
-  .payments-table th:nth-child(1) { width: 26%; }
-  .payments-table th:nth-child(2) { width: 18%; }
-  .payments-table th:nth-child(3) { width: 20%; }
-  .payments-table th:nth-child(4) { width: 17%; }
-  .payments-table th:nth-child(5) { width: 19%; }
-  .payments-table-actions th:nth-child(1) { width: 24%; }
-  .payments-table-actions th:nth-child(2) { width: 14%; }
-  .payments-table-actions th:nth-child(3) { width: 14%; }
-  .payments-table-actions th:nth-child(4) { width: 16%; }
-  .payments-table-actions th:nth-child(5) { width: 16%; }
-  .payments-table-actions th:nth-child(6) { width: 16%; }
+  .payments-table th:nth-child(1) { width: 27%; }
+  .payments-table th:nth-child(2) { width: 15%; }
+  .payments-table th:nth-child(3) { width: 15%; }
+  .payments-table th:nth-child(4) { width: 16%; }
+  .payments-table th:nth-child(5) { width: 14%; }
+  .payments-table th:nth-child(6) { width: 13%; }
+  .payments-table td { padding-block: 0.75rem; }
+  .payments-table .member-name-link { display: block; min-height: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .payments-table :is(time, .table-status, .member-balance) { white-space: nowrap; }
+  .payments-table .payment-actions [data-slot="button"] { min-height: 36px; white-space: nowrap; }
+  .payments-table .member-balance > div { max-width: 100%; }
+  .payments-table .member-balance p + p { overflow: hidden; text-overflow: ellipsis; }
+  @container (min-width: 801px) and (max-width: 1100px) {
+    .payments-table :is(th, td) { padding-inline: 0.5rem; }
+    .payments-table .payment-actions svg { display: none; }
+  }
   .users-table th:nth-child(1) { width: 25%; }
   .users-table th:nth-child(2) { width: 17%; }
   .users-table th:nth-child(3) { width: 20%; }
@@ -244,10 +249,36 @@
     .members-table td.table-status { justify-content: flex-end; }
     .table-action-buttons { justify-content: flex-end; }
     .members-table .member-balance { margin-top: 0.5rem; padding-top: 0.875rem; border-top: 1px solid var(--border); align-items: center; }
-    .charges-table .charge-actions { justify-content: flex-end; }
+    .charges-table tbody tr { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.25rem 0.75rem; padding: 0.75rem 0.875rem; }
+    .charges-table td { min-width: 0; padding: 0; }
+    .charges-table .member-name-link { min-height: 28px; line-height: 1.4; }
+    .charges-table td:nth-child(2) { grid-row: 2; display: block; color: var(--muted-foreground); text-align: left; font-size: 0.8125rem; }
+    .charges-table td:nth-child(2)::before { display: none; }
+    .charges-table td:nth-child(3) { grid-column: 1; grid-row: 3; }
+    .charges-table td:nth-child(5) { grid-column: 2; grid-row: 3; }
+    .charges-table td:nth-child(3), .charges-table td:nth-child(5) { display: block; padding-top: 0.25rem; text-align: left; font-size: 0.8125rem; }
+    .charges-table td:nth-child(3)::before, .charges-table td:nth-child(5)::before { display: block; max-width: none; font-size: 0.6875rem; }
+    .charges-table .member-balance { grid-column: 1 / -1; grid-row: 4; display: block; margin-top: 0.25rem; padding-top: 0.5rem; border: 0; text-align: left; }
+    .charges-table .member-balance::before { display: block; max-width: none; font-size: 0.6875rem; }
+    .charges-table .member-balance > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.125rem 0.375rem; }
+    .charges-table .member-balance p { margin: 0; }
+    .charges-table-actions .member-balance { padding-right: 3.5rem; }
+    .charges-table .charge-actions { grid-column: 2; grid-row: 4; align-self: end; justify-self: end; justify-content: flex-end; }
     .charges-table .charge-actions::before { display: none; }
     .payments-table .payment-actions { justify-content: flex-end; }
     .payments-table .payment-actions::before { display: none; }
+    .payments-table tbody tr { gap: 0.5rem 1rem; }
+    .payments-table td { padding: 0; }
+    .payments-table td:nth-child(2) { grid-column: 1; grid-row: 2; }
+    .payments-table td:nth-child(3) { grid-column: 2; grid-row: 2; }
+    .payments-table td:nth-child(2), .payments-table td:nth-child(3) { display: block; font-size: 0.8125rem; }
+    .payments-table td:nth-child(2)::before, .payments-table td:nth-child(3)::before { display: block; max-width: none; margin-bottom: 0.25rem; }
+    .payments-table td:nth-child(2), .payments-table td:nth-child(2)::before { text-align: left; }
+    .payments-table td:nth-child(3)::before { text-align: right; }
+    .payments-table .member-balance { grid-column: 1; grid-row: 3; margin: 0; padding: 0; border: 0; align-items: center; text-align: left; }
+    .payments-table .member-balance::before { display: none; }
+    .payments-table .payment-actions { grid-column: 2; grid-row: 3; align-items: center; }
+
     .users-table td:nth-child(4) { max-width: 8rem; }
     .users-table .user-actions { justify-content: flex-end; margin-top: 0.5rem; padding-top: 0.875rem; border-top: 1px solid var(--border); }
     .users-table .user-actions::before { display: none; }
@@ -267,7 +298,20 @@
     .data-table tbody tr { display: block; padding: 0.75rem 1rem; }
     .data-table td { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0; text-align: right; overflow-wrap: anywhere; }
     .data-table td::before { content: attr(data-label); color: var(--muted-foreground); font-weight: 400; text-align: left; flex-shrink: 0; max-width: 45%; }
+    .reports-table tbody tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem 0.625rem; padding: 0.875rem; }
+    .reports-table td { display: block; min-width: 0; padding: 0; text-align: left; font-size: 0.8125rem; }
+    .reports-table td::before { display: block; min-height: 2.8em; max-width: none; margin-bottom: 0.25rem; font-size: 0.6875rem; line-height: 1.4; }
+    .reports-table td:first-child { grid-column: 1 / -1; font-size: 0.875rem; }
+    .reports-table td:first-child::before { display: none; }
+    .reports-table td:last-child { font-weight: 600; }
+    .reports-balances-table td:nth-child(2) { grid-column: 1 / -1; margin-top: -0.5rem; color: var(--muted-foreground); font-size: 0.75rem; }
+    .reports-balances-table td:nth-child(2)::before { display: inline; min-height: 0; margin-right: 0.25rem; content: attr(data-label) ":"; }
     input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 16px; }
+  }
+  @media (max-width: 359px) {
+    .reports-table tbody tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .reports-table td:last-child { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.25rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    .reports-table td:last-child::before { min-height: 0; margin: 0; }
   }
 }
 

@@ -2,7 +2,7 @@ export type CollectionView = "fees" | "payments";
 const feeKeys = ["period", "state", "planId", "tag", "search"];
 const paymentKeys = ["search", "method", "status", "dateFrom", "dateTo"];
 
-/** Old links without a state meant all records, not the new unpaid/posted defaults. */
+/** Preserve all records for old links without an explicit state. */
 export function legacyCollectionUrl(view: CollectionView, search: string) {
 	const previous = new URLSearchParams(search); const query = new URLSearchParams();
 	for (const key of view === "fees" ? feeKeys : paymentKeys) if (previous.has(key)) query.set(key, previous.get(key)!);

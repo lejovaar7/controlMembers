@@ -1,7 +1,7 @@
 import type { PaymentPreview } from "@/lib/controlmembers";
 
 export type PaymentAttempt = {
-	input: { memberId: string; branchId: string; amountMinor: number; method: string; paidAt: string; allocations: Array<{ chargeId: string; amountMinor: number }>; idempotencyKey: string };
+	input: { allowCredit?: boolean; memberId: string; branchId: string; amountMinor: number; method: string; paidAt: string; allocations: Array<{ chargeId: string; amountMinor: number }>; idempotencyKey: string };
 	preview: PaymentPreview;
 	methodName: string;
 };

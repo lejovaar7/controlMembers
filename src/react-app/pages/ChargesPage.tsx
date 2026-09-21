@@ -1,3 +1,4 @@
+import { WhatsAppReminderDialog } from "@/components/whatsapp-reminder-dialog";
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router";
 import { SelectField } from "@/components/select-field";
@@ -17,9 +18,10 @@ import { useI18n } from "@/lib/i18n";
 
 export function ChargesPage({ revision, onPay }: { revision: number; onPay: (charge: Charge, trigger: HTMLElement) => void }) {
 	const { dialog, openDialog } = useActionDialog();
+	const [reminder, setReminder] = useState<{ charge: Charge; trigger: HTMLElement } | null>(null);
 	const { locale, t } = useI18n(); const shell = useAppShell();
 	const [params, setParams] = useSearchParams();
-	const period = params.get("period") ?? ""; const state = params.get("state") ?? "unpaid";
+	const period = params.get("period") ?? ""; const state = params.get("state") || "all";
 	const planId = params.get("planId") ?? ""; const tag = params.get("tag") ?? ""; const search = params.get("search") ?? "";
 	const [plans, setPlans] = useState<Plan[]>([]); const [plansFailed, setPlansFailed] = useState(false); const [catalogRevision, setCatalogRevision] = useState(0);
 	const load = useCallback(async (offset: number, signal: AbortSignal) => {
@@ -44,15 +46,17 @@ export function ChargesPage({ revision, onPay }: { revision: number; onPay: (cha
 	}
 	const tags = [...new Set(plans.flatMap((plan) => plan.tags.map((item) => item.name)))].sort();
 	return <div className="space-y-5">{dialog}
+		{reminder ? <WhatsAppReminderDialog key={shell.organizationId + (shell.activeBranch?.id ?? "") + reminder.charge.id} chargeId={reminder.charge.id} returnFocus={reminder.trigger} onClose={(refresh) => { setReminder(null); if (refresh) list.reload(); }} /> : null}
+		<div className="flex flex-wrap gap-2" aria-label={t("Payment status")}><Button variant={state === "unpaid" ? "default" : "outline"} aria-pressed={state === "unpaid"} onClick={() => syncUrl({ state: "unpaid", period: "" })}>{t("To collect")}</Button><Button variant={state === "overdue" ? "default" : "outline"} aria-pressed={state === "overdue"} onClick={() => syncUrl({ state: "overdue", period: "" })}>{t("Overdue accounts")}</Button></div>
 		<div className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-2 xl:grid-cols-4">
 			<div className="grid gap-2"><Label htmlFor="charge-search">{t("Search")}</Label><Input id="charge-search" value={search} placeholder={t("Member or plan")} onChange={(event) => syncUrl({ search: event.target.value })} /></div>
 			<div className="grid gap-2"><Label htmlFor="charge-period">{t("Billing period")}</Label><div className="flex gap-2"><div className="min-w-0 flex-1"><MonthPicker id="charge-period" label={t("Billing period")} emptyLabel={t("All months")} value={period} onChange={(value) => syncUrl({ period: value })} /></div>{period ? <Button variant="ghost" onClick={() => syncUrl({ period: "" })}>{t("All months")}</Button> : null}</div></div>
-			<div className="grid gap-2"><Label htmlFor="charge-state">{t("Payment status")}</Label><SelectField id="charge-state" value={state} onValueChange={(value) => syncUrl({ state: value })} options={[{ value: "unpaid", label: t("To collect") }, { value: "all", label: t("All statuses") }, { value: "pending", label: t("Pending") }, { value: "overdue", label: t("Overdue") }, { value: "partial", label: t("Partially paid") }, { value: "paid", label: t("Paid") }, { value: "void", label: t("Void") }]} /></div>
+			<div className="grid gap-2"><Label htmlFor="charge-state">{t("Payment status")}</Label><SelectField id="charge-state" value={state} onValueChange={(value) => syncUrl({ state: value })} options={[{ value: "unpaid", label: t("To collect") }, { value: "all", label: t("All statuses") }, { value: "pending", label: t("Pending") }, { value: "overdue", label: t("Overdue accounts") }, { value: "partial", label: t("Partially paid") }, { value: "paid", label: t("Paid") }, { value: "void", label: t("Void") }]} /></div>
 			<div className="grid gap-2"><Label htmlFor="charge-plan">{t("Plan")}</Label><SelectField id="charge-plan" value={planId} onValueChange={(value) => syncUrl({ planId: value })} options={[{ value: "", label: t("All plans") }, ...plans.map((plan) => ({ value: plan.id, label: plan.name }))]} /></div>
 			{tags.length ? <div className="grid gap-2"><Label htmlFor="charge-tag">{t("Tag")}</Label><SelectField id="charge-tag" value={tag} onValueChange={(value) => syncUrl({ tag: value })} options={[{ value: "", label: t("All tags") }, ...tags.map((name) => ({ value: name, label: name }))]} /></div> : null}
 		</div>
 		{plansFailed ? <div role="alert" className="flex flex-wrap items-center gap-3"><p>{t("We could not load or update charges.")}</p><Button variant="outline" onClick={() => setCatalogRevision((value) => value + 1)}>{t("Try again")}</Button></div> : null}
-		{list.failed ? <div role="alert" className="flex flex-wrap items-center gap-3"><p>{t("We could not load or update charges.")}</p><Button variant="outline" onClick={list.reload}>{t("Try again")}</Button></div> : list.loading || list.rows.length ? <ChargesTable charges={list.rows} loading={list.loading} canAdjust={shell.canAdjustCharges} onAdjust={adjust} onVoid={voidItem} onPay={onPay} /> : <div className="rounded-2xl border border-dashed p-8 text-center"><p>{t("No fees match these filters.")}</p><Button className="mt-3" variant="outline" onClick={() => setParams({ state: "all" })}>{t("Clear filters")}</Button></div>}
+		{list.failed ? <div role="alert" className="flex flex-wrap items-center gap-3"><p>{t("We could not load or update charges.")}</p><Button variant="outline" onClick={list.reload}>{t("Try again")}</Button></div> : list.loading || list.rows.length ? <ChargesTable charges={list.rows} loading={list.loading} canAdjust={shell.canAdjustCharges} onAdjust={adjust} onVoid={voidItem} onPay={onPay} onRemind={(charge, trigger) => setReminder({ charge, trigger })} /> : <div className="rounded-2xl border border-dashed p-8 text-center"><p>{t("No fees match these filters.")}</p><Button className="mt-3" variant="outline" onClick={() => setParams({ state: "all" })}>{t("Clear filters")}</Button></div>}
 		{list.moreFailed ? <p role="alert">{t("We could not load the next results.")}</p> : null}
 		{list.nextOffset !== null ? <LoadingButton variant="outline" loading={list.morePending} onClick={() => void list.loadMore()}>{t("Load more")}</LoadingButton> : null}
 	</div>;
