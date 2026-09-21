@@ -118,7 +118,7 @@ and date-range selection. Daily calendars use React DayPicker through shadcn's
 Calendar; all three controls use the existing Base UI Popover. Month filters
 show a twelve-month grid with year navigation and a current-month shortcut.
 Dashboard, Charges and Reports share MonthPicker; Payments uses DateRangePicker;
-Member birth dates and enrollment start dates use DatePicker.
+Member birth dates, enrollment start dates and first payment due dates use DatePicker.
 
 Payment ranges are drafts until "Apply dates". Escape and outside dismissal
 discard the draft. Clearing either endpoint preserves open-ended filtering;
@@ -289,6 +289,8 @@ secondary balances side by side below outstanding.
 
 Summary contains enrollment cards with monthly price and state, alongside
 charges with readable periods, due dates, payment state and outstanding amount.
+Enrollment edit, pause/resume and end actions use the shared outlined button
+variant so every action has a visible boundary before hover or focus.
 Payment history shows all payments returned by the Member endpoint with receipt,
 date, method, amount and state. Personal information groups profile fields,
 notes, Member status actions and linked contacts.
@@ -390,6 +392,12 @@ without hiding scope restrictions. Create and edit use centered dialogs; the
 table shows only actions allowed by the server directory contract in module 07.
 
 ### Confirmation and reason dialogs
+
+When required fields disable an action form's Save button, identify the first
+missing field in visible localized feedback. Monthly billing-day fields use
+BillingDayInput: a numeric keyboard, at most two digits, and an inline/native
+validity message for values outside 1–31 for new schedules or 1–28 for legacy
+enrollments. Audit reasons remain required.
 
 Use `ActionDialog` through `useActionDialog` for action confirmations and reason
 forms. Do not use browser `alert`, `confirm` or `prompt` calls. This convention

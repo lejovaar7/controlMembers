@@ -511,6 +511,16 @@ Existing Plans retain their saved Branch links: use **Edit plan** to remove an
 unintended assignment. Shared Members keep a separate ledger per Branch, including
 their historical Enrollments. This behavior change requires no database migration.
 
+New Enrollments suggest a first payment one month after their start date, editable
+in the enrollment dialog. Later deadlines repeat that day, using the last day
+of shorter months. Charge generation selects the **due month**, so September 21
+with an October 21 first deadline creates its first Charge in October. Existing
+Enrollments and Charges keep their previous terms. Apply generated migration
+`0013_icy_bastion.sql` before running this version on another database; it only
+adds two nullable columns. It has been applied to local and dev D1, not production.
+See [Enrollment rules](specs/12-plans-tags-and-enrollments.md) and
+[billing cycles](specs/13-charges-and-billing-cycles.md).
+
 Company payment methods are managed in **Settings → Payment methods** by an
 Owner or administrator with access to all Branches. Cash is the sole built-in
 option; custom methods can be added, renamed, deactivated and reactivated. Old

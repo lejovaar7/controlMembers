@@ -1,5 +1,107 @@
 # ControlMembers Verification Record
 
+## 2026-09-21 — Enrollment-specific monthly deadlines
+
+- New enrollments default to a first payment one month after signup and accept
+  an explicit later date. Stable recurring days handle January 31 → February
+  28/29 → March 31. Generation and previews use due months starting with the
+  first deadline; financial snapshots, uniqueness and Branch isolation remain.
+- Generated migration `0013_icy_bastion.sql` only adds nullable `first_due_date`
+  and `recurring_day` columns. Reviewed SQL and pending migration list, then
+  applied it successfully to local D1 and remote **dev** D1. Existing rows retain
+  legacy terms. Production migration/deployment was not performed.
+- The enrollment dialog exposes start and first-due DatePickers, an automatic
+  one-month suggestion, manual override/reset, next-date preview and validation.
+  Future-term day editing supports 1–31 on new schedules and 1–28 on legacy rows.
+  Plan forms/cards explain individual payment dates instead of a fixed day.
+- Browser verification used the real Member detail component with synthetic API
+  responses: September 21 suggested October 21 and November 21; changing the
+  first deadline to October 25 previewed November 25 and persisted on the card
+  after saving. A same-day deadline blocked submission with an inline message;
+  resetting restored the automatic date. Screenshot inspection passed. Fixture
+  files and tab were removed; no real Member or billing records were created.
+- Typecheck, lint, 27 environment tests, 2 i18n tests, 2 form tests,
+  230 Workers tests in 22 files, and dev/production/local dry runs passed.
+  Targeted integration checks covered preview/generation agreement, concurrent
+  duplicate prevention, custom dates, leap years, month rollover, saved snapshots,
+  invalid dates, legacy behavior and end-date limits. Existing chunk-size warnings
+  remain. The development server stays running.
+
+## 2026-09-21 — Full enrollment payment dates
+
+- Member detail now returns a payment date per Enrollment. It prioritizes the
+  earliest outstanding Charge snapshot by Enrollment ID, or projects the first
+  ungenerated calendar month using the company-local date and existing billing
+  rules. Paid/void periods, end months, inactive Members and paused/ended
+  Enrollments are respected without altering Charges or generating new ones.
+- Enrollment cards show full localized start/payment dates, with separate labels
+  for pending and projected deadlines. Dates use UTC formatting for date-only
+  values, avoiding a previous-day shift in the browser.
+- Added five schedule tests covering future starts, outstanding snapshots,
+  month/year rollover, enrollment isolation, stopped schedules and company-local
+  month boundaries. The existing API future-terms test also verifies that the
+  pending payment date keeps its original Charge snapshot after a due-day edit.
+- Runtime browser verification rendered the actual Member detail component with
+  synthetic API data and confirmed both pending/projected October 1, 2026 labels.
+  Screenshot inspection confirmed the full month fits on a separate readable
+  line. Temporary fixtures and the browser tab were removed.
+- Typecheck, lint, 27 environment checks, 2 catalog checks, 2 form checks,
+  225 Workers tests in 21 files and all three environment dry runs passed.
+  Existing chunk-size warnings remain. No real records, deployment or email
+  delivery were changed; the development server remains running.
+
+## 2026-09-21 — Duplicate enrollment feedback
+
+- Read-only development data inspection confirmed an existing active enrollment
+  in the reported Plan; the server correctly rejects another enrollment for the
+  same Member, Plan and Branch. No real records were changed.
+- The Add enrollment dialog now maps `ENROLLMENT_ALREADY_EXISTS` to localized
+  red feedback explaining the active enrollment or suggesting resuming a paused
+  enrollment. A fallback covers conflicts not present in the loaded history.
+  Other failures stay generic. The selected Plan/date remain available, and
+  editing either field or reopening the dialog clears previous errors.
+- Browser verification used the actual Member detail page with synthetic API
+  responses: active and paused conflicts kept the dialog open and displayed
+  the corresponding Spanish explanation. Screenshot inspection confirmed red
+  feedback inside the centered dialog. Temporary fixtures and tab were removed.
+- Typecheck, lint, 27 environment checks, 2 catalog checks, 2 form checks,
+  220 Workers tests across 20 files, and dev/production/local dry runs passed.
+  No deployment or email delivery was performed; the development server remains
+  running. Build chunk-size warnings remain unchanged.
+
+## 2026-09-21 — Future enrollment terms validation
+
+- The existing form disabled Save until its required reason was supplied without
+  explaining the missing field; its native number input also accepted arbitrary
+  digit counts. Added visible missing-field feedback and a shared billing-day
+  input limited to two digits, with inline/browser validation for days 1–28.
+  Server billing rules and mandatory audit reasons remain unchanged.
+- Interactive synthetic browser QA used the real ActionDialog, MoneyInput and
+  BillingDayInput. Typing 123 kept 12; letters were rejected; day 29 showed an
+  error and blocked submission. Day 12 plus a reason submitted amount 8000000,
+  discount 0 and dueDay 12, then closed the dialog. Reopening displayed the saved
+  day. Blank-field feedback explained the disabled button. Preview files and
+  tab were removed; no real enrollments or charges were changed.
+- A Workers regression saved dueDay 12 with the full form payload and verified
+  that historical charge dates remained unchanged while the next month's fee
+  used day 12. It also rejected missing reasons and days 0, 29, 123 and 1.5.
+  All 220 Workers tests, typecheck, 27 environment checks, 2 i18n checks, 2 form
+  checks and all three target build/deployment dry runs passed. Final lint passed
+  without warnings after removing the temporary preview. The existing day-range
+  translation was reused after an initial duplicate-key check failed.
+
+## 2026-09-21 — Visible enrollment action buttons
+
+- Changed enrollment Pause/Resume and End from ghost to the shared outline
+  variant, matching Edit future terms. End uses normal foreground contrast.
+  Action handlers, confirmation dialogs and enrollment rules are unchanged.
+- Visually verified the shared buttons against live styles in a synthetic
+  enrollment-card preview. All actions have visible borders before hover.
+  Removed the preview files and tab; no real enrollments were modified.
+- Typecheck, lint, 27 environment checks, 2 i18n checks, 2 form checks and all
+  219 Workers tests passed. Dev, production and local build/deployment dry runs
+  passed; existing bundle-size advisories remain.
+
 ## 2026-09-18 — Consistent alignment by column type
 
 - Replaced uniformly centered headers with matching header/body alignment:

@@ -71,7 +71,15 @@ scheduled generation is deferred until operational behavior is proven.
 
 ## Eligibility rules
 
-- Enrollment period overlaps the billing month.
+- For new Enrollments, the billing period is the **due month**, beginning with
+  `firstDueDate`'s month, not the signup month. September 21 with an October 21
+  first deadline generates no September Charge; October's Charge is due October
+  21, then November 21. The first date can be edited at creation.
+- Later deadlines use `recurringDay` (1–31), clamped to the month's last day while
+  preserving the original anchor for later months. Deadlines after `endDate` are
+  ineligible. Both preview and generation use the same date function.
+- Legacy Enrollments with null `firstDueDate` retain billing-month overlap and
+  their original 1–28 due day. No historical Charges are recomputed.
 - Enrollment and Member are active when generation is requested.
 - Paused status skips generation; it does not alter existing Charges.
 - Joining mid-month does not automatically prorate in the proposed MVP default.

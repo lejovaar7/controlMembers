@@ -67,16 +67,29 @@ Plans and the Members enrolled in them.
 An Enrollment stores:
 
 - `organizationId`, `customerMemberId`, `planId` and `branchId`;
-- start date and nullable end date as local business dates;
+- start date, first payment due date, recurring day and nullable end date as local business dates;
 - status: `active`, `paused` or `ended`;
 - agreed `amountMinor`, currency and due day snapshots/overrides;
 - optional fixed discount in minor units;
 - actor and created/updated timestamps.
 
 The default is at most one overlapping active Enrollment for the same Member,
-Plan and Branch. A Member may have several Plans simultaneously. The Plan values
-pre-fill a new Enrollment, but the agreed amount and due day are stored on the
-Enrollment so a personal price does not require a one-person Plan.
+Plan and Branch. A Member may have several Plans simultaneously. The Plan price
+pre-fills a new Enrollment. New Enrollments default their first due date to one
+month after their start date, independently of the Plan's historical due day.
+Users can choose another first date strictly after the start date. Later payments
+repeat its day monthly. An automatically suggested short-month date retains the
+start day's anchor (January 31 → February 28/29 → March 31); an explicitly chosen
+date uses its chosen day. `recurringDay` is 1–31 and clamps to the last day of short
+months without permanently drifting. `firstDueDate` remains the first agreed
+payment deadline; editing future due days affects later ungenerated periods.
+
+Existing rows with null `firstDueDate`/`recurringDay` retain legacy calendar-month
+billing through `dueDay` (1–28). Additive migration 0013 preserves all existing
+rows and financial snapshots. Public `dueDay` resolves to `recurringDay` for new
+schedules; the legacy stored column remains for backwards compatibility.
+Plan forms/cards no longer present a fixed payment day; existing Plan values are
+preserved for legacy readers. Price and branch assignments remain unchanged.
 
 ## Historical integrity
 
@@ -101,11 +114,11 @@ All submitted IDs must resolve under the same validated Organization.
 The Plans workspace prioritizes the catalog over forms and billing configuration.
 Search matches name, description and tags; the status filter includes active and
 inactive records, with active plans sorted first. Cards expose monthly price,
-due day, assigned Branches, tags and status, with edit and activation actions.
+assigned Branches, tags and status, with edit and activation actions.
 Create/edit use the same centered dialog, preserve Branch assignments and offer
 an optional disclosure for description/tags. The editable price is grouped and
-a summary previews monthly price and due day before saving. Invalid amounts,
-out-of-range days and empty Branch selections block saving. Failed saves retain
+a summary previews monthly price and explains personalized payment dates. Invalid
+amounts and empty Branch selections block saving. Failed saves retain
 the form; pending saves block dismissal. Billing settings have their own dialog
 with an explicit company-wide scope explanation. Initial loading uses matching
 card skeletons; empty results offer clearing filters or creating the first Plan.
@@ -115,8 +128,29 @@ card skeletons; empty results offer clearing filters or creating the first Plan.
   within the Organization.
 - Plan lists return Branch IDs and tags in a stable order.
 - Enrollments: create, update future terms, pause/resume and end.
-- Member detail shows active and historical Enrollments.
+- Member detail shows active and historical Enrollments, the full start date,
+  and a full payment due date including day, month and year. The earliest unpaid
+  Charge for that exact Enrollment takes precedence and preserves its snapshot.
+  Without debt, active Members/Enrollments show a clearly labeled projection for
+  the first ungenerated due month from the agreed first date for new schedules,
+  skipping generated paid/void periods and respecting the end date. Legacy
+  projections continue from the company-local current/start month. Paused/ended
+  schedules without debt have no projected payment.
+  Dates are payment deadlines, not Enrollment expiration dates.
+- The Add enrollment dialog starts on today, suggests one month later and offers
+  editable first due date plus a preview of the following deadline. Changing the
+  start date updates the suggestion until a date is manually chosen. Manual dates
+  persist until reset; invalid or empty dates prevent saving with clear feedback.
 - Forms preview the next amount and due date before saving.
+- The future-terms dialog accepts at most two decimal digits for the billing day,
+  validates 1 through 31 for new schedules (1–28 for legacy enrollments), and
+  displays an inline error for out-of-range values.
+  Required fields, including the audit reason, have explicit missing-field
+  feedback when Save is disabled. Saved days apply only to future Charges.
+- Duplicate enrollment submissions keep the dialog open and show a localized red
+  explanation for the same Plan and Branch. Active enrollments explain that a
+  second enrollment cannot be added; paused enrollments suggest resuming.
+  Other errors retain generic feedback, and changing the form clears old errors.
 - Inactive Plans remain visible in history but are not offered for new
   Enrollments.
 
