@@ -46,7 +46,8 @@ An authorized employee can answer, for an Organization and permitted Branches:
 - Public signup or self-service Organization creation.
 - Member or payer login portal.
 - Online payment gateways and bank reconciliation.
-- WhatsApp, SMS or automated outbound reminders.
+- Automated WhatsApp/SMS delivery and outbound reminder jobs. Manual reviewed
+  WhatsApp drafts are the separately authorized extension in Specification 18.
 - Attendance, schedules, instructors, rooms, competitions or learning content.
 - Tax invoicing, general accounting, payroll or inventory.
 - Automatic late interest, collection agencies or credit reporting.

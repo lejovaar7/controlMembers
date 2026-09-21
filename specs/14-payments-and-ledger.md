@@ -135,20 +135,23 @@ Reports must not call allocated value “cash collected.”
   ends this in-memory recovery state; no payment data is written to browser storage.
 - The Payments directory uses the responsive Member table design, with Member
   and receipt number, payment date, method, state, amount, available credit and
-  permitted cancellation actions. Row clicks open the Member profile; cancel
-  buttons open the existing reason/confirmation dialog without navigating away.
+  compact status badges and a View receipt action. Row clicks open the receipt;
+  the Member name remains a profile link. Applications and permitted cancellation
+  are available inside the receipt dialog, with cancellation still using the
+  existing reason/confirmation flow. Row height does not grow with allocations.
 - Reversal dialog naming amount, Member and consequences.
-- Member profile shows gross outstanding, available credit and net position.
+- Member profile shows gross outstanding, available credit and nonnegative amount
+  still to pay; it does not present a negative net amount as debt.
 - Member detail opens the payment composer from its header. Distribution lookup
   failures show a retry action without discarding the amount; stale lookup
   responses are ignored. Successful posting selects the receipt history and
   refreshes the visible Branch balance after the final confirmation.
 - Opening the Member composer prefills the outstanding amount of the oldest
-  open Charge in the current Branch. When none exists, it suggests the sum of
-  active enrollment agreed amounts minus discounts in that Branch. Paused or
-  ended enrollments and other Branches do not contribute. With neither source,
-  the field remains empty. Staff can edit or clear the suggestion; reopening
-  recomputes it from the current detail instead of retaining an abandoned edit.
+  open Charge in the current Branch. With no unpaid Charge, the field remains
+  empty and the form explains whether Charges are absent or already covered.
+  Active enrollment prices are never used to suggest another payment after a
+  Charge was paid. Staff may explicitly enter an advance. Reopening recomputes
+  the suggestion from current detail.
   This is only a form default: previews, credit handling and explicit final
   confirmation still govern recording the payment.
 
@@ -171,3 +174,32 @@ Client-calculated balance is preview only.
 - Member credit equals unapplied ledger value under concurrent operations.
 - Collected, allocated, outstanding and expected values use distinct formulas.
 - Currency values never use binary floating point.
+
+## Receipt applications and intentional advances
+
+Member detail and payment lists expose receipt applications: plan, billing month,
+deadline and amount applied. Member detail uses the same paid/partial/overdue/
+pending/void derivation as Collections, and returns Branch IDs for payment targeting.
+Reversed receipts retain original applications for audit, labelled as cancelled.
+Receipt state describes applied payment, advance or a combination; it never
+substitutes for the remaining balance/state on the Charge itself.
+
+A new Payment leaving any unallocated money requires `allowCredit: true`, otherwise
+creation returns `CREDIT_CONFIRMATION_REQUIRED` without writing. This includes
+fully paid accounts, no generated Charges and partial overpayments. The composer
+requires an unchecked-by-default acknowledgement of the extra money received,
+resets it when amounts/distribution change, and carries consent in its immutable
+retry payload. Existing committed requests may replay before this new guard;
+new advances include consent in the idempotency fingerprint. Fully allocated
+payments keep their existing payload. Charge over-allocation remains prohibited
+even when advance consent is true. Different unpaid months may still be paid.
+
+## Selecting the fee to pay
+
+All composer entry points expose existing unpaid Charges by plan, month and
+remaining balance. Single selection sends the selected Charge ID to the guarded
+preview endpoint; a bulk option uses the existing oldest-first preview. Changing
+the target discards stale previews and advance acknowledgement. The confirmation
+retains explicit allocations, so concurrent settlement still rejects reallocation
+of a paid Charge. This selection records newly received money; it does not apply
+existing credit or generate future Charges.

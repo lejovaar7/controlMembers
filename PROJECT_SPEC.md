@@ -24,14 +24,15 @@ environment configuration and approval.
 - Charges are immutable monthly receivable snapshots.
 - Payments are posted to a ledger and allocated to one or more Charges.
 - Dashboard and reports derive from the same ledger formulas.
-- WhatsApp reminders and online payments are post-MVP extensions.
+- Users can review manual WhatsApp reminder drafts and send them in WhatsApp.
+  Automated reminders and online payments remain post-MVP extensions.
 
 ## Documentation map
 
 - [Product brief](PRODUCT_BRIEF.md): concise product identity.
 - [Specifications](specs/README.md): canonical behavior, rules and acceptance
   checks. Modules 00–17 and 19 describe the implemented local MVP; module 18
-  preserves the future notification boundary.
+  documents manual drafts and the future automated notification boundary.
 - [Delivery planning](planning/README.md): prioritized user stories, milestones
   and product decisions. Planning never overrides a specification.
 - [Operator guide](README.md): setup, commands and environment operation.

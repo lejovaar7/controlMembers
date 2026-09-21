@@ -1,52 +1,56 @@
-# Specification 18: Notification Boundary
+# Specification 18: Manual Reminders and Notification Boundary
 
 [All specifications](README.md)
 
-**Status:** Post-MVP boundary only; no outbound messaging is authorized.
+**Status:** User-reviewed WhatsApp drafts implemented. Automated delivery deferred.
 
-## Purpose
+## Manual reminder scope
 
-Preserve a safe path to future WhatsApp/email reminders without coupling billing
-logic to one provider or sending messages during the MVP.
+Collections exposes an **Overdue accounts** shortcut and **Remind via WhatsApp**
+for overdue open Charges, including partially paid Charges. The shortcut clears
+the month filter so older debts remain visible; other search filters still apply.
+A centered, responsive dialog shows the Member, Branch, overdue amount,
+unallocated credit and net amount to request. It includes every overdue Charge
+for that Member in the target Branch, independently of the list's month or plan.
 
-## Boundary
+`GET /api/charges/:id/reminder` authenticates the user, validates Organization and
+active/access-permitted Branch, and reads current posted Payments/Allocations.
+Voided Charges, paid Charges and future deadlines do not qualify. Existing
+unallocated posted credit in the same Member/Branch is subtracted for the draft;
+this does not allocate or mutate it. Credit covering all debt blocks the draft.
+Reversed Payments and other Members' or Branches' credit never reduce this debt.
 
-Billing emits or exposes facts such as `charge.overdue`; it does not call a
-messaging provider. A future notification module will transform an authorized
-rule and current ledger state into a deduplicated delivery request.
+The recipient selector contains normalized international phones from the Member
+and linked primary/billing Contacts, with eligible Contacts first for guardians.
+Missing or invalid phones block opening WhatsApp and explain where to add one.
+Phone presence never changes or implies recorded automated-messaging consent.
 
-Candidate components:
+Staff review an editable, localized message (maximum 2,000 characters). Opening
+WhatsApp rechecks current facts. Changed balance/recipient facts replace the draft
+and require review again. A user-initiated tab receives an encoded `https://wa.me/`
+link; the user presses Send inside WhatsApp. Blocked popups have a retry hint.
+The application does not send, store a delivery result or claim the message was
+sent/read. No provider library, credentials, database migration or queue is needed.
+The check cannot prevent changes after WhatsApp opens; the user retains final
+review responsibility. Opening the same draft again is possible and deliberate.
 
-- Organization notification policy and quiet hours;
-- recipient and channel consent resolver;
-- versioned message templates per locale;
-- provider-neutral `MessagingService`;
-- tenant-scoped notification job and delivery-attempt records;
-- Cloudflare Queues for delivery/retries and Cron Triggers for scheduled scans;
-- provider webhook verification and status updates.
+## Deferred automated delivery
 
-## Required future rules
+Billing exposes financial facts; it does not call a messaging provider.
+Future automated reminders require separately authorized scope covering:
 
-- No reminder without recorded, applicable consent and a normalized destination.
-- Re-check Charge balance immediately before send; paid/void Charges are skipped.
-- One logical reminder key prevents duplicate sends across retries.
-- Provider credentials remain Worker secrets and never enter D1 or browser code.
-- Templates escape user-entered values and respect recipient locale.
-- Retry transient failures with bounds; permanent failures require action rather
-  than infinite retry.
-- Delivery status is operational evidence, not proof that a person read a message.
-- Limited Users see notification history only for Members in scope.
+- Applicable recorded consent and recipient/channel preferences;
+- organization policies, quiet hours and localized versioned templates;
+- provider-neutral messaging service with Worker-only credentials;
+- tenant-scoped jobs, deduplication, bounded retries and delivery attempts;
+- queues/cron, verified provider webhooks and scoped notification history;
+- balance/consent rechecks immediately before sending.
 
-## MVP preparation
+## Acceptance checks
 
-MVP may store Contact phone normalization and explicit consent evidence. It must
-not include an enabled toggle, fake “send reminder” action, provider dependency,
-Queue binding or Cron Trigger until a messaging specification is approved.
-
-## Acceptance checks for the boundary
-
-- Billing modules have no WhatsApp/provider imports.
-- Contact consent is never inferred from the presence of a phone number.
-- No current product action claims to send automated reminders.
-- Future message jobs can reference Organization, Member, Contact and Charge by
-  opaque IDs without copying financial truth into notification tables.
+- Partially paid overdue Charges remain discoverable before pagination.
+- Drafts never include another Organization's or Branch's financial data.
+- Full payment, voiding and sufficient credit prevent requesting another payment.
+- No phone means no handoff; phone presence never grants consent.
+- The real interface works with keyboard, at mobile widths, and in both locales.
+- Tests and UI verification use synthetic records and do not send real messages.

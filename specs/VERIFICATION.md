@@ -1,5 +1,145 @@
 # ControlMembers Verification Record
 
+## 2026-09-21 — Compact received-payment table
+
+- Removed inline application breakdowns from payment rows, tightened spacing,
+  shortened table-only status badges and aligned monetary values. View receipt
+  opens the complete applications, credit and permitted cancellation action;
+  member names still link to profiles. Financial operations are unchanged.
+- Inspected actual components with synthetic applied, mixed-credit and reversed
+  receipts at desktop, 900px and 390px widths. Fixed intermediate-width action
+  clipping and verified no cell overflow. Checked opening/closing receipt detail
+  and return focus. Temporary fixture, server and tab were removed.
+- Typecheck, lint, translation and form checks passed. No data migration or
+  deployment was required for this UI change.
+
+## 2026-09-21 — Required plan at manual signup and separate WhatsApp number
+
+- Add member requires an explicitly selected active Plan from the Branch.
+  Empty catalogs block submission and offer inline Plan creation to authorized
+  users while preserving entered member data. The Worker validates the same
+  requirement and commits Member, Enrollment, first fee and audit in one batch.
+- Create/edit includes phone-as-WhatsApp selection and an optional separate
+  number. Reminders use that choice, including an explicitly empty separate
+  number. Existing members retain phone-as-WhatsApp behavior.
+- Typecheck, lint, local build, 27 environment tests, 2 i18n tests, 2 form checks
+  and all 253 Worker tests passed. Tests include missing/inactive/foreign-scope
+  plans with no partial records, signup debt, independent WhatsApp updates,
+  optional numbers and invalid input. Older unenrolled-member fixtures are
+  seeded explicitly to preserve legacy/imported-record coverage.
+- Browser verification used the actual dialog and Plan editor with synthetic
+  responses: no-plan block, inline plan creation retaining the member name,
+  explicit selection when plans exist, separate phone/WhatsApp payload and
+  screenshot inspection. Temporary fixture, server and tab were removed.
+- Reviewed additive migration `0014_bumpy_mongu.sql` and applied only this pending
+  migration to local and dev D1. No production migration or deployment performed.
+
+## 2026-09-21 — Signup payment and selectable monthly day
+
+- New enrollments create their first fee atomically on the start date. The
+  monthly day defaults to signup and can independently be chosen from 1–31.
+  Short months clamp without changing the anchor; prior agreements remain.
+- Added coverage for days 29/30/31, leap February, year rollover, independent
+  recurring days, signup payment, duplicate prevention, invalid dates, discounts,
+  staff access and charge audit events. Bulk generation remains owner/admin only.
+- Typecheck and lint passed. The full suite passed 248 Worker tests plus 27
+  environment, 2 catalog and 2 form checks. The subsequent staff/audit test passed
+  with all 15 tests in its integration file.
+- Inspected the actual member page and enrollment dialog with synthetic API
+  responses: signup defaults, day-31 preview, saving into the targeted payment
+  dialog, and cancellation preserving the unpaid fee. No real records changed.
+  Temporary fixture files, server and browser tab were removed.
+- Later months still require explicit monthly generation. No new migration or
+  deployment was performed for this change.
+
+## 2026-09-21 — Member CSV template download button
+
+- Restyled the template link with the shared outlined button, decorative download
+  icon and full-width mobile layout. Native download semantics and endpoint remain.
+- Inspected the actual Member import section at desktop and 390-pixel mobile
+  widths using an empty synthetic directory. Removed the temporary fixture/tab
+  and reset the viewport. The template endpoint returned HTTP 200, text/csv and
+  the expected attachment filename. No Member data was imported or modified.
+- Typecheck, lint, 27 environment checks, 2 catalog checks, 2 form checks and
+  all 242 Workers tests passed, together with dev/production/local build dry runs.
+
+## 2026-09-21 — Monthly fee selection in payment dialogs
+
+- Every payment form now exposes a Monthly fee to pay selector, including the
+  Member detail entry point. Options show plan, month and outstanding amount;
+  paid, void and other-Branch fees are excluded. Choosing a fee updates the
+  suggested amount, while the several-fees option suggests the combined balance.
+- Runtime checks used the actual PaymentDialog with synthetic API responses:
+  choosing November changed the amount to 50,000 and the confirmed mock payload
+  contained November only; several fees suggested 130,000 across October and
+  November. Empty fees disabled the selector and left the amount blank.
+  Direct November entry and English labels were checked, as were desktop and
+  390-pixel mobile layouts. Temporary fixtures/tab were removed and viewport reset.
+- Full gate passed: typecheck, lint, 27 environment checks, 2 catalog checks,
+  2 form checks, 242 Workers tests in 23 files, and dev/production/local dry runs.
+  No real payment or fee was created. Existing-credit application and fee
+  generation behavior remain unchanged.
+
+## 2026-09-21 — Receipt applications and accidental advance protection
+
+- Member Charges now include their Branch and the same derived payment state as
+  Collections. Receipts expose the plan/month/amount of each application and
+  unused credit; cancelled receipts retain historical applications explicitly.
+  Member history and the payments table distinguish applied payments, advances
+  and mixed receipts. History includes the receipt time as well as its date.
+- No outstanding Charge means no suggested payment amount, even with active
+  enrollments. Any new unallocated remainder requires explicit advance consent
+  in the form and API. Idempotent replay is preserved; consent never permits
+  over-allocation of a paid Charge. Different unpaid months remain payable.
+- Full gate passed: typecheck, lint, 27 environment checks, 2 catalog checks,
+  2 form checks, 242 Workers tests in 23 files, and dev/production/local dry runs.
+  Final advance-copy clarification also passed typecheck, lint, catalog checks
+  and the local build. Expected bundle-size notices remain informational.
+- Runtime verification used actual Member detail/PaymentDialog components with
+  synthetic data: paid fee with zero balance, same-day allocated/advance receipts,
+  empty amount after full payment, disabled review until advance acknowledgement,
+  explicit advance confirmation and captured allowCredit payload. Visual checks
+  covered desktop and 390-pixel mobile layouts. Fixtures/tab removed and viewport
+  reset; no real payment was created or changed.
+- Read-only dev lookup confirmed the two reported receipts are unapplied posted
+  payments. The user confirmed receiving both amounts, so both records were kept.
+  Existing credit application and Charge generation workflows were not changed.
+
+## 2026-09-21 — Clearer Member balance cards
+
+- Replaced the signed net-balance card with a leading, nonnegative Amount still
+  to pay. Separate cards explain unpaid fees and received but unallocated credit.
+  Contextual copy covers no debt, enough credit and a remaining amount to pay.
+  Ledger calculations, stored records and payment allocation remain unchanged.
+- Inspected the actual summary component using synthetic zero, credit-only,
+  credit-covered, partially covered and debt-only balances. Checked Spanish and
+  English copy and layouts at 390×844 and 1280×800. Removed the temporary fixture
+  files/tab and reset the viewport after verification.
+- Typecheck, lint, 27 environment checks, 2 i18n checks, 2 form checks,
+  239 Workers tests and dev/production/local build dry runs passed.
+  No migration, real payment write, commit, push or deployment was performed.
+
+## 2026-09-21 — Manual WhatsApp collection reminders
+
+- Added Overdue accounts filtering (including partial payments), read-only scoped
+  reminder previews and an editable recipient/message dialog. The draft nets
+  unused posted credit within the same Member/Branch and blocks covered debt.
+- Nine new checks cover full/partial payments, reversals, void/future Charges,
+  shared-Member Branch isolation, foreign tenants and anonymous access, eligible
+  guardian Contacts, missing phones, no ledger mutation and safe link encoding.
+- Typecheck, lint, 27 environment tests, 2 catalog checks, 2 form checks and
+  239 Workers tests in 23 files passed. Dev, production and local build/deployment
+  dry runs passed; no actual deployment or database migration was performed.
+- Browser checks used real ChargesPage/dialog components with synthetic API
+  responses and a stubbed WhatsApp handoff. Verified editable text and encoded
+  destination, changed credit blocking handoff, missing-phone handling, popup
+  blocking, English/Spanish copy, keyboard dismissal and trigger focus return.
+  Visual inspection covered 390×844 and 1280×800. Temporary fixture files and
+  browser tab were removed, and viewport override reset.
+- Local network health endpoint returned HTTP 200. No real message was sent or
+  Member/payment record modified. Real WhatsApp delivery remains a manual user
+  action outside the application; opening a draft is never recorded as delivery.
+
 ## 2026-09-21 — Enrollment-specific monthly deadlines
 
 - New enrollments default to a first payment one month after signup and accept

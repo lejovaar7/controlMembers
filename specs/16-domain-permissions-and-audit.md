@@ -20,7 +20,8 @@ engine.
 | Manage Plans and tags | Yes | Yes if all-Branch | No |
 | Manage company payment methods | Yes | Yes if all-Branch | No |
 | Manage Enrollments | Yes | In scope | In scope |
-| Generate Charges | Yes | In scope | No |
+| Generate monthly batches | Yes | In scope | No |
+| Create first fee with Enrollment | Yes | In scope | In scope |
 | Record Payments | Yes | In scope | In scope |
 | Reverse Payments | Yes | Optional grant | No |
 | Void/adjust Charges | Yes | Optional grant | No |
@@ -54,7 +55,7 @@ The domain audit log records high-impact events:
 
 - Member status changes;
 - Enrollment creation, pause, resume, term changes and end;
-- Charge generation batch, adjustment and void;
+- Charge creation with Enrollment, generation batch, adjustment and void;
 - Payment posting and reversal;
 - Payment-method creation, renaming and activation changes;
 - Plan/tag activation changes;

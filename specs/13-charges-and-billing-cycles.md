@@ -71,10 +71,11 @@ scheduled generation is deferred until operational behavior is proven.
 
 ## Eligibility rules
 
-- For new Enrollments, the billing period is the **due month**, beginning with
-  `firstDueDate`'s month, not the signup month. September 21 with an October 21
-  first deadline generates no September Charge; October's Charge is due October
-  21, then November 21. The first date can be edited at creation.
+- For new Enrollments, the first deadline defaults to the signup date. Creating
+  the Enrollment also creates its first monthly Charge in the same transaction.
+  Monthly generation safely skips that existing Charge. The next Charge uses
+  the chosen recurring day in the following month. Explicitly deferred API
+  schedules and existing agreements still begin in `firstDueDate`'s **due month**.
 - Later deadlines use `recurringDay` (1–31), clamped to the month's last day while
   preserving the original anchor for later months. Deadlines after `endDate` are
   ineligible. Both preview and generation use the same date function.
@@ -98,7 +99,7 @@ and reason.
 ## Target API and UI
 
 - The Collections & payments workspace opens on Monthly fees with all periods
-  and unpaid balances selected. `state=unpaid` includes every open positive
+  and all payment states selected. The optional `state=unpaid` filter includes every open positive
   balance before pagination, including partial overdue charges. Paid/void history
   remains available through filters. Generation always selects an explicit month.
 - Payable rows open the shared payment dialog targeting that exact charge; the
@@ -108,10 +109,19 @@ and reason.
 - Charge list filtered by period, Branch, Plan, tag, state and Member search.
 - Charge detail showing the formula, allocations and audit events.
 - Authorized adjust/void actions with reasons and impact warnings.
+- Each row has a compact ellipsis button that opens a labeled action menu.
+  Available action types remain visible within the menu. Actions incompatible with
+  the fee's state are disabled with an explanatory tooltip and accessible
+  description; role permissions still control adjust/void visibility. Clicking
+  a disabled action or the menu does not navigate to the Member profile. The menu
+  supports keyboard navigation and restores focus to its trigger after dialogs.
 - The directory matches the Member table design, including responsive labeled
   rows and loading placeholders. It exposes Member, Plan, due date, payment state,
   outstanding/original total and permitted actions. Row navigation opens the
   Member profile; adjusting or voiding stays in the Charge confirmation flow.
+  On narrow screens, rows use a compact layout: name and status, plan below,
+  month and due date side by side, then balance and the action menu on one row.
+  Long names and plans wrap without hiding information or adding horizontal scroll.
 
 ## Acceptance checks
 
@@ -121,3 +131,11 @@ and reason.
 - Filters and totals use the same state/balance definitions as payment reports.
 - Pausing, ending or moving records does not erase historical receivables.
 - Cross-tenant and inaccessible Branch generation is denied without disclosure.
+
+## Manual overdue reminders
+
+The overdue filter includes partially paid open Charges whose remaining amount is
+positive and due date precedes the Organization-local date. `isOverdue` is separate
+from the partial-payment badge. Reminder previews aggregate overdue balances and
+subtract unused posted credit only for the same Member and Branch. They never
+change the ledger; see [Specification 18](18-notifications-boundary.md).

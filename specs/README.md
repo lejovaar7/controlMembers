@@ -38,7 +38,7 @@ in specification 11.
 | [15 — Dashboard and Reports](15-dashboard-and-reports.md) | Reconciled metrics, aging and exports. | Implemented locally |
 | [16 — Domain Permissions and Audit](16-domain-permissions-and-audit.md) | Business capabilities and append-only evidence. | Implemented locally |
 | [17 — Product Frontend and Design](17-product-frontend-and-design.md) | Navigation, shadcn-based design and responsive UX. | Implemented locally |
-| [18 — Notification Boundary](18-notifications-boundary.md) | Safe future WhatsApp/message architecture. | Post-MVP boundary |
+| [18 — Notification Boundary](18-notifications-boundary.md) | Manual WhatsApp drafts and future delivery architecture. | Manual drafts implemented; automation deferred |
 | [19 — Import, Export and Privacy](19-import-export-and-privacy.md) | Member onboarding, operational exports and data care. | Implemented locally |
 
 ## Reading paths
@@ -48,7 +48,7 @@ in specification 11.
 - Security and isolation: 04, 08, 16.
 - Implementation/release: 01, 05, 09 and
   [`../planning/DELIVERY_PLAN.md`](../planning/DELIVERY_PLAN.md).
-- Future WhatsApp work: 18 only after the MVP ledger is stable.
+- Manual WhatsApp drafts and the boundary for future automated delivery: 18.
 
 ## Documentation responsibilities
 

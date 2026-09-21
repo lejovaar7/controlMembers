@@ -28,6 +28,7 @@ Optional MVP fields:
 - `documentType`, `documentNumber`;
 - `birthDate` as a date without time;
 - `email`, `phoneE164`;
+- `whatsappSameAsPhone` (default true), `whatsappE164` for a separate number;
 - `notes` with a documented length limit;
 - `externalReference` for imports.
 
@@ -90,7 +91,11 @@ The same Contact may be billing contact for several Members.
 ## API target contract
 
 - `GET /api/customer-members`: paginated search and filters.
-- `POST /api/customer-members`: create one Member.
+- `POST /api/customer-members`: require an active `planId` available in the
+  selected Branch; create the Member, Enrollment and signup Charge atomically.
+  Missing plans fail with `PLAN_REQUIRED`; invalid or inaccessible plans write
+  nothing. Start defaults to today in the company timezone, with an optional
+  start date and monthly recurring day. Received money is confirmed separately.
 - `GET /api/customer-members/:id`: scoped detail and summary.
 - `PATCH /api/customer-members/:id`: update permitted profile fields.
 - `PATCH /api/customer-members/:id/status`: explicit lifecycle change.
@@ -116,6 +121,15 @@ have a zero balance. Resolve balances only for Members on the authorized page.
 - Filters for Branch, lifecycle and payment state.
 - Member profile with Overview, Enrollments and Financial Activity sections.
 - Create/edit flow that preserves unsaved data after recoverable errors.
+- Manual signup requires explicit selection of an active Plan in the Branch.
+  With no available Plan, saving stays disabled. Authorized plan managers can
+  create one inside the flow without losing member inputs; other staff receive
+  an explanation to ask an administrator. This does not change legacy CSV import.
+- Create/edit exposes a same-phone WhatsApp checkbox (initially checked) and a
+  separate optional E.164 field when unchecked. A separate blank value means no
+  Member WhatsApp recipient. Reminder previews use the effective WhatsApp number;
+  changing the phone follows it only while the checkbox remains enabled.
+  Additive migration 0014 preserves old members' phone-as-WhatsApp behavior.
 - Clear warning before pausing or deactivating a Member; history consequences are
   explained without implying that debt is erased.
 - Mobile rows expose name, Branch, status and balance before secondary metadata.

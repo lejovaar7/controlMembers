@@ -118,7 +118,9 @@ and date-range selection. Daily calendars use React DayPicker through shadcn's
 Calendar; all three controls use the existing Base UI Popover. Month filters
 show a twelve-month grid with year navigation and a current-month shortcut.
 Dashboard, Charges and Reports share MonthPicker; Payments uses DateRangePicker;
-Member birth dates, enrollment start dates and first payment due dates use DatePicker.
+Member birth dates and enrollment start dates use DatePicker. New enrollments
+collect the first fee on the start date and use a 1–31 monthly payment day input
+with short-month guidance and a preview of the next deadline.
 
 Payment ranges are drafts until "Apply dates". Escape and outside dismissal
 discard the draft. Clearing either endpoint preserves open-ended filtering;
@@ -195,6 +197,9 @@ actions while retaining the established "Import CSV", "Preview import" and
 "Export payments" terminology requested for file operations.
 Reserve file extensions and format names for upload instructions, explaining
 that the completed template must be saved as comma-separated CSV, not XLSX.
+The Member CSV template download uses the shared outlined button appearance,
+with a download icon and full-width layout on mobile, while retaining a native
+download link to the template endpoint.
 Spanish uses "sede" consistently for branches and "informes" for reports.
 Payment reversal is labeled "Cancel payment"; its confirmation explains that it
 stops counting toward charges and credit and does not issue a refund.
@@ -204,6 +209,11 @@ and amounts. Amounts always place the currency symbol first, followed by a
 nonbreaking space and the localized number (for example, `$ 0`). They omit decimals for whole
 values and preserve hundredths otherwise. Dashboard, member pages, charges,
 payments and reports omit standalone currency captions above the data.
+Reports uses a compact period toolbar with a single permission-gated export menu.
+On phones, aging cards use tighter spacing and report rows group their amounts
+under the plan, branch or member name. At widths below 360px, the final balance
+uses a separate line to leave room for larger amounts. Full values and names
+remain available without horizontal scrolling; desktop keeps the column layout.
 Currency names in form labels use capitalized, plural names.
 All editable monetary amounts use the shared MoneyInput, backed by
 react-number-format 5.4.5 and the existing Input presentation. Spanish input
@@ -283,9 +293,9 @@ name/status first and balance last, without horizontal scrolling.
 Selecting a Member opens
 a full page with three switchable sections: Summary, Payment history and
 Personal information. The header keeps identity, current Branch, status, Edit
-member and the primary Record payment action visible. Gross outstanding,
-available credit and net position remain separate; mobile places the two
-secondary balances side by side below outstanding.
+member and the primary Record payment action visible. Amount still to pay is
+the leading balance, with gross unpaid fees and available credit shown separately.
+Mobile places the supporting balances side by side below that nonnegative result.
 
 Summary contains enrollment cards with monthly price and state, alongside
 charges with readable periods, due dates, payment state and outstanding amount.
@@ -303,9 +313,10 @@ invalidates its preview. Success closes the dialog, refreshes balances, selects
 Payment history and shows the receipt.
 Outside-click/Escape dismissal and focus return use the shared dialog wrapper.
 The payment amount is prefilled on opening, using the oldest pending charge's
-remaining balance or, if none exists, active agreed monthly fees after discounts
-in the current Branch. The field stays editable and each new opening refreshes
-the suggestion. No amount is invented when there are no eligible fees/charges.
+remaining balance in the current Branch. Without an unpaid Charge the amount
+stays empty, with an explanation that additional money is an advance. Any
+unallocated remainder requires an explicit extra-money acknowledgement before
+review. Amount/distribution changes reset that acknowledgement.
 
 ### Charges
 
@@ -327,10 +338,12 @@ horizontal scrolling, with name/state first and balance/actions last.
 
 The Payments directory shares the Member table styling and responsive layout.
 Columns show Member (with receipt number), payment date, method, status, amount
-and permitted actions. Unapplied credit stays visible below the amount. Row clicks
-open the Member profile; native links, text selection and cancellation buttons
-retain their own behavior. Only authorized users see cancellation actions, and
-only posted payments offer them. Matching skeleton rows cover initial loading.
+and a View receipt action. Compact rows keep member/receipt to two lines and
+shorten badges; allocation breakdowns are shown in the receipt dialog. Unapplied
+credit appears below the amount, with full details inside the receipt. Row clicks
+open the receipt; member links and text selection retain their own behavior.
+Only authorized users see cancellation inside the receipt, and only posted
+payments offer it. Matching skeleton rows cover initial loading.
 Narrow containers stack labeled fields with name/status first and amount/actions
 last, without horizontal scrolling. Search, date, method and state filters and
 paging remain available.
@@ -500,3 +513,44 @@ payment rows display the recorded name snapshot rather than a later catalog name
 - New features reuse the inherited component/token system.
 - Keyboard, focus, narrow-layout and bilingual checks are recorded in the
   verification log.
+
+## Manual WhatsApp reminders
+
+Collections provides an Overdue accounts shortcut and an outline reminder action
+on overdue rows, including partial payments. The shared CenteredDialog presents
+a recipient selector, Branch debt/credit summary and editable localized draft.
+Open WhatsApp refreshes ledger facts before handoff; changed facts require review
+again. Skeletons, disabled pending actions, inline errors and focus restoration
+follow existing conventions. A blocked or missing destination has a clear message.
+Opening WhatsApp must never display a sent/delivered status.
+
+## Member balance summary
+
+Member detail leads with Amount still to pay, clamped to zero when net credit
+covers debt. Supporting cards show gross unpaid fees and unallocated credit as
+positive amounts. Contextual copy distinguishes no fees, sufficient credit and
+remaining debt. No negative net balance or subtraction jargon is shown. Credit
+is explicitly described as received money not yet assigned to fees; presentation
+does not allocate credit, mutate payments or change ledger totals. At mobile
+widths the result spans both columns above the supporting cards.
+
+### Receipt clarity
+
+Member history shows plan, billing month and applied amount for each receipt,
+with date/time and payment method. Unassigned money is labelled Advance available;
+receipt badges distinguish applied payments, advances, mixed receipts and reversals.
+Collections payment rows reuse these application details and badges. A receipt's
+application is not a claim that a partially covered Charge is fully paid.
+
+### Monthly fee selection in every payment entry point
+
+The Member and Collections composers always show Monthly fee to pay before the
+amount. Options identify plan, billing month/year and remaining amount, and only
+include created, open, unpaid Charges in the current Branch. The oldest unpaid
+Charge is the default; a row-specific launch preserves its selected Charge.
+Changing the selection refreshes the amount and invalidates preview/advance
+consent. Several fees, oldest first selects assisted distribution and suggests
+the sum of current outstanding balances; partial amounts remain editable.
+An unavailable requested Charge is shown disabled rather than silently retargeted.
+With no unpaid Charges, the selector is disabled and explains that fees must be
+generated first; an explicitly confirmed advance remains possible.

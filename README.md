@@ -18,6 +18,14 @@ Generated from Cloudflare's official `cloudflare/templates/vite-react-template`.
 This repository uses `origin` for ControlMembers and keeps a fetch-only
 `template` remote for its SaaS foundation. Never re-enable pushes to `template`.
 
+## Manual WhatsApp reminders
+
+In **Collections → Fees**, select **Overdue accounts**, then **Remind via WhatsApp**.
+Review the recipient and editable message, then open WhatsApp and press Send there.
+The draft subtracts available credit in the same Branch. No provider setup or
+extra library is required; delivery is manual and is not tracked by the app.
+See [Specification 18](specs/18-notifications-boundary.md).
+
 ## Structure
 
 ```
@@ -511,15 +519,24 @@ Existing Plans retain their saved Branch links: use **Edit plan** to remove an
 unintended assignment. Shared Members keep a separate ledger per Branch, including
 their historical Enrollments. This behavior change requires no database migration.
 
-New Enrollments suggest a first payment one month after their start date, editable
-in the enrollment dialog. Later deadlines repeat that day, using the last day
-of shorter months. Charge generation selects the **due month**, so September 21
-with an October 21 first deadline creates its first Charge in October. Existing
-Enrollments and Charges keep their previous terms. Apply generated migration
+New Enrollments create their first monthly fee on the start date and open payment
+review. The monthly payment day defaults to the signup day and can be changed to
+any day from 1 through 31. Short months use their last day, then return to the
+chosen day (January 30 → February 28/29 → March 30). Later fees still use the
+explicit monthly generation action; generating the signup month cannot duplicate
+its fee. Existing Enrollments and Charges keep their previous terms. Apply generated migration
 `0013_icy_bastion.sql` before running this version on another database; it only
 adds two nullable columns. It has been applied to local and dev D1, not production.
 See [Enrollment rules](specs/12-plans-tags-and-enrollments.md) and
 [billing cycles](specs/13-charges-and-billing-cycles.md).
+
+Manual **Add member** now requires an active Plan in the selected Branch and
+creates the Member, Enrollment and first monthly fee atomically before opening
+payment review. With no Plan, authorized users can create one within the dialog;
+other staff must ask an administrator. Member creation and editing allow using
+the phone for WhatsApp or storing a separate number; reminder previews follow
+that selection. Apply additive migration `0014_bumpy_mongu.sql` before running
+this version. Existing Members default to using their phone for WhatsApp.
 
 Company payment methods are managed in **Settings → Payment methods** by an
 Owner or administrator with access to all Branches. Cash is the sole built-in

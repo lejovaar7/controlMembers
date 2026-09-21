@@ -75,14 +75,17 @@ An Enrollment stores:
 
 The default is at most one overlapping active Enrollment for the same Member,
 Plan and Branch. A Member may have several Plans simultaneously. The Plan price
-pre-fills a new Enrollment. New Enrollments default their first due date to one
-month after their start date, independently of the Plan's historical due day.
-Users can choose another first date strictly after the start date. Later payments
-repeat its day monthly. An automatically suggested short-month date retains the
-start day's anchor (January 31 → February 28/29 → March 31); an explicitly chosen
-date uses its chosen day. `recurringDay` is 1–31 and clamps to the last day of short
-months without permanently drifting. `firstDueDate` remains the first agreed
-payment deadline; editing future due days affects later ungenerated periods.
+pre-fills a new Enrollment. New Enrollments default their first due date to the
+start date and atomically create that first monthly Charge, including its audit
+event. Recording received money remains a separate reviewed payment action.
+The monthly payment day defaults to the start day and can independently be set
+from 1 through 31. Later Charges start in the next month; short months use their
+last day without changing the anchor (January 30 → February 28/29 → March 30).
+The full monthly amount applies even when a custom day shortens the first cycle;
+the dialog previews the amount and next deadline before saving. The API still
+accepts explicitly deferred first dates on or after the start date; deferred
+Charges are created through monthly generation. Existing agreements are kept.
+Editing future due days affects later ungenerated periods.
 
 Existing rows with null `firstDueDate`/`recurringDay` retain legacy calendar-month
 billing through `dueDay` (1–28). Additive migration 0013 preserves all existing
@@ -137,10 +140,11 @@ card skeletons; empty results offer clearing filters or creating the first Plan.
   projections continue from the company-local current/start month. Paused/ended
   schedules without debt have no projected payment.
   Dates are payment deadlines, not Enrollment expiration dates.
-- The Add enrollment dialog starts on today, suggests one month later and offers
-  editable first due date plus a preview of the following deadline. Changing the
-  start date updates the suggestion until a date is manually chosen. Manual dates
-  persist until reset; invalid or empty dates prevent saving with clear feedback.
+- The Add enrollment dialog starts on today, collects the first fee on that date
+  and offers a monthly payment day (1–31), defaulting to the signup day. Changing
+  the start date updates that default until the day is manually chosen or reset.
+  Saving creates the first Charge and opens the shared payment dialog targeting
+  that Charge. Dismissing payment leaves the fee unpaid; it never records money.
 - Forms preview the next amount and due date before saving.
 - The future-terms dialog accepts at most two decimal digits for the billing day,
   validates 1 through 31 for new schedules (1–28 for legacy enrollments), and
