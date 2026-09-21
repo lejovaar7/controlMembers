@@ -1,5 +1,26 @@
 /** English source messages are also stable, typed catalog keys. No user data here. */
 export const messages = [
+	"Each enrollment has its own payment date, starting one month after enrollment. You can adjust it when adding the member's plan.",
+	"Payment date chosen at enrollment",
+
+	"First payment due date",
+	"Choose a plan, a start date and the first payment due date.",
+	"One month after the start date. You can choose another date.",
+	"Use one month after the start date",
+	"Following payment: {date}. Short months use their last day.",
+	"The first payment due date must be after the start date.",
+	"Check the start date and first payment due date.",
+	"Monthly due day (1–31)",
+	"Choose a day from 1 to 31.",
+
+	"Started {date}",
+	"Payment due: {date}",
+	"Expected payment due: {date}",
+	"No upcoming payment scheduled.",
+
+	"This member already has an active enrollment in this plan. You cannot add another while it remains active.",
+	"This member already has a paused enrollment in this plan. Resume it instead of adding another.",
+	"This member already has an active or paused enrollment in this plan. Check their enrollments before adding another.",
 	"Overview",
 	"Active members",
 	"Monthly fee",
@@ -200,7 +221,7 @@ export const messages = [
 	"We could not load this member.", "Loading member…", "Back to members", "Member profile, enrollments and payment history.",
 	"Available credit", "Net balance", "Pause member", "Deactivate member", "Reactivate member", "Reactivate this member?",
 	"This keeps all existing charges and payments. Continue?", "Reason for this change", "Enrollments",
-	"Plans currently or previously assigned to this member.", "Ended", "Started {date} · due day {day}", "Pause", "Resume", "End",
+	"Plans currently or previously assigned to this member.", "Ended", "Pause", "Resume", "End",
 	"Edit future terms", "Agreed monthly amount ({currency})", "Due day from 1 to 28", "Monthly discount ({currency})",
 	"No enrollments yet.", "Add enrollment", "Plan", "Choose a plan", "Start date", "We could not add the enrollment.",
 	"Record payment", "Payments are applied to the oldest outstanding charges first.", "Payments are applied to the oldest outstanding charges first. You can adjust the distribution before saving.", "Amount ({currency})", "Payment method",
@@ -389,6 +410,7 @@ export const messages = [
 	"Preparing payment…",
 	"We could not load the next results.",
 	"Amount",
+	"Complete {field} to save your changes.",
 ] as const;
 
 export type MessageKey = typeof messages[number];

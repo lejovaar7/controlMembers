@@ -28,7 +28,6 @@ export function PlanEditor({ plan, settings, tags, returnFocus, onClose, onSaved
 	const [name, setName] = useState(plan?.name ?? "");
 	const [description, setDescription] = useState(plan?.description ?? "");
 	const [amount, setAmount] = useState(plan ? String(plan.amountMinor / 100) : "");
-	const [dueDay, setDueDay] = useState(String(plan?.defaultDueDay ?? 5));
 	const [branchIds, setBranchIds] = useState(plan?.branchIds ?? (shell.activeBranch ? [shell.activeBranch.id] : []));
 	const [tagNames, setTagNames] = useState(plan?.tags.map((tag) => tag.name) ?? []);
 	const [tagInput, setTagInput] = useState("");
@@ -37,7 +36,6 @@ export function PlanEditor({ plan, settings, tags, returnFocus, onClose, onSaved
 	const currency = plan?.currency ?? settings.currency ?? "COP";
 	const amountMinor = Math.round(Number(amount) * 100);
 	const validAmount = amount.trim() !== "" && Number.isSafeInteger(amountMinor) && amountMinor > 0;
-	const validDay = Number.isInteger(Number(dueDay)) && Number(dueDay) >= 1 && Number(dueDay) <= 28;
 	const suggestedTags = useMemo(() => tags.filter((tag) => !tagNames.some((name) => normalizeTag(name) === normalizeTag(tag.name)) && normalizeTag(tag.name).includes(normalizeTag(tagInput))), [tags, tagNames, tagInput]);
 
 	function addTag(value: string) {
@@ -51,10 +49,10 @@ export function PlanEditor({ plan, settings, tags, returnFocus, onClose, onSaved
 	}
 	async function submit(event: FormEvent) {
 		event.preventDefault();
-		if (pending || !name.trim() || !validAmount || !validDay || !branchIds.length || !settings.currency) return;
+		if (pending || !name.trim() || !validAmount || !branchIds.length || !settings.currency) return;
 		setPending(true); setFailed(false);
 		try {
-			const input = { name: name.trim(), description: description.trim(), amountMinor, defaultDueDay: Number(dueDay), branchIds, tagNames: [...new Map([...tagNames, tagInput.trim()].filter(Boolean).map((tag) => [normalizeTag(tag), tag])).values()] };
+			const input = { name: name.trim(), description: description.trim(), amountMinor, defaultDueDay: plan?.defaultDueDay ?? 1, branchIds, tagNames: [...new Map([...tagNames, tagInput.trim()].filter(Boolean).map((tag) => [normalizeTag(tag), tag])).values()] };
 			const saved = plan ? await billingSetupApi.updatePlan(shell.organizationId, plan.id, input) : await billingSetupApi.createPlan(shell.organizationId, input);
 			onSaved(saved);
 		} catch { setFailed(true); }
@@ -66,7 +64,7 @@ export function PlanEditor({ plan, settings, tags, returnFocus, onClose, onSaved
 				<div className="grid gap-2"><Label htmlFor="plan-name">{t("Plan name")}</Label><Input id="plan-name" value={name} maxLength={120} required placeholder={t("For example: Children monthly plan")} onChange={(event) => setName(event.target.value)} /></div>
 				<div className="grid gap-4 sm:grid-cols-2">
 					<div className="grid content-start gap-2"><Label htmlFor="plan-amount">{t("Monthly price")}</Label><MoneyInput id="plan-amount" min={0.01} required value={amount} onValueChange={setAmount} aria-describedby="plan-currency" /><p id="plan-currency" className="text-xs text-muted-foreground">{currencyName(locale, currency)}</p></div>
-					<div className="grid content-start gap-2"><Label htmlFor="plan-due-day">{t("Usual due day")}</Label><Input id="plan-due-day" type="number" inputMode="numeric" min="1" max="28" required value={dueDay} onChange={(event) => setDueDay(event.target.value)} aria-describedby="plan-due-help" /><p id="plan-due-help" className="text-xs text-muted-foreground">{t("Choose a day from 1 to 28.")}</p></div>
+					<p className="rounded-xl bg-muted/50 p-4 text-sm leading-6 text-muted-foreground">{t("Each enrollment has its own payment date, starting one month after enrollment. You can adjust it when adding the member's plan.")}</p>
 				</div>
 				{shell.branches.length > 1 ? <fieldset className="min-w-0 space-y-2"><legend className="mb-2 text-sm font-medium">{t("Available at branches")}</legend><p className="text-xs leading-5 text-muted-foreground">{t("Select only the branches that should offer this plan.")}</p><div className="grid gap-2 sm:grid-cols-2">{shell.branches.map((branch) => <label key={branch.id} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-3 py-2 text-sm ${branchIds.includes(branch.id) ? "border-primary/40 bg-accent/40" : "bg-background"}`}><input type="checkbox" className="size-4 shrink-0 accent-primary" checked={branchIds.includes(branch.id)} onChange={(event) => setBranchIds((current) => event.target.checked ? [...current, branch.id] : current.filter((id) => id !== branch.id))} /><span className="min-w-0 break-words">{branch.name}</span></label>)}</div>{!branchIds.length ? <p role="alert" className="text-xs text-destructive">{t("Select at least one branch.")}</p> : null}</fieldset> : null}
 				<details className="group rounded-xl border p-4">
@@ -78,9 +76,9 @@ export function PlanEditor({ plan, settings, tags, returnFocus, onClose, onSaved
 					</div>
 				</details>
 			</fieldset>
-			{validAmount && validDay ? <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/60 px-4 py-3 text-sm"><span className="font-semibold tabular-nums">{formatMoney(locale, amountMinor, currency)} <span className="font-normal text-muted-foreground">{t("per month")}</span></span><span className="text-muted-foreground">{t("Due on day {day}", { day: Number(dueDay) })}</span></div> : null}
+			{validAmount ? <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/60 px-4 py-3 text-sm"><span className="font-semibold tabular-nums">{formatMoney(locale, amountMinor, currency)} <span className="font-normal text-muted-foreground">{t("per month")}</span></span><span className="text-muted-foreground">{t("Payment date chosen at enrollment")}</span></div> : null}
 			{failed ? <p role="alert" className="rounded-lg bg-destructive/5 p-3 text-sm text-destructive">{t("We could not save the plan.")}</p> : null}
-			<div className="flex flex-wrap justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" disabled={pending} onClick={onClose}>{t("Cancel")}</Button><LoadingButton type="submit" loading={pending} loadingLabel={t("Saving…")} disabled={pending || !name.trim() || !validAmount || !validDay || !branchIds.length || !settings.currency}>{t(plan ? "Save changes" : "Add plan")}</LoadingButton></div>
+			<div className="flex flex-wrap justify-end gap-2 border-t pt-4"><Button type="button" variant="outline" disabled={pending} onClick={onClose}>{t("Cancel")}</Button><LoadingButton type="submit" loading={pending} loadingLabel={t("Saving…")} disabled={pending || !name.trim() || !validAmount || !branchIds.length || !settings.currency}>{t(plan ? "Save changes" : "Add plan")}</LoadingButton></div>
 		</form>
 	</CenteredDialog>;
 }

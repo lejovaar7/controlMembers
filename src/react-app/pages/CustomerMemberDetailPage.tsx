@@ -1,3 +1,4 @@
+import { defaultFirstDueDate, billingDateInMonth, nextBillingMonth } from "../../shared/billing-dates";
 import { PaymentDialog } from "@/components/payment-dialog";
 import { paymentMethodLabel } from "@/hooks/use-payment-methods";
 import { SelectField } from "@/components/select-field";
@@ -6,7 +7,7 @@ import { useActionDialog } from "@/hooks/use-action-dialog";
 import { DatePicker } from "@/components/date-picker";
 import { dateValue } from "@/lib/calendar-dates";
 import { ArrowLeft, ArrowUpRight, CalendarDays, CreditCard, Mail, MapPin, Pencil, Phone, Plus, UserRound } from "lucide-react";
-import { formatMoney, currencyName, formatDate } from "../../shared/i18n";
+import { formatMoney, currencyName, formatDate, type MessageKey } from "../../shared/i18n";
 import { LoadingButton } from "@/components/loading-button";
 import { DetailSkeleton } from "@/components/content-skeleton";
 import { StatusBadge } from "@/components/status-badge";
@@ -19,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppShell } from "@/hooks/use-app-shell";
 import { billingSetupApi, type Plan } from "@/lib/billing-setup";
-import { controlMembersApi, type MemberDetail } from "@/lib/controlmembers";
+import { controlMembersApi, ProductApiError, type MemberDetail } from "@/lib/controlmembers";
 import { useI18n, useT } from "@/lib/i18n";
 
 export function CustomerMemberDetailPage() {
@@ -148,8 +149,33 @@ function EnrollmentSection({ memberId, memberBranchId, plans, enrollments, onCha
 	const addButtonRef = useRef<HTMLButtonElement>(null);
 	const t = useT(); const { locale } = useI18n(); const shell = useAppShell();
 	const availablePlans = plans.filter((plan) => plan.branchIds.includes(memberBranchId));
-	const [selectedPlanId, setPlanId] = useState(availablePlans[0]?.id ?? ""); const planId = availablePlans.some((plan) => plan.id === selectedPlanId) ? selectedPlanId : availablePlans[0]?.id ?? ""; const [startDate, setStartDate] = useState(dateValue(new Date())); const [pending, setPending] = useState(false); const [failed, setFailed] = useState(false);
-	async function submit(event: FormEvent) { event.preventDefault(); if (pending) return; setPending(true); setFailed(false); try { await controlMembersApi.addEnrollment(shell.organizationId, memberId, { planId, branchId: memberBranchId, startDate }); setAdding(false); onChanged(); } catch { setFailed(true); } finally { setPending(false); } }
+	const [selectedPlanId, setPlanId] = useState(availablePlans[0]?.id ?? "");
+	const planId = availablePlans.some((plan) => plan.id === selectedPlanId) ? selectedPlanId : availablePlans[0]?.id ?? "";
+	const [startDate, setStartDate] = useState(dateValue(new Date()));
+	const [chosenDueDate, setChosenDueDate] = useState<string | null>(null);
+	const firstDueDate = chosenDueDate ?? (startDate ? defaultFirstDueDate(startDate) : "");
+	const recurringDay = Number((chosenDueDate === null ? startDate : firstDueDate).slice(8, 10));
+	const invalidDueDate = !!startDate && !!firstDueDate && firstDueDate <= startDate;
+	const [pending, setPending] = useState(false);
+	const [error, setError] = useState<MessageKey | null>(null);
+	async function submit(event: FormEvent) {
+		event.preventDefault();
+		if (pending || !startDate || !firstDueDate || invalidDueDate) return;
+		setPending(true); setError(null);
+		try {
+			await controlMembersApi.addEnrollment(shell.organizationId, memberId, { planId, branchId: memberBranchId, startDate, firstDueDate, recurringDay });
+			setAdding(false); onChanged();
+		} catch (cause) {
+			if (cause instanceof ProductApiError && cause.code === "ENROLLMENT_ALREADY_EXISTS") {
+				const existing = enrollments.find((item) => item.planId === planId && item.branchId === memberBranchId && item.status !== "ended");
+				setError(existing?.status === "active"
+					? "This member already has an active enrollment in this plan. You cannot add another while it remains active."
+					: existing?.status === "paused"
+						? "This member already has a paused enrollment in this plan. Resume it instead of adding another."
+						: "This member already has an active or paused enrollment in this plan. Check their enrollments before adding another.");
+			} else { setError(cause instanceof ProductApiError && cause.code === "INVALID_INPUT" ? "Check the start date and first payment due date." : "We could not add the enrollment."); }
+		} finally { setPending(false); }
+	}
 	function status(id: string, value: string) {
 		const item = enrollments.find((enrollment) => enrollment.id === id)!;
 		const title = t(value === "ended" ? "End enrollment" : value === "paused" ? "Pause enrollment" : "Resume enrollment");
@@ -163,7 +189,7 @@ function EnrollmentSection({ memberId, memberBranchId, plans, enrollments, onCha
 		openDialog({ title: t("Edit future terms"), description: t("Update {plan}. These changes apply to future charges; existing charges will stay the same.", { plan: item.planName }), confirmLabel: t("Save changes"),
 			fields: [
 				{ name: "amount", label: t("Agreed monthly amount ({currency})", { currency: currencyName(locale, item.currency) }), type: "money", defaultValue: String(item.agreedAmountMinor / 100), min: 0.01, step: 0.01 },
-				{ name: "dueDay", label: t("Due day from 1 to 28"), type: "number", defaultValue: String(item.dueDay), min: 1, max: 28 },
+				{ name: "dueDay", label: t(item.firstDueDate ? "Monthly due day (1–31)" : "Due day from 1 to 28"), type: "day", defaultValue: String(item.dueDay), max: item.firstDueDate ? 31 : 28 },
 				{ name: "discount", label: t("Monthly discount ({currency})", { currency: currencyName(locale, item.currency) }), type: "money", defaultValue: String(item.discountMinor / 100), min: 0, step: 0.01 },
 				{ name: "reason", label: t("Reason for this change"), type: "textarea" },
 			],
@@ -172,18 +198,23 @@ function EnrollmentSection({ memberId, memberBranchId, plans, enrollments, onCha
 		});
 	}
 	return <section className="space-y-5 rounded-2xl border bg-card p-5 sm:p-6">
-		<SectionHeading title={t("Enrollments")} description={t("Plans currently or previously assigned to this member.")} action={<Button ref={addButtonRef} variant="outline" onClick={() => { setFailed(false); setAdding(true); }}><Plus className="size-4" />{t("Add enrollment")}</Button>} />
+		<SectionHeading title={t("Enrollments")} description={t("Plans currently or previously assigned to this member.")} action={<Button ref={addButtonRef} variant="outline" onClick={() => { setError(null); setAdding(true); }}><Plus className="size-4" />{t("Add enrollment")}</Button>} />
 		{enrollments.length ? <ul className="space-y-3">{enrollments.map((item) => <li key={item.id} className="rounded-xl border p-4">
 			<div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold break-words">{item.planName}</h3><StatusBadge tone={item.status === "active" ? "success" : item.status === "paused" ? "warning" : "neutral"}>{t(item.status === "active" ? "Active" : item.status === "paused" ? "Paused" : "Ended")}</StatusBadge></div>
 			<p className="mt-3 text-xl font-semibold tabular-nums">{formatMoney(locale, item.agreedAmountMinor - item.discountMinor, item.currency)}<span className="ml-1.5 text-xs font-normal text-muted-foreground">{t("per month")}</span></p>
-			<p className="mt-1 text-xs leading-5 text-muted-foreground">{t("Started {date} · due day {day}", { date: formatDate(locale, new Date(item.startDate), { dateStyle: "medium", timeZone: "UTC" }), day: item.dueDay })}</p>
-			{item.status !== "ended" ? <div className="mt-4 flex flex-wrap gap-2 border-t pt-3"><Button className="min-h-10" size="sm" variant="outline" onClick={() => editTerms(item)}>{t("Edit future terms")}</Button><Button className="min-h-10" size="sm" variant="ghost" onClick={() => status(item.id, item.status === "active" ? "paused" : "active")}>{t(item.status === "active" ? "Pause" : "Resume")}</Button><Button className="min-h-10 text-muted-foreground" size="sm" variant="ghost" onClick={() => status(item.id, "ended")}>{t("End")}</Button></div> : null}
+			<div className="mt-2 space-y-1 text-sm leading-6 text-muted-foreground">
+				<p>{t("Started {date}", { date: formatDate(locale, new Date(item.startDate), { dateStyle: "long", timeZone: "UTC" }) })}</p>
+				{item.paymentDue ? <p className="font-medium text-foreground">{t(item.paymentDue.kind === "pending" ? "Payment due: {date}" : "Expected payment due: {date}", { date: formatDate(locale, new Date(item.paymentDue.date), { dateStyle: "long", timeZone: "UTC" }) })}</p> : <p>{t("No upcoming payment scheduled.")}</p>}
+			</div>
+			{item.status !== "ended" ? <div className="mt-4 flex flex-wrap gap-2 border-t pt-3"><Button className="min-h-10" size="sm" variant="outline" onClick={() => editTerms(item)}>{t("Edit future terms")}</Button><Button className="min-h-10" size="sm" variant="outline" onClick={() => status(item.id, item.status === "active" ? "paused" : "active")}>{t(item.status === "active" ? "Pause" : "Resume")}</Button><Button className="min-h-10" size="sm" variant="outline" onClick={() => status(item.id, "ended")}>{t("End")}</Button></div> : null}
 		</li>)}</ul> : <EmptyState text={t("No enrollments yet.")} />}
-		{adding ? <CenteredDialog open title={t("Add enrollment")} description={t("Choose a plan and the date this membership starts.")} pending={pending} onClose={() => setAdding(false)} returnFocus={addButtonRef}>
+		{adding ? <CenteredDialog open title={t("Add enrollment")} description={t("Choose a plan, a start date and the first payment due date.")} pending={pending} onClose={() => setAdding(false)} returnFocus={addButtonRef}>
 			<form onSubmit={submit} className="space-y-5 p-5 sm:p-7"><fieldset disabled={pending} className="grid gap-4">
-				<div className="grid gap-2"><Label htmlFor="enrollment-plan">{t("Plan")}</Label><SelectField id="enrollment-plan" value={planId} onValueChange={setPlanId} options={[{ value: "", label: t("Choose a plan") }, ...availablePlans.map((plan) => ({ value: plan.id, label: plan.name }))]} />{availablePlans.length === 0 ? <p className="text-sm text-muted-foreground">{t("No active plans are available at this member's branch.")}</p> : null}</div>
-				<div className="grid gap-2"><Label htmlFor="enrollment-start">{t("Start date")}</Label><DatePicker id="enrollment-start" label={t("Start date")} value={startDate} onChange={setStartDate} /></div>
-			</fieldset>{failed ? <p role="alert" className="text-sm text-destructive">{t("We could not add the enrollment.")}</p> : null}<div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" disabled={pending} onClick={() => setAdding(false)}>{t("Cancel")}</Button><LoadingButton type="submit" loading={pending} loadingLabel={t("Saving…")} disabled={pending || !planId}>{t("Add enrollment")}</LoadingButton></div></form>
+				<div className="grid gap-2"><Label htmlFor="enrollment-plan">{t("Plan")}</Label><SelectField id="enrollment-plan" value={planId} onValueChange={(value) => { setPlanId(value); setError(null); }} options={[{ value: "", label: t("Choose a plan") }, ...availablePlans.map((plan) => ({ value: plan.id, label: plan.name }))]} />{availablePlans.length === 0 ? <p className="text-sm text-muted-foreground">{t("No active plans are available at this member's branch.")}</p> : null}</div>
+				<div className="grid gap-2"><Label htmlFor="enrollment-start">{t("Start date")}</Label><DatePicker id="enrollment-start" label={t("Start date")} value={startDate} onChange={(value) => { setStartDate(value); setError(null); }} /></div>
+				<div className="grid gap-2"><Label htmlFor="enrollment-due">{t("First payment due date")}</Label><DatePicker id="enrollment-due" label={t("First payment due date")} value={firstDueDate} onChange={(value) => { setChosenDueDate(value); setError(null); }} /><p className="text-xs leading-5 text-muted-foreground">{t("One month after the start date. You can choose another date.")}</p>{chosenDueDate !== null ? <Button type="button" variant="ghost" className="w-fit px-0 text-sm" onClick={() => { setChosenDueDate(null); setError(null); }}>{t("Use one month after the start date")}</Button> : null}</div>
+				{firstDueDate && !invalidDueDate ? <p className="rounded-lg bg-muted/50 p-3 text-sm leading-6">{t("Following payment: {date}. Short months use their last day.", { date: formatDate(locale, new Date(billingDateInMonth(nextBillingMonth(firstDueDate.slice(0, 7)), recurringDay)), { dateStyle: "long", timeZone: "UTC" }) })}</p> : null}
+			</fieldset>{invalidDueDate ? <p role="alert" className="text-sm text-destructive">{t("The first payment due date must be after the start date.")}</p> : error ? <p role="alert" className="text-sm text-destructive">{t(error)}</p> : null}<div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-end"><Button type="button" variant="outline" disabled={pending} onClick={() => setAdding(false)}>{t("Cancel")}</Button><LoadingButton type="submit" loading={pending} loadingLabel={t("Saving…")} disabled={pending || !planId || !startDate || !firstDueDate || invalidDueDate}>{t("Add enrollment")}</LoadingButton></div></form>
 		</CenteredDialog> : null}
 		{dialog}
 	</section>;

@@ -1,6 +1,27 @@
 import type { Catalog } from "./en";
 
 export const es = {
+	"Each enrollment has its own payment date, starting one month after enrollment. You can adjust it when adding the member's plan.": "Cada inscripción tiene su propia fecha de pago, un mes después del inicio. Puedes ajustarla al inscribir al miembro.",
+	"Payment date chosen at enrollment": "Vencimiento elegido al inscribir",
+
+	"First payment due date": "Primer vencimiento",
+	"Choose a plan, a start date and the first payment due date.": "Elige el plan, la fecha de inicio y el primer vencimiento.",
+	"One month after the start date. You can choose another date.": "Se calcula un mes después del inicio. Puedes elegir otra fecha.",
+	"Use one month after the start date": "Usar un mes después del inicio",
+	"Following payment: {date}. Short months use their last day.": "Siguiente vencimiento: {date}. Si el mes no tiene ese día, se usa su último día.",
+	"The first payment due date must be after the start date.": "El primer vencimiento debe ser posterior a la fecha de inicio.",
+	"Check the start date and first payment due date.": "Revisa la fecha de inicio y el primer vencimiento.",
+	"Monthly due day (1–31)": "Día de vencimiento mensual (1–31)",
+	"Choose a day from 1 to 31.": "Elige un día del 1 al 31.",
+
+	"Started {date}": "Inicio: {date}",
+	"Payment due: {date}": "Vencimiento pendiente: {date}",
+	"Expected payment due: {date}": "Vencimiento previsto: {date}",
+	"No upcoming payment scheduled.": "Sin próximos vencimientos programados.",
+
+	"This member already has an active enrollment in this plan. You cannot add another while it remains active.": "Este miembro ya tiene una inscripción activa en este plan. No puedes agregar otra mientras siga activa.",
+	"This member already has a paused enrollment in this plan. Resume it instead of adding another.": "Este miembro ya tiene una inscripción pausada en este plan. Reanúdala en lugar de agregar otra.",
+	"This member already has an active or paused enrollment in this plan. Check their enrollments before adding another.": "Este miembro ya tiene una inscripción activa o pausada en este plan. Revisa sus inscripciones antes de agregar otra.",
 	"Overview": "Resumen",
 	"Active members": "Miembros activos",
 	"Monthly fee": "Mensualidad",
@@ -408,7 +429,6 @@ export const es = {
 	"Enrollments": "Inscripciones",
 	"Plans currently or previously assigned to this member.": "Planes asignados actualmente o anteriormente a este miembro.",
 	"Ended": "Finalizada",
-	"Started {date} · due day {day}": "Inició {date} · vence el día {day}",
 	"Pause": "Pausar",
 	"Resume": "Reanudar",
 	"End": "Finalizar",
@@ -727,4 +747,5 @@ export const es = {
 	"Preparing payment…": "Preparando pago…",
 	"We could not load the next results.": "No pudimos cargar los siguientes resultados.",
 	"Amount": "Valor",
+	"Complete {field} to save your changes.": "Completa «{field}» para guardar los cambios.",
 } satisfies Catalog;

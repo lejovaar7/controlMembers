@@ -5,6 +5,7 @@ import { LoadingButton } from "@/components/loading-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoneyInput } from "@/components/money-input";
+import { BillingDayInput } from "@/components/billing-day-input";
 import { Label } from "@/components/ui/label";
 import { useT } from "@/lib/i18n";
 import type { MessageKey } from "../../shared/i18n";
@@ -12,7 +13,7 @@ import type { MessageKey } from "../../shared/i18n";
 export interface ActionDialogField {
 	name: string;
 	label: string;
-	type: "number" | "money" | "textarea";
+	type: "number" | "money" | "day" | "textarea";
 	defaultValue?: string;
 	min?: number;
 	max?: number;
@@ -42,7 +43,8 @@ export function ActionDialog({ options, open, onClose, returnFocus }: {
 	const [pending, setPending] = useState(false);
 	const [error, setError] = useState<MessageKey | null>(null);
 	const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries((options.fields ?? []).map((field) => [field.name, field.defaultValue ?? ""])));
-	const incomplete = options.fields?.some((field) => !values[field.name]?.trim());
+	const missingField = options.fields?.find((field) => !values[field.name]?.trim());
+	const incomplete = Boolean(missingField);
 
 	async function submit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -65,8 +67,10 @@ export function ActionDialog({ options, open, onClose, returnFocus }: {
 					<Label htmlFor={`${id}-${field.name}`}>{field.label}</Label>
 					{field.type === "textarea" ? <textarea id={`${id}-${field.name}`} name={field.name} required maxLength={500} rows={3} disabled={pending} value={values[field.name]} onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))} className="min-h-24 w-full resize-y rounded-xl border bg-background px-3 py-3 text-base shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-60 sm:text-sm" />
 						: field.type === "money" ? <MoneyInput id={`${id}-${field.name}`} name={field.name} required min={field.min} max={field.max} disabled={pending} value={values[field.name]} onValueChange={(value) => setValues((current) => ({ ...current, [field.name]: value }))} />
+							: field.type === "day" ? <BillingDayInput maxDay={field.max === 31 ? 31 : 28} id={`${id}-${field.name}`} name={field.name} required disabled={pending} value={values[field.name]} onValueChange={(value) => setValues((current) => ({ ...current, [field.name]: value }))} />
 							: <Input id={`${id}-${field.name}`} name={field.name} type="number" required min={field.min} max={field.max} step={field.step ?? 1} disabled={pending} value={values[field.name]} onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))} />}
 				</div>)}
+				{missingField ? <p role="status" className="text-sm text-muted-foreground">{t("Complete {field} to save your changes.", { field: missingField.label })}</p> : null}
 				{error ? <p role="alert" className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm leading-6 text-destructive">{t(error)}</p> : null}
 			</div>
 			<div className="flex flex-col-reverse gap-2 border-t bg-muted/30 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
