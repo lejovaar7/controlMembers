@@ -74,6 +74,11 @@ The header Branch switcher is the operational scope
 for Plans, Members, Charges, Payments and reports. Route content remounts on
 Branch changes; do not keep a second independent all-Branches filter in a page.
 New Plan and Member forms default to the current Branch.
+Member CSV import follows the review-first workflow in specification 19. File,
+column-mapping and editable-review steps retain the current Branch explicitly.
+The review uses the shared responsive directory table and centered row-edit dialog,
+with the existing date/phone/Plan controls. Edits invalidate validation; saving is
+enabled only for the selected, validated rows. Importing never marks a fee paid.
 Manual Branch changes keep the page visible beneath a lightly dimmed overlay
 with the shared loader centered in a compact raised surface. The shell is inert
 until the change completes. Successful activation refreshes the session and

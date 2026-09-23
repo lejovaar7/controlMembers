@@ -1,3 +1,5 @@
+import type { ImportRequest, ImportReview } from "../../shared/member-import";
+
 export type CustomerMember = {
 	id: string;
 	displayName: string;
@@ -137,6 +139,8 @@ export const controlMembersApi = {
 	balances: (organizationId: string) => requestJson<{ balances: Array<{ id: string; displayName: string; branchName: string; status: string; outstandingMinor: number; creditMinor: number; netMinor: number }>; currency: string }>("/api/reports/member-balances", organizationId),
 	financialReports: (organizationId: string, period: string) => requestJson<{ period: string; currency: string; asOf: string; aging: { current: number; days1To30: number; days31To60: number; days61To90: number; days90Plus: number }; plans: Array<{ id: string; name: string; expectedMinor: number; allocatedMinor: number; outstandingMinor: number }>; branches: Array<{ id: string; name: string; expectedMinor: number; allocatedMinor: number; outstandingMinor: number }>; scope: string }>(`/api/reports/financial-summary?period=${encodeURIComponent(period)}`, organizationId),
 	previewImport: (organizationId: string, csv: string) => requestJson<{ rows: Array<{ row: number; memberName: string; errors: string[]; warnings: string[] }>; validCount: number; invalidCount: number; warningCount: number }>("/api/imports/members/preview", organizationId, write("POST", { csv })),
+	reviewImport: (organizationId: string, payload: ImportRequest) => requestJson<ImportReview>("/api/imports/members/preview", organizationId, write("POST", payload)),
+	saveImport: (organizationId: string, payload: ImportRequest, reviewToken: string, idempotencyKey: string) => requestJson<{ created: number; skipped: number; failed: number }>("/api/imports/members/confirm", organizationId, write("POST", { ...payload, reviewToken, idempotencyKey })),
 	confirmImport: (organizationId: string, csv: string, idempotencyKey: string) => requestJson<{ created: number; skipped: number; failed: number }>("/api/imports/members/confirm", organizationId, write("POST", { csv, idempotencyKey })),
 };
 

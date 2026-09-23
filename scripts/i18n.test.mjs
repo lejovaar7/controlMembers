@@ -31,8 +31,14 @@ test("application JSX copy and accessible labels use the translation catalog", (
 test("shared localization has no browser, Worker or secret dependencies", () => {
 	for (const name of readdirSync(new URL("../src/shared/i18n", import.meta.url))) {
 		const code = readFileSync(new URL(`../src/shared/i18n/${name}`, import.meta.url), "utf8");
-		assert.doesNotMatch(code, /\b(?:window|document|localStorage|BETTER_AUTH_SECRET|EMAIL_FROM)\b/);
 		const source = ts.createSourceFile(name, code, ts.ScriptTarget.Latest, true);
+		// UI copy may mention a document; only executable identifiers are dependencies.
+		const forbidden = new Set(["window", "document", "localStorage", "BETTER_AUTH_SECRET", "EMAIL_FROM"]);
+		function visit(node) {
+			if (ts.isIdentifier(node)) assert.ok(!forbidden.has(node.text), `${name}: forbidden identifier ${node.text}`);
+			ts.forEachChild(node, visit);
+		}
+		visit(source);
 		for (const statement of source.statements) {
 			if (ts.isImportDeclaration(statement)) assert.match(statement.moduleSpecifier.text, /^\.\/[a-z][a-zA-Z0-9-]*$/);
 		}

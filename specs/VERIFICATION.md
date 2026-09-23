@@ -1,5 +1,129 @@
 # ControlMembers Verification Record
 
+## 2026-09-23 — Automatic Plan matching and explicit missing-Plan choices
+
+- Imported Plan names use the existing unique normalized match against active
+  Plans in the current Branch. Missing Plans now remain unresolved by default;
+  importing without an Enrollment requires an explicit choice. Common Plans still
+  fill blank source values without overwriting recognized or unknown source Plans.
+- Added a Plan selector to each review row, showing the catalog price and dates
+  after selection. Missing/unmatched feedback explains the next action. Changes
+  invalidate validation; unresolved selected rows cannot be confirmed. Controls
+  are disabled during validation, uncertain saves and for excluded rows.
+- Added matching coverage for case/accents, multiple Plans, unknown names,
+  ambiguous names, absent columns, single-Plan catalogs and explicit no-enrollment
+  choices. Existing server tests cover Branch scope and current price revalidation.
+- Updated sample 01 with a Plan column, preserving its existing cells, and rebuilt
+  the guide/ZIP. Artifact Tool edited the CSV; the application parser verified
+  three expected matches with a synthetic catalog and three unresolved choices
+  with an empty catalog. Artifact Tool's CSV preview renderer exited without an
+  error message, so verification used cell preservation and parser assertions.
+- The running development server returned HTTP 200 for the updated module with
+  inline Plan selection and missing-Plan feedback. Browser file workflow remains
+  unverified under the earlier upload denial. No real import or database changes
+  were performed.
+- Passed typecheck, lint, 27 environment checks, 2 catalog checks, 2 form checks,
+  all 267 Workers tests across 25 files, and all three environment build dry runs.
+  Diff whitespace checks passed.
+
+## 2026-09-23 — Import limited to new-member form fields
+
+- Removed More details and all extra-field disclosures from mapping and row
+  editing. Kept name, document number, email, phone, WhatsApp, current Branch,
+  Plan and enrollment dates. Removed the redundant choose-another-file action;
+  the selected-file Remove action remains available.
+- The browser filters mappings through an eight-field allowlist before building
+  drafts, avoiding invisible import of removed reference, Contact, type or status
+  data. Members are active and the UI explains the supported-field scope. The v3
+  template contains only these fields. Richer legacy API support remains intact.
+- Added regressions for an older rich file producing only supported personal and
+  enrollment data, and for the exact simplified template. Manual browser file
+  verification remains outstanding; the prior upload denial was not bypassed.
+- Typecheck, lint, 27 environment checks, 2 catalog checks and 2 form checks passed.
+  The full Workers run passed 265 of 266 tests; the remaining test incorrectly
+  expected unquoted CSV headers. Corrected that assertion to parse the CSV and
+  reran all 13 import tests successfully, then passed all three build dry runs.
+  HTTP 200 module inspection confirmed the basic document field and mapping
+  allowlist, with no More details or previous-code field. Diff checks passed.
+- Updated the existing sample CSV guide/ZIP to reflect ignored legacy columns and
+  document-based duplicate checks. The sample CSV data itself was not changed.
+
+## 2026-09-23 — Plain-language import fields and optional editor sections
+
+- Labeled external references as optional previous Member codes and explained
+  their use with an example. Updated Spanish validation feedback to use the same
+  term and replaced technical preview/validation action wording with simpler copy.
+- Grouped optional column mappings by purpose. Row editing now prioritizes common
+  fields, with expandable documents/previous-code and Contact groups, summaries
+  of populated values, and contextual help for document types and relationships.
+  Draft/confirmation and backend identifier semantics remain unchanged.
+- Browser upload verification remains outstanding under the previously declined
+  upload permission; no file upload or alternative injection was attempted.
+- Passed typecheck, lint, 27 environment checks, 2 catalog checks (repeated after
+  the final button wording), 2 form checks, 264 Workers tests in 25 files and all
+  three environment build dry runs. The running development server returned
+  HTTP 200 with the updated label, help and optional editor sections. Diff checks
+  passed. No Member data was saved during verification.
+
+## 2026-09-22 — Simplified import details step
+
+- Replaced the 17-field mapping wall with four common fields, actual nonempty CSV
+  examples, plain-language empty choices and a required-name explanation.
+  Additional mappings and phone/date settings use expandable sections with
+  visible summaries of detected fields and current defaults.
+- Renamed the step Check details and added Continue to review. Missing file Plans
+  default to Assign later, while explicit file Plans remain subject to review.
+  Enrollment dates appear only when Plans are involved; removal resets the
+  common Plan choice. Existing validation, row editing and final save remain.
+- The browser inventory had no open tabs. The earlier declined upload permission
+  remains respected: no upload or injected-file workaround was attempted. Manual
+  browser verification of this step remains outstanding.
+- Full gate passed: typecheck, lint, 27 environment checks, 2 catalog checks,
+  2 form checks, 264 Workers tests across 25 files and all three environment build
+  dry runs. The development server returned HTTP 200 for the updated import
+  module, containing Check details, More details and Continue to review.
+
+## 2026-09-22 — Import file removal and actionable parsing errors
+
+- Added a selected-file summary and Remove file action even after a failed read.
+  Removal resets file input, drafts, mappings and validation; a generation guard
+  ignores obsolete reads after replacement/removal. Saving or an uncertain save
+  outcome disables removal. Corrected files can be selected again with the same name.
+- Empty files, header-only templates, malformed CSV, invalid headers, inconsistent
+  columns and size/row limits now have separate localized instructions. A parser
+  regression checks all seven cases and a corrected file with one Member.
+- No browser upload was retried after the earlier declined permission. Browser
+  verification of selection/removal remains outstanding; no real Member data was
+  uploaded or changed during this correction.
+- Full gate passed: typecheck, lint, 27 environment checks, 2 catalog checks,
+  2 form checks, 264 Workers tests in 25 files and dev/production/local build
+  dry runs. The running development URL returned HTTP 200 without a restart.
+
+## 2026-09-22 — Editable Member import with column mapping and Plans
+
+- Added bounded delimiter-aware CSV parsing, explicit column mapping with Spanish/
+  English suggestions, national/international phone handling and editable WhatsApp
+  fallback. The review supports row editing/exclusion, bulk or individual Plan
+  selection, dates, Contacts and an explicit details-only option.
+- Structured previews validate without writes. Confirmation rechecks scope,
+  identifiers and current Plan prices against a review fingerprint, then commits
+  the complete selection and enrollment/first-fee writes in one idempotent batch.
+  Legacy CSV API semantics remain supported; the download now uses template v2.
+- The localization boundary check now inspects executable identifiers rather than
+  matching words such as "document" inside translated UI copy.
+- Runtime inspected the wizard's initial screen with synthetic responses. The
+  browser's file chooser rejected the test-file upload because permission was
+  declined. No upload workaround was attempted; the full browser file/mapping/edit/
+  confirmation journey remains unverified. Removed temporary fixtures and sample
+  files. No real Member, user account, Plan, payment or remote database was changed
+  during QA. Parser and persistence scenarios were exercised by automated tests.
+- Full gate passed: typecheck, lint, 27 environment checks, 2 catalog checks,
+  2 form checks, 263 Workers tests in 25 files and dev/production/local build
+  dry runs. Coverage includes quoted/delimited files, phone/date conversion,
+  WhatsApp choices, duplicate rows, invalid Contacts, scope/Plan restrictions,
+  review invalidation, atomic writes, concurrent idempotency and the 50-row limit.
+  `git diff --check` passed. No migration, dependency or deployment was required.
+
 ## 2026-09-22 — Wait for replacement session requests during Branch changes
 
 - Reproduced the reported workspace error with the real Better Auth client and

@@ -5,6 +5,7 @@ import { RequestError } from "../http";
 import { requireTenant } from "../tenant";
 import { listAccessibleBranches } from "../tenant/branch";
 import { csvCell, details, normalizeText, readEmail, readPhone, readString } from "./domain";
+import { reviewMemberDrafts, saveMemberDrafts } from "./import-review";
 
 const COLUMNS = ["member_name", "branch_id", "document_type", "document_number", "email", "phone", "status", "external_reference", "contact_name", "contact_email", "contact_phone", "relationship", "billing_contact"] as const;
 
@@ -70,14 +71,17 @@ async function preview(env: Env, request: Request, csv: unknown) {
 }
 
 export function memberImportTemplate() {
-	return new Response(`\uFEFF${COLUMNS.map(csvCell).join(",")}\r\n`, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=controlmembers-member-import-v1.csv" } });
+	const columns = ["member_name", "document_number", "email", "phone", "whatsapp", "plan", "start_date", "first_due_date"];
+	return new Response(`\uFEFF${columns.map(csvCell).join(",")}\r\n`, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=controlmembers-member-import-v3.csv" } });
 }
 
 export async function previewMemberImport(env: Env, request: Request, body: Record<string, unknown>) {
+	if (body.rows !== undefined) return reviewMemberDrafts(env, request, body);
 	return await preview(env, request, body.csv);
 }
 
 export async function confirmMemberImport(env: Env, request: Request, body: Record<string, unknown>) {
+	if (body.rows !== undefined) return saveMemberDrafts(env, request, body);
 	const tenant = await requireTenant(env, request);
 	const idempotencyKey = readString(body.idempotencyKey, 100, true)!;
 	if (typeof body.csv !== "string") throw new RequestError(400, "INVALID_CSV");

@@ -27,7 +27,7 @@ import { confirmMemberImport, memberImportTemplate, previewMemberImport } from "
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use("/api/*", bodyLimit({ maxSize: 16_384, onError: (c) => c.json({ error: "REQUEST_TOO_LARGE" }, 413) }));
+app.use("/api/*", (c, next) => bodyLimit({ maxSize: /^\/api\/imports\/members\/(preview|confirm)$/.test(c.req.path) ? 131_072 : 16_384, onError: (c) => c.json({ error: "REQUEST_TOO_LARGE" }, 413) })(c, next));
 app.use("/api/*", async (c, next) => {
 	if (!c.req.path.startsWith("/api/auth/")) requireSameOriginJson(c.env, c.req.raw);
 	await next();

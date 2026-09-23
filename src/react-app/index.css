@@ -341,6 +341,21 @@
   .dialog-scroll-area::-webkit-scrollbar-corner { background: transparent; }
 }
 
+@layer components {
+  .import-members-table th:nth-child(1) { width: 7%; }
+  .import-members-table th:nth-child(2) { width: 19%; }
+  .import-members-table th:nth-child(3) { width: 18%; }
+  .import-members-table th:nth-child(4) { width: 22%; }
+  .import-members-table th:nth-child(5) { width: 22%; }
+  .import-members-table th:nth-child(6) { width: 12%; }
+  .import-members-table td { padding: 0.875rem; vertical-align: top; }
+  @container (max-width: 800px) {
+    .import-members-table tbody tr { display: block; }
+    .import-members-table td, .import-members-table td:nth-child(4) { display: block; text-align: left; }
+    .import-members-table td::before, .import-members-table td:nth-child(4)::before { display: block; max-width: none; margin-bottom: 0.25rem; }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .content-skeleton * { animation: none !important; transition: none !important; }
   .app-loader * { animation: none !important; transition: none !important; }
