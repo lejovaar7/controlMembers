@@ -98,7 +98,7 @@ function Centered({ children }: { children: React.ReactNode }) {
  */
 export function AppLayout() {
 	const t = useT();
-	const { data: session, isPending } = useSession();
+	const { data: session, isPending, isRefetching, error: sessionError, refetch: refetchSession } = useSession();
 	const location = useLocation();
 	const [menuOpen, setMenuOpen] = useState(false);
 	useEffect(() => {
@@ -113,6 +113,10 @@ export function AppLayout() {
 	const [signingOut, setSigningOut] = useState(false);
 	const [recoveryFailed, setRecoveryFailed] = useState(false);
 	const [switchingOrganization, setSwitchingOrganization] = useState(false);
+	const [branchTransition, setBranchTransition] = useState<{ organizationId: string; branchId: string; ready: boolean } | null>(null);
+	const [branchSwitchFailed, setBranchSwitchFailed] = useState(false);
+	const branchSwitchLock = useRef(false);
+	const switchingBranch = branchTransition !== null;
 	const userId = session?.user.id;
 
 	const activeOrganizationId = session?.session.activeOrganizationId ?? null;
@@ -152,14 +156,43 @@ export function AppLayout() {
 
 	// Same for the branch: adopt an accessible one rather than stranding the user.
 	useEffect(() => {
-		if (!userId || !branches || branches.length === 0 || recoveryFailed || switchingOrganization || selection?.kind !== "active") return;
+		if (!userId || !branches || branches.length === 0 || recoveryFailed || switchingOrganization || switchingBranch || selection?.kind !== "active") return;
 		if (branches.some((branch) => branch.id === activeBranchId)) return;
 		const first = branches[0];
 		if (!first) return;
 		void activateBranch(first.id, userId)
 			.then((ok) => { if (!ok) setRecoveryFailed(true); })
 			.catch(() => setRecoveryFailed(true));
-	}, [userId, branches, activeBranchId, recoveryFailed, switchingOrganization, selection?.kind]);
+	}, [userId, branches, activeBranchId, recoveryFailed, switchingOrganization, switchingBranch, selection?.kind]);
+
+
+	// Better Auth can replace our refetch with its deferred activation refresh.
+	// The cancelled promise resolves before that replacement has updated the session.
+	if (branchTransition?.ready && !isPending && !isRefetching) {
+		setBranchTransition(null);
+		if (sessionError || activeOrganizationId !== branchTransition.organizationId || activeBranchId !== branchTransition.branchId) setRecoveryFailed(true);
+	}
+
+	async function selectBranch(branchId: string) {
+		if (branchSwitchLock.current || !userId || !activeOrganizationId || branchId === activeBranchId || !branches?.some((branch) => branch.id === branchId)) return;
+		branchSwitchLock.current = true;
+		setBranchSwitchFailed(false);
+		setMenuOpen(false);
+		setBranchTransition({ organizationId: activeOrganizationId, branchId, ready: false });
+		let activated = false;
+		try {
+			activated = await activateBranch(branchId, userId);
+			if (!activated) throw new Error("Branch activation failed");
+			await refetchSession({ query: { disableCookieCache: true } });
+			setBranchTransition({ organizationId: activeOrganizationId, branchId, ready: true });
+			branchSwitchLock.current = false;
+		} catch {
+			if (activated) setRecoveryFailed(true);
+			else setBranchSwitchFailed(true);
+			setBranchTransition(null);
+			branchSwitchLock.current = false;
+		}
+	}
 
 	async function handleSignOut() {
 		if (signingOut) return;
@@ -253,7 +286,9 @@ export function AppLayout() {
 	};
 
 	return (
-		<div className="flex min-h-svh">
+		<>
+			{switchingBranch && <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/10"><div className="rounded-2xl border border-border/60 bg-card p-5 shadow-xl"><Loader size="page" className="min-h-0 w-auto p-0" label={t("Switching branch…")} /></div></div>}
+		<div className="flex min-h-svh" inert={switchingBranch || undefined} aria-hidden={switchingBranch || undefined}>
 			<a href="#main-content" className="skip-link">{t("Skip to content")}</a>
 			<aside className="sticky top-0 z-30 hidden h-svh w-62 shrink-0 bg-sidebar shadow-[6px_0_28px_-18px_rgba(15,23,42,0.28)] lg:block">
 				<div className="flex h-full min-h-0 flex-col">
@@ -285,7 +320,9 @@ export function AppLayout() {
 							<BranchSwitcher
 								branches={branches}
 								activeBranchId={activeBranchId}
-								userId={session.user.id}
+								switching={switchingBranch}
+								failed={branchSwitchFailed}
+								onSelect={(id) => void selectBranch(id)}
 							/>
 						) : activeBranch ? (
 							// One location: show the branch as a plain label rather than
@@ -311,5 +348,6 @@ export function AppLayout() {
 				</main>
 			</div>
 		</div>
+		</>
 	);
 }

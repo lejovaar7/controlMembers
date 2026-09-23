@@ -1,5 +1,7 @@
 /** English source messages are also stable, typed catalog keys. No user data here. */
 export const messages = [
+	"Switching branch…",
+	"Pending activation",
 	"Payment is available only for an open fee with an outstanding balance.",
 	"Reminders are available only for overdue fees with an outstanding balance.",
 	"Adjusting or voiding requires an open fee without applied payments.",

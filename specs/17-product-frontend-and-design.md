@@ -74,6 +74,17 @@ The header Branch switcher is the operational scope
 for Plans, Members, Charges, Payments and reports. Route content remounts on
 Branch changes; do not keep a second independent all-Branches filter in a page.
 New Plan and Member forms default to the current Branch.
+Manual Branch changes keep the page visible beneath a lightly dimmed overlay
+with the shared loader centered in a compact raised surface. The shell is inert
+until the change completes. Successful activation refreshes the session and
+confirms the selected Branch before removing the overlay. A changed Branch key
+mounts fresh page state.
+If Better Auth cancels a session request to start a newer one, keep waiting while
+the session is pending or refetching; a resolved cancelled request is not a scope
+failure. Only reconcile the selected Branch after session fetching has settled.
+A failed activation restores the controls and displays retry feedback. If the
+session cannot confirm the new scope, workspace recovery replaces the loader.
+Selecting the current Branch does nothing, and repeated submissions are locked.
 
 Browser request identifiers use `lib/idempotency-key.ts`, including payment
 review and Member import. These actions must work at the documented LAN HTTP
@@ -312,6 +323,10 @@ retries. Preview failures have an explicit retry action; closing the composer
 invalidates its preview. Success closes the dialog, refreshes balances, selects
 Payment history and shows the receipt.
 Outside-click/Escape dismissal and focus return use the shared dialog wrapper.
+The shared modal clips its inner scroll region to the rounded outer shell.
+Its narrow, rounded scrollbar is inset from the corners, uses theme colors and
+retains native wheel, touch and keyboard scrolling; browser scrollbar arrows
+are hidden where supported.
 The payment amount is prefilled on opening, using the oldest pending charge's
 remaining balance in the current Branch. Without an unpaid Charge the amount
 stays empty, with an explanation that additional money is an advance. Any
@@ -403,6 +418,10 @@ Members, charges and payments. Staff identity, role, Branch scope, state and
 actions have separate columns. Expandable permission details reduce visual noise
 without hiding scope restrictions. Create and edit use centered dialogs; the
 table shows only actions allowed by the server directory contract in module 07.
+Rows show one effective access badge: inactive, pending activation or active.
+Branch assignments use compact labels. Edit and status actions use outlined
+buttons in two columns; pending accounts have a full-width resend button below.
+Permission disclosures keep their keyboard-accessible summary and visible border.
 
 ### Confirmation and reason dialogs
 

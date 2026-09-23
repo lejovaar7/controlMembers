@@ -1,5 +1,83 @@
 # ControlMembers Verification Record
 
+## 2026-09-22 — Wait for replacement session requests during Branch changes
+
+- Reproduced the reported workspace error with the real Better Auth client and
+  AppLayout: its deferred activation signal cancels the explicit session refetch,
+  whose promise resolves while the replacement request is still fetching.
+  The previous transition guard then compared the old Branch and latched failure.
+- Reconciliation now waits until the session is neither pending nor refetching.
+  Retained final scope/error checks and the centered overlay with visible content.
+- An abort-aware synthetic fetch fixture with 1.8-second session latency showed
+  the error before the fix. The same scenario passed afterward in both directions,
+  displaying the selected Branch and restoring controls without the error screen.
+  Removed the fixture and temporary tab; no real account or Branch was changed.
+- Full gate passed: typecheck, lint, 27 environment checks, 2 catalog checks,
+  2 form checks, 253 Workers tests in 24 files and dev/production/local build
+  dry runs. `git diff --check` passed.
+
+## 2026-09-22 — Keep the workspace visible during Branch changes
+
+- Replaced the opaque transition background with a lightly dimmed overlay and
+  the shared loader inside a compact centered surface. Kept the page mounted
+  behind it and retained the inert shell and activation/session safeguards.
+- Runtime checked the actual AppLayout with delayed synthetic Branch activation
+  at desktop and 390-pixel widths. Confirmed visible page content behind the
+  centered indicator, inaccessible background actions while pending, and the
+  selected Branch and restored controls on completion. Removed the fixture/tab
+  and reset the viewport; no real records or sessions were changed.
+- Full gate passed: typecheck, lint, 27 environment checks, 2 catalog checks,
+  2 form checks, 253 Workers tests in 24 files and dev/production/local build
+  dry runs. `git diff --check` passed.
+
+## 2026-09-22 — Loading transition when switching Branches
+
+- Manual Branch selection immediately unmounts the outgoing page and displays
+  the shared full-screen Ring2 loader over an inert shell. After activation,
+  the refreshed session must match the requested scope before the new page mounts.
+  Repeated submissions are locked; failed activation restores retry controls.
+- Runtime checked the actual AppLayout and BranchSwitcher using synthetic
+  responses with delayed activation: desktop success and 390-pixel mobile
+  failure followed by a successful retry. Verified the centered loader, hidden
+  outgoing content, correct selected Branch and one successful activation.
+  Removed fixtures and temporary tabs and restored the viewport. No real
+  account, Branch or business data was modified by these checks.
+- Full gate passed: typecheck, lint, 27 environment checks, 2 catalog checks,
+  2 form checks, 253 Workers tests in 24 files and dev/production/local build
+  dry runs. No dependency, migration or deployment changes were needed.
+
+## 2026-09-22 — Clearer staff directory rows
+
+- Staff rows show one effective access state, compact Branch labels, bordered
+  permission disclosures and a two-column grid of outlined actions. Pending
+  accounts have a full-width resend action; inactive accounts retain reactivation.
+  Compact desktop widths omit decorative action icons to keep labels inside buttons.
+- Runtime checked the actual MembersPage with synthetic directory responses:
+  pending, active, inactive and scope-restricted/read-only entries, permission
+  expansion, opening/cancelling access editing, and opening/cancelling deactivation.
+  Inspected 1280-, 1024- and 390-pixel layouts. Removed fixtures/tab and reset the
+  viewport. Requests outside the mock directory were blocked; no real account,
+  permissions or email delivery was changed during QA.
+- Full gate passed: typecheck, lint, 27 environment checks, 2 catalog checks,
+  2 form checks, 253 Workers tests in 24 files and dev/production/local dry runs.
+  Final compact-action refinements also passed typecheck, lint and catalog checks;
+  the latter was rerun outside the sandbox after a subprocess EPERM.
+
+## 2026-09-22 — Rounded modal scroll regions
+
+- Shared CenteredDialog now clips an inner native scroll region inside its
+  rounded outer shell. The themed scrollbar has a narrow rounded thumb,
+  inset track ends and no arrow buttons where WebKit scrollbar styling applies.
+- Runtime checks used the actual shared modal and SelectField with synthetic
+  form content at desktop and 390-pixel widths. Verified curved corners at both
+  scroll ends, wheel and keyboard scrolling, access to bottom actions, select
+  popovers, focus restoration when reviewing, Escape dismissal and outside-click
+  dismissal with focus returned to the trigger. Removed the fixture/tab and
+  restored the browser viewport; no user or company records were changed.
+- Full gate passed: typecheck, lint, 27 environment checks, 2 catalog checks,
+  2 form checks, 253 Workers tests in 24 files and dev/production/local build
+  dry runs. No dependency, database schema or deployment changes were needed.
+
 ## 2026-09-21 — Compact received-payment table
 
 - Removed inline application breakdowns from payment rows, tightened spacing,

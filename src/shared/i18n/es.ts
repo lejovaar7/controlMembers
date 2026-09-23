@@ -1,6 +1,8 @@
 import type { Catalog } from "./en";
 
 export const es = {
+	"Switching branch…": "Cambiando de sede…",
+	"Pending activation": "Activación pendiente",
 	"Payment is available only for an open fee with an outstanding balance.": "Solo puedes registrar pagos en mensualidades no anuladas con saldo pendiente.",
 	"Reminders are available only for overdue fees with an outstanding balance.": "Los recordatorios solo están disponibles para mensualidades vencidas con saldo pendiente.",
 	"Adjusting or voiding requires an open fee without applied payments.": "Solo puedes ajustar o anular mensualidades que aún no tengan pagos aplicados y no estén anuladas.",

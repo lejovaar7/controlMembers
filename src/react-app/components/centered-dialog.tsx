@@ -32,13 +32,15 @@ export function CenteredDialog({ title, description, open, pending = false, onCl
 				const target = returnFocus && "current" in returnFocus ? returnFocus.current : returnFocus;
 				return target?.isConnected ? target : true;
 			}}
-				className={cn("fixed top-1/2 left-1/2 z-[60] max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-2xl border border-border/70 bg-card text-card-foreground shadow-2xl outline-none transition-[opacity,scale] duration-150 data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0 motion-reduce:transition-none", wide && "max-w-2xl")}>
-				<div className="relative px-5 pt-6 sm:px-7 sm:pt-7">
-					<Dialog.Close render={<Button type="button" variant="ghost" size="icon" />} aria-label={t("Close dialog")} disabled={pending} className="absolute top-4 right-4 rounded-full text-muted-foreground"><X className="size-4" /></Dialog.Close>
-					<Dialog.Title ref={titleRef} tabIndex={-1} className="pr-10 text-xl leading-snug font-semibold tracking-tight break-words outline-none">{title}</Dialog.Title>
-					<Dialog.Description className="mt-2 text-sm leading-6 break-words text-muted-foreground">{description}</Dialog.Description>
+				className={cn("fixed top-1/2 left-1/2 z-[60] flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-border/70 bg-card text-card-foreground shadow-2xl outline-none transition-[opacity,scale] duration-150 data-ending-style:scale-95 data-ending-style:opacity-0 data-starting-style:scale-95 data-starting-style:opacity-0 motion-reduce:transition-none", wide && "max-w-2xl")}>
+				<div className="dialog-scroll-area min-h-0 overflow-y-auto overscroll-contain">
+					<div className="relative px-5 pt-6 sm:px-7 sm:pt-7">
+						<Dialog.Close render={<Button type="button" variant="ghost" size="icon" />} aria-label={t("Close dialog")} disabled={pending} className="absolute top-4 right-4 rounded-full text-muted-foreground"><X className="size-4" /></Dialog.Close>
+						<Dialog.Title ref={titleRef} tabIndex={-1} className="pr-10 text-xl leading-snug font-semibold tracking-tight break-words outline-none">{title}</Dialog.Title>
+						<Dialog.Description className="mt-2 text-sm leading-6 break-words text-muted-foreground">{description}</Dialog.Description>
+					</div>
+					{children}
 				</div>
-				{children}
 			</Dialog.Popup>
 		</Dialog.Portal>
 	</Dialog.Root>;
