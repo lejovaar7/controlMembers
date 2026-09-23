@@ -1,0 +1,81 @@
+PRUEBAS DE IMPORTACIÓN DE MIEMBROS
+
+Todos los datos son ficticios. Los nombres empiezan con Prueba y los correos usan example.test. Los teléfonos son ejemplos para validar el formato; no envíes mensajes a ellos.
+
+CÓMO PROBAR
+1. Entra a Miembros > Importar CSV y elige uno de los archivos.
+2. Revisa las columnas sugeridas y corrige las que sean necesarias.
+3. Si el archivo incluye Plan, se reconocerá por su nombre entre los planes activos de la sede. Si falta o no se reconoce, elige uno en la revisión. Para probar sin generar mensualidades, selecciona todos los miembros y aplica Solo datos del miembro, sin inscripción.
+4. En Revisar miembros, cambia datos, excluye filas y pulsa Revisar cambios.
+5. Nada se guarda hasta pulsar Guardar miembros. Si guardas un archivo y lo repites, se detectarán documentos repetidos si el archivo incluye el documento. Los archivos sin documento no tienen esa comprobación de duplicados.
+6. Prueba Quitar archivo tanto con un archivo válido como con uno que muestre error. Después selecciona de nuevo el mismo archivo.
+
+Empieza con 01-comma-es.csv. Después prueba 05-phone-whatsapp.csv y 06-plans-dates-contacts.csv.
+
+FORMULARIO SIMPLIFICADO (23 DE SEPTIEMBRE DE 2026)
+Se importan nombre, documento, correo, teléfono, WhatsApp, plan y fechas. La sede es la seleccionada en la web. Los miembros se crean activos. Las columnas de estado, referencia, tipo de documento y acudientes de estos ejemplos antiguos no se importan.
+
+ARCHIVOS Y RESULTADOS ESPERADOS
+
+01-comma-es.csv
+3 miembros. Comas y encabezados en español; deben sugerirse Nombre, Correo, Teléfono y Plan. Ana y María tienen mensualidad infantil; Luis tiene mensualidad mayores. Esos nombres deben existir como planes activos en tu sede para reconocerlos automáticamente y completar su precio actual. Si no existen, selecciona los planes correctos en la tabla; no se crean planes nuevos. Sin columna WhatsApp: utiliza el teléfono. Estado y Referencia se omiten.
+Tamaño: 357 bytes.
+
+02-semicolon-es.csv
+3 miembros. Punto y coma, tildes y comillas. Los teléfonos colombianos deben quedar con +57 y 10 dígitos nacionales. El punto y coma dentro del primer nombre y las comillas del segundo no deben crear columnas adicionales.
+Tamaño: 308 bytes.
+
+03-tabs-en.csv
+3 miembros. Tabulaciones, encabezados en inglés y saltos LF sin BOM. Se importan Nombre, Correo y Teléfono. El estado del archivo se omite: se crearán activos, como al agregar un miembro. Elige asignar el plan después para revisar solo los datos personales.
+Tamaño: 276 bytes.
+
+04-manual-columns.csv
+2 miembros. Relaciona Dato A con Correo, Dato B con Nombre y Dato C con Teléfono. Deja Dato D y Observaciones sin usar. Comprueba los ejemplos antes de continuar.
+Tamaño: 231 bytes.
+
+05-phone-whatsapp.csv
+3 miembros. Primero: WhatsApp usa el mismo teléfono. Segundo: mantiene un número diferente. Tercero: al estar vacío, usa el teléfono. Para dejarlo sin WhatsApp, edita ese miembro, desmarca usar el mismo teléfono y deja WhatsApp vacío.
+Tamaño: 236 bytes.
+
+06-plans-dates-contacts.csv
+3 miembros. Elige Día / mes / año. Los planes son ficticios: si no existen en tu sede, deben pedir selección durante la revisión. Selecciona planes reales o asignar después. La fila sin plan usa tu elección general. Las columnas del acudiente no se importan. Ajusta las fechas del ejemplo antes de guardar si necesitas otras.
+Tamaño: 531 bytes.
+
+07-correctable-values.csv
+3 filas. El archivo se debe leer. En la revisión deben aparecer un correo inválido, un teléfono inválido y un nombre vacío. El estado del archivo se omite. Elige asignar el plan después, corrige los datos o excluye filas y pulsa Revisar cambios.
+Tamaño: 275 bytes.
+
+08-duplicate-identifiers.csv
+2 filas con el mismo documento. Deben marcarse ambas en la revisión. Cambia el documento de una fila o exclúyela y vuelve a revisar los cambios. La columna Referencia no se importa.
+Tamaño: 158 bytes.
+
+09-headers-only.csv
+Debe mostrar que solo hay títulos de columnas y que debes añadir miembros. También permite probar Quitar archivo después de un error.
+Tamaño: 28 bytes.
+
+10-empty.csv
+Debe informar que el archivo está vacío. El botón Quitar archivo debe permanecer disponible.
+Tamaño: 0 bytes.
+
+11-inconsistent-columns.csv
+Debe indicar que algunas filas tienen distinta cantidad de columnas.
+Tamaño: 61 bytes.
+
+12-unclosed-quotes.csv
+Debe indicar un problema de formato/comillas. No debe pasar a relacionar columnas.
+Tamaño: 48 bytes.
+
+13-over-50-members.csv
+51 miembros: debe rechazarlo por superar el máximo de 50 filas.
+Tamaño: 1942 bytes.
+
+14-over-100kb.csv
+Supera 100 KB: debe pedir dividir el archivo en archivos más pequeños.
+Tamaño: 100139 bytes.
+
+15-exactly-50-members.csv
+50 miembros: debe leer las 50 filas. Elige sin inscripción. Úsalo para comprobar la tabla de revisión, editar filas y excluir varias; no es necesario guardar los 50.
+Tamaño: 2013 bytes.
+
+COMPROBACIÓN REALIZADA
+Se verificó la lectura con el mismo analizador de la aplicación: 9 archivos legibles y 6 rechazos esperados. Se verificaron las relaciones de columnas, los teléfonos y las fechas de los ejemplos. Los errores de datos y duplicados se describen conforme a las reglas del servidor y deben comprobarse en la revisión de la web. No se subieron archivos al navegador ni se guardaron miembros.

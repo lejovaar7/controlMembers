@@ -1,0 +1,4 @@
+﻿Nombre,Correo,Referencia,Plan,Fecha inicio,Primer vencimiento,Acudiente,Correo acudiente,Telefono acudiente,Parentesco,Contacto cobro
+Prueba Plan infantil,prueba.06a@example.test,CSV-20260922-06A,PLAN DE PRUEBA INFANTIL,22/09/2026,22/10/2026,Prueba Acudiente Ana,prueba.06contact@example.test,+12025550116,madre,si
+Prueba Plan adulto,prueba.06b@example.test,CSV-20260922-06B,PLAN DE PRUEBA ADULTO,23/09/2026,23/10/2026,,,,,no
+Prueba Plan predeterminado,prueba.06c@example.test,CSV-20260922-06C,,24/09/2026,24/10/2026,,,,,no

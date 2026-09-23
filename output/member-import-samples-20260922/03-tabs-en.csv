@@ -1,0 +1,4 @@
+member_name	email	phone	status	external_reference
+Prueba Daniel	prueba.03a@example.test	+12025550107	active	CSV-20260922-03A
+Prueba Elena	prueba.03b@example.test	+12025550108	paused	CSV-20260922-03B
+Prueba Samuel	prueba.03c@example.test	+12025550109	inactive	CSV-20260922-03C

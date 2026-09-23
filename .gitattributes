@@ -1,0 +1,2 @@
+# Preserve intentional CSV encodings, delimiters and line endings in test samples.
+output/member-import-samples-20260922/*.csv -text whitespace=trailing-space,space-before-tab,cr-at-eol

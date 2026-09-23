@@ -1,0 +1,4 @@
+﻿Nombre,Correo,Telefono,Estado,Referencia
+Prueba Correo incorrecto,correo-sin-arroba,+12025550117,activo,CSV-20260922-07A
+Prueba Teléfono incorrecto,prueba.07b@example.test,123,activo,CSV-20260922-07B
+,prueba.07c@example.test,+12025550118,desconocido,CSV-20260922-07C
