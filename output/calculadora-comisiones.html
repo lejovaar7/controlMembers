@@ -1,0 +1,127 @@
+<div id="calculadora-socios">
+  <h2>Ventas y comisiones · un mes</h2>
+  <div class="viz-controls">
+    <label class="form-label">Moneda<select class="form-select" data-key="currency"><option value="COP">COP</option><option value="USD">USD</option><option value="EUR">EUR</option></select></label>
+    <label class="form-label">Comisión de suscripción<select class="form-select" data-key="recurring"><option value="all">Cada mensualidad cobrada</option><option value="first">Solo la primera mensualidad</option></select></label>
+  </div>
+  <h3>Suscripciones cobradas este mes</h3>
+  <div class="viz-controls">
+    <label class="form-label">Precio mensual<input class="form-control" data-key="monthlyPrice" type="number" min="0" step="any" value="100000"></label>
+    <label class="form-label">Clientes que pagan este mes<input class="form-control" data-key="active" type="number" min="0" step="1" value="10"></label>
+    <label class="form-label" data-new-field hidden>De ellos, clientes que pagan por primera vez<input class="form-control" data-key="newClients" type="number" min="0" step="1" value="2"></label>
+    <label class="form-label">Comisión de socios (%)<input class="form-control" data-key="monthlyRate" type="number" min="0" max="100" step="any" value="20"></label>
+    <label class="form-label">Costo mensual por cliente<input class="form-control" data-key="monthlyCost" type="number" min="0" step="any" value="15000"></label>
+  </div>
+  <h3>Ventas de pago único este mes</h3>
+  <div class="viz-controls">
+    <label class="form-label">Precio por venta<input class="form-control" data-key="onePrice" type="number" min="0" step="any" value="1000000"></label>
+    <label class="form-label">Ventas cobradas<input class="form-control" data-key="sales" type="number" min="0" step="1" value="2"></label>
+    <label class="form-label">Comisión de socios (%)<input class="form-control" data-key="oneRate" type="number" min="0" max="100" step="any" value="20"></label>
+    <label class="form-label">Costo por venta<input class="form-control" data-key="oneCost" type="number" min="0" step="any" value="100000"></label>
+  </div>
+  <h3>Gastos y objetivo del mes</h3>
+  <div class="viz-controls">
+    <label class="form-label">Gastos fijos y soporte de clientes anteriores<input class="form-control" data-key="fixed" type="number" min="0" step="any" value="300000"></label>
+    <label class="form-label">Otros gastos planeados<input class="form-control" data-key="extra" type="number" min="0" step="any" value="200000"></label>
+    <label class="form-label">Ganancia que quieres conservar<input class="form-control" data-key="target" type="number" min="0" step="any" value="500000"></label>
+  </div>
+  <div role="alert" data-error hidden></div>
+  <div data-results aria-live="polite">
+    <div class="viz-grid">
+      <div class="card viz-stat"><div>Comisiones de socios</div><div class="viz-stat-value tabular-nums" data-total="commission"></div><div class="text-small">Total entre todos los socios</div></div>
+      <div class="card viz-stat"><div>Resultado para ustedes</div><div class="viz-stat-value tabular-nums" data-total="profit"></div><div class="text-small" data-margin></div></div>
+      <div class="card viz-stat"><div>Disponible para gastar adicionalmente</div><div class="viz-stat-value tabular-nums" data-total="room"></div><div class="text-small" data-budget-note></div></div>
+    </div>
+    <div class="table-responsive"><table class="table table-sm"><thead><tr><th>Este mes</th><th class="text-end">Mensual</th><th class="text-end">Pago único</th><th class="text-end">Total</th></tr></thead><tbody data-breakdown></tbody></table></div>
+  </div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('calculadora-socios');
+  const defaults = {currency:'COP',recurring:'all',monthlyPrice:100000,active:10,newClients:2,monthlyRate:20,monthlyCost:15000,onePrice:1000000,sales:2,oneRate:20,oneCost:100000,fixed:300000,extra:200000,target:500000};
+  const fields = [...root.querySelectorAll('[data-key]')];
+  function calculate(s) {
+    const monthlyRevenue = s.monthlyPrice * s.active;
+    const oneRevenue = s.onePrice * s.sales;
+    const monthlyCommission = s.monthlyPrice * (s.recurring === 'all' ? s.active : s.newClients) * s.monthlyRate / 100;
+    const oneCommission = oneRevenue * s.oneRate / 100;
+    const monthlyCost = s.active * s.monthlyCost;
+    const oneCost = s.sales * s.oneCost;
+    const revenue = monthlyRevenue + oneRevenue;
+    const commission = monthlyCommission + oneCommission;
+    const profit = revenue - commission - monthlyCost - oneCost - s.fixed - s.extra;
+    return {monthlyRevenue,oneRevenue,monthlyCommission,oneCommission,monthlyCost,oneCost,revenue,commission,profit,room:Math.max(0,profit-s.target)};
+  }
+  function read() {
+    const s = {};
+    fields.forEach(el => {s[el.dataset.key] = el.tagName === 'SELECT' ? el.value : el.value === '' ? NaN : Number(el.value);});
+    return s;
+  }
+  function restore(snapshot) {
+    const saved = snapshot && snapshot.modelContent && snapshot.modelContent.inputs;
+    const s = {...defaults};
+    if (saved && typeof saved === 'object') Object.keys(defaults).forEach(key => {
+      if (typeof saved[key] === typeof defaults[key]) s[key] = saved[key];
+    });
+    if (!['COP','USD','EUR'].includes(s.currency)) s.currency = defaults.currency;
+    if (!['all','first'].includes(s.recurring)) s.recurring = defaults.recurring;
+    fields.forEach(el => {el.value = s[el.dataset.key];});
+    render(false);
+  }
+  function render(persist) {
+    const s = read();
+    root.querySelector('[data-new-field]').hidden = s.recurring !== 'first';
+    let error = '';
+    for (const el of fields) {
+      if (el.tagName === 'SELECT' || (el.dataset.key === 'newClients' && s.recurring === 'all')) continue;
+      const value = s[el.dataset.key];
+      if (!Number.isFinite(value) || value < 0 || (el.max && value > Number(el.max)) || (el.step === '1' && !Number.isInteger(value))) error = 'Revisa los valores: cantidades enteras, importes positivos o cero y comisiones entre 0 y 100 %.';
+    }
+    if (s.recurring === 'first' && s.newClients > s.active) error = 'Los clientes nuevos no pueden superar el total de clientes que pagan este mes.';
+    const errorEl = root.querySelector('[data-error]');
+    errorEl.textContent = error;
+    errorEl.hidden = !error;
+    root.querySelector('[data-results]').hidden = !!error;
+    if (error) return;
+    const r = calculate(s);
+    if (Object.values(r).some(v => !Number.isFinite(v))) {
+      errorEl.textContent = 'Los importes son demasiado grandes. Reduce los valores.';
+      errorEl.hidden = false;
+      root.querySelector('[data-results]').hidden = true;
+      return;
+    }
+    const money = n => new Intl.NumberFormat('es-CO',{style:'currency',currency:s.currency,currencyDisplay:'code',maximumFractionDigits:s.currency === 'COP' ? 0 : 2}).format(n);
+    root.querySelectorAll('[data-total]').forEach(el => {el.textContent = money(r[el.dataset.total]);});
+    root.querySelector('[data-margin]').textContent = r.revenue ? 'Margen antes de impuestos: ' + (100*r.profit/r.revenue).toLocaleString('es-CO',{maximumFractionDigits:1}) + ' %' : 'Sin ingresos este mes';
+    root.querySelector('[data-budget-note]').textContent = r.profit < s.target ? 'Faltan ' + money(s.target-r.profit) + ' para tu objetivo' : 'Conservando ' + money(s.target) + ' de ganancia';
+    const rows = [
+      ['Ingresos cobrados',r.monthlyRevenue,r.oneRevenue,r.revenue],
+      ['Comisiones',-r.monthlyCommission,-r.oneCommission,-r.commission],
+      ['Costos por cliente / venta',-r.monthlyCost,-r.oneCost,-r.monthlyCost-r.oneCost],
+      ['Gastos fijos',null,null,-s.fixed],
+      ['Otros gastos planeados',null,null,-s.extra],
+      ['Resultado antes de impuestos',null,null,r.profit],
+      ['Comisión por cliente / venta elegible',s.monthlyPrice*s.monthlyRate/100,s.onePrice*s.oneRate/100,null]
+    ];
+    const body = root.querySelector('[data-breakdown]');
+    body.replaceChildren();
+    rows.forEach(row => {
+      const tr = document.createElement('tr');
+      row.forEach((value,i) => {
+        const cell = document.createElement(i ? 'td' : 'th');
+        if (i) cell.className = 'text-end'; else cell.scope = 'row';
+        cell.textContent = i ? (value === null ? '—' : money(value)) : value;
+        tr.appendChild(cell);
+      });
+      body.appendChild(tr);
+    });
+    if (persist && window.openai && window.openai.setWidgetState) window.openai.setWidgetState({modelContent:{inputs:s},privateContent:null}).catch(() => {});
+  }
+  fields.forEach(el => el.addEventListener('input',() => render(true)));
+  window.addEventListener('openai:set_globals',event => {
+    const globals = event.detail && event.detail.globals;
+    if (globals && Object.prototype.hasOwnProperty.call(globals,'widgetState')) restore(globals.widgetState);
+  });
+  restore(window.openai && window.openai.widgetState);
+})();
+</script>
